@@ -11,7 +11,7 @@ class MediaclassServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/mediaclass.php', 'mfw.mediaclass');
+        $this->mergeConfigFrom(__DIR__.'/../config/mediaclass.php', 'mfw-mediaclass');
 
         $this->app->singleton('mediaclass', fn() => new Mediaclass());
     }
@@ -27,7 +27,7 @@ class MediaclassServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../config/mediaclass.php' => config_path('mfw/mediaclass.php'),
+                __DIR__.'/../config/mediaclass.php' => config_path('mfw-mediaclass.php'),
             ], 'mfw-mediaclass-config');
 
             $this->publishes([

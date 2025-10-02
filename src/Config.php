@@ -119,7 +119,7 @@ class Config
 
     private static function config(string $key, mixed $default = null): mixed
     {
-        $prefixed = ConfigFacade::get('mfw.mediaclass.' . $key);
+        $prefixed = ConfigFacade::get('mfw-mediaclass.' . $key);
 
         if ($prefixed !== null) {
             return $prefixed;
