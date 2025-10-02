@@ -1,0 +1,566 @@
+<?php
+
+namespace MetaFramework\Mediaclass\Controllers;
+
+use Exception;
+use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageInterface;
+use MetaFramework\Mediaclass\Config as MediaclassConfig;
+use MetaFramework\Mediaclass\Cropable;
+use MetaFramework\Mediaclass\Interfaces\MediaclassInterface;
+use MetaFramework\Mediaclass\Models\Media;
+use MetaFramework\Mediaclass\Path;
+use MetaFramework\Support\Traits\Responses;
+use ReflectionClass;
+use Throwable;
+
+class FileUploadImages
+{
+    use Responses;
+
+    protected ImageInterface $image;
+    protected MediaclassInterface $model;
+    protected array $dimensions;
+    protected array $urls = [];
+
+    protected string $mime_type;
+    protected string $filename;
+    protected object $uploadedFile;
+
+    private Media $media;
+    private ?string $temp;
+    private ?int $model_id;
+    private string $folder_name = '';
+    private string $media_group;
+    private bool $is_ghost = false;
+    private array $storables = [];
+
+    private Filesystem $disk;
+    private ImageManager $imageManager;
+
+    public function __construct()
+    {
+        $this->enableAjaxMode();
+        $this->model_id    = (int)request('model_id') ?: null;
+        $this->temp        = request('mediaclass_temp_id') ?: null;
+        $this->media_group = request('group') ?: MediaclassConfig::defaultGroup();
+        $this->is_ghost    = request('ghost') === '1';
+        $this->storables   = (array)request('storables');
+
+        $this->response['filetype'] = 'image';
+
+        $this->disk = MediaclassConfig::getDisk();
+
+        // Initialize ImageManager with GD driver (you can switch to ImagickDriver if needed)
+        $this->imageManager = new ImageManager(new GdDriver());
+    }
+
+    public function getStorables(): ?array
+    {
+        return $this->storables ?: null;
+    }
+
+    public function setModel(?string $model = null): static
+    {
+        if ( ! $model) {
+            $this->responseError(__('mediaclass.missing_model'));
+
+            return $this;
+        }
+
+        try {
+            $this->model = (new ReflectionClass($model))->newInstance();
+
+            if ($this->model_id && ! $this->is_ghost) {
+                $this->model = $this->model->find($this->model_id);
+            }
+
+            // For ghost models, use just the model name folder
+            if ($this->is_ghost) {
+                $this->folder_name = Str::snake((new ReflectionClass($this->model))->getShortName());
+            } else {
+                $this->folder_name = Path::mediaFolderName($this->model);
+            }
+        } catch (Throwable $e) {
+            $this->responseException($e, "Unknown ".$model." class in ".static::class);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Deletes a Mediaclass record and all its files
+     * Deletes the relative directory if it is empty
+     *
+     * @return $this
+     */
+    public function delete(): static
+    {
+        try {
+            $media = Media::query()->find(request('id'));
+
+            // For ghost models, we need to inject the model instance
+            if ($media->model_id === null) {
+                // Set the model relation without querying
+                $media->setRelation('model', (new ReflectionClass($media->model_type))->newInstance());
+            }
+
+            $path = Path::mediaFolderForMedia($media);
+            File::delete(
+                File::glob(
+                    $this->disk->path($path.DIRECTORY_SEPARATOR.'*'.$media->filename.'*'),
+                ),
+            );
+
+            if (count($this->disk->files($path)) === 0) {
+                $this->disk->deleteDirectory($path);
+            }
+
+            $media->delete();
+        } catch (Throwable $e) {
+            $this->responseException($e);
+            report($e);
+        }
+
+        return $this;
+    }
+
+    public function upload(): static
+    {
+        $this->filename     = Str::random(6);
+        $this->uploadedFile = request()->file('files')[0];
+
+        if ($this->hasErrors()) {
+            return $this;
+        }
+
+        // Early dimension check for images (non-SVG)
+        if (strstr($this->uploadedFile->getMimeType(), '/', true) == 'image'
+            &&
+            ! str_contains($this->uploadedFile->getMimeType(), 'svg')
+        ) {
+            // Get group settings if available
+            $groupSettings = MediaclassConfig::getGroupSetings($this->model, $this->media_group);
+
+            if ( ! empty($groupSettings)) {
+                $groupKey       = array_key_first($groupSettings);
+                $requiredWidth  = $groupSettings[$groupKey]['width'] ?? null;
+                $requiredHeight = $groupSettings[$groupKey]['height'] ?? null;
+
+                if ($requiredWidth && $requiredHeight) {
+                    // Get image dimensions
+                    $imageInfo = @getimagesize($this->uploadedFile->getPathname());
+
+                    if ($imageInfo) {
+                        $imageWidth  = $imageInfo[0];
+                        $imageHeight = $imageInfo[1];
+
+                        if ($imageWidth < $requiredWidth || $imageHeight < $requiredHeight) {
+                            $this->responseError(
+                                __('mediaclass.errors.dimensions', [
+                                    'width'           => $requiredWidth,
+                                    'height'          => $requiredHeight,
+                                    'uploaded_width'  => $imageWidth,
+                                    'uploaded_height' => $imageHeight,
+                                ]),
+                            );
+
+                            return $this;
+                        }
+                    }
+                }
+            }
+        }
+
+        // documents
+        if (strstr($this->uploadedFile->getMimeType(), '/', true) != 'image') {
+            // Move non-image files
+            // TODO: controls
+            return $this->uploadFiles();
+        }
+
+        $this->response['has_positions'] = (bool)request('positions');
+
+        // svg
+        if (str_contains($this->uploadedFile->getMimeType(), 'svg')) {
+            return $this->uploadSvg();
+        }
+
+        if (strstr($this->uploadedFile->getMimeType(), '/', true) != 'image') {
+            $this->responseAbort(trans('mediaclass.errors.mustBeImage'));
+
+            return $this;
+        }
+
+        return $this->processImage();
+    }
+
+    private function uploadFiles(): static
+    {
+        $this->response['filetype'] = 'file';
+        $this->response['filename'] = $this->filename.'.'.$this->uploadedFile->guessExtension();
+        $this->response['link']     = $this->disk->url($this->folder_name.'/'.$this->response['filename'].'?'.time());;
+        $this->response['fileicon'] = asset('vendor/mfw/mediaclass/images/files/'.$this->uploadedFile->guessExtension().'.png');
+        $this->response['preview']  = $this->response['fileicon'];
+
+        try {
+            $this->media = $this->store();
+        } catch (Throwable $e) {
+            $this->responseException($e);
+        }
+
+        $this->uploadedFile->move($this->disk->path($this->folder_name), $this->response['filename']);
+
+        $this->mediaResponse();
+
+        return $this;
+    }
+
+    private function uploadSvg(): static
+    {
+        $this->response['filename'] = $this->filename.'.svg';
+        $file                       = $this->folder_name.'/'.$this->response['filename'];
+        $img                        = $this->disk->url($file.'?'.time());
+        $this->response['fileicon'] = asset('vendor/mfw/mediaclass/images/files/svg.png');
+
+        try {
+            $this->media = $this->store();
+        } catch (Throwable $e) {
+            $this->responseException($e);
+        }
+
+        $this->uploadedFile->move($this->disk->path($this->folder_name), $this->response['filename']);
+
+        $this->responseElement('link', $this->disk->url($file));
+        $this->responseElement('preview', $img);
+
+        $this->mediaResponse();
+
+        return $this;
+    }
+
+    private function processImage(): static
+    {
+        // Get group settings if available
+        $groupSettings = MediaclassConfig::getGroupSetings($this->model, $this->media_group);
+
+        // Load dimensions from group settings or default
+        $this->dimensions = $groupSettings ?: MediaclassConfig::getSizes();
+
+        $this->image = $this->imageManager->read($this->uploadedFile);
+
+        // Check dimensions if group settings exist
+        if ( ! empty($groupSettings)) {
+            $groupKey       = array_key_first($groupSettings);
+            $requiredWidth  = $groupSettings[$groupKey]['width'] ?? null;
+            $requiredHeight = $groupSettings[$groupKey]['height'] ?? null;
+
+            $imageWidth  = $this->image->width();
+            $imageHeight = $this->image->height();
+
+            // Validate dimensions
+            if ($requiredWidth && $requiredHeight) {
+                if ($imageWidth < $requiredWidth || $imageHeight < $requiredHeight) {
+                    $this->responseError(
+                        __('mediaclass.errors.dimensions', [
+                            'width'           => $requiredWidth,
+                            'height'          => $requiredHeight,
+                            'uploaded_width'  => $imageWidth,
+                            'uploaded_height' => $imageHeight,
+                        ]),
+                    );
+
+                    // Clean up the image resource
+                    unset($this->image);
+
+                    return $this;
+                }
+
+                // NEW: Check if cropable is enabled and validate scale
+                if (isset($groupSettings[$groupKey]['cropable']) && $groupSettings[$groupKey]['cropable'] === true) {
+                    // Calculate what the resized dimensions would be
+                    $isWidthMain          = $requiredWidth >= $requiredHeight;
+                    $mainDimension        = $isWidthMain ? $requiredWidth : $requiredHeight;
+                    $currentMainDimension = $isWidthMain ? $imageWidth : $imageHeight;
+
+                    // Only check scale if resizing will happen
+                    if ($currentMainDimension !== $mainDimension) {
+                        $scaleRatio    = $mainDimension / $currentMainDimension;
+                        $resizedWidth  = (int)($imageWidth * $scaleRatio);
+                        $resizedHeight = (int)($imageHeight * $scaleRatio);
+
+                        // Check if resized dimensions would be insufficient for cropping
+                        if ($resizedWidth < $requiredWidth || $resizedHeight < $requiredHeight) {
+                            // Calculate the minimum scale needed
+                            $minScaleWidth  = $requiredWidth / $imageWidth;
+                            $minScaleHeight = $requiredHeight / $imageHeight;
+                            $minScale       = max($minScaleWidth, $minScaleHeight);
+
+                            // Calculate minimum original dimensions needed
+                            $minOriginalWidth  = (int)ceil($requiredWidth / $minScale);
+                            $minOriginalHeight = (int)ceil($requiredHeight / $minScale);
+
+                            $this->responseError(
+                                __('mediaclass.errors.scale_for_crop', [
+                                    'width'           => $requiredWidth,
+                                    'height'          => $requiredHeight,
+                                    'min_width'       => $minOriginalWidth,
+                                    'min_height'      => $minOriginalHeight,
+                                    'uploaded_width'  => $imageWidth,
+                                    'uploaded_height' => $imageHeight,
+                                ]),
+                            );
+
+                            // Clean up the image resource
+                            unset($this->image);
+
+                            return $this;
+                        }
+                    }
+                }
+            }
+        }
+
+        $this->urls = [];
+
+        $mimeType = $this->uploadedFile->getMimeType();
+
+        $this->mime_type            = (str_contains($mimeType, 'png') ? 'png' : 'jpg');
+        $this->response['fileicon'] = asset('vendor/mfw/mediaclass/images/files/jpg.png');
+
+        $ratio                   = ($this->image->width() / $this->image->height()) > 1 ? 'h' : 'v';
+        $this->response['ratio'] = $ratio;
+
+        foreach ($this->dimensions as $key => $dimensions) {
+            $file = $this->folder_name.'/'.$dimensions['width'].'_'.$this->filename.'.'.$this->mime_type;
+
+            $targetWidth  = $dimensions['width'];
+            $targetHeight = $dimensions['height'];
+            $imageWidth   = $this->image->width();
+            $imageHeight  = $this->image->height();
+
+            $resizedImage = null;
+
+            // For group settings (single dimension), apply special logic
+            if ( ! empty($groupSettings) && $key === array_key_first($groupSettings)) {
+                // Determine which is the main dimension (the larger one)
+                $isWidthMain          = $targetWidth >= $targetHeight;
+                $mainDimension        = $isWidthMain ? $targetWidth : $targetHeight;
+                $currentMainDimension = $isWidthMain ? $imageWidth : $imageHeight;
+
+                // If main dimension is exact, keep original image
+                if ($currentMainDimension === $mainDimension) {
+                    $resizedImage = clone $this->image;
+                } else {
+                    // Main dimension is larger, resize to exact main dimension and scale the other proportionally
+                    $scaleRatio   = $mainDimension / $currentMainDimension;
+                    $newWidth     = (int)($imageWidth * $scaleRatio);
+                    $newHeight    = (int)($imageHeight * $scaleRatio);
+                    $resizedImage = $this->image->resize($newWidth, $newHeight);
+                }
+            } else {
+                // For default dimensions, use standard scaling (don't upsize)
+                $widthRatio  = $targetWidth / $imageWidth;
+                $heightRatio = $targetHeight / $imageHeight;
+                $scaleRatio  = min($widthRatio, $heightRatio, 1);
+
+                $newWidth     = (int)($imageWidth * $scaleRatio);
+                $newHeight    = (int)($imageHeight * $scaleRatio);
+                $resizedImage = $this->image->resize($newWidth, $newHeight);
+            }
+
+            $encodedImage = $this->mime_type === 'png'
+                ? $resizedImage->toPng()
+                : $resizedImage->toJpeg(75);
+
+            $this->disk->put($file, $encodedImage);
+
+            $this->urls[$key] = $this->disk->url($file.'?'.time());
+        }
+
+        $this->responseElement('link', $this->urls[array_key_first($this->urls)] ?? MediaclassConfig::defaultImgUrl());
+        $this->responseElement('preview', $this->urls[array_key_last($this->urls)] ?? MediaclassConfig::defaultImgUrl());
+        $this->responseElement('urls', $this->urls);
+
+        try {
+            $this->media = $this->store();
+        } catch (Throwable $e) {
+            $this->responseException($e);
+        }
+
+        // For ghost models, inject the model instance
+        if ($this->is_ghost) {
+            $this->media->setRelation('model', $this->model);
+        } else {
+            $this->media->model = $this->model;
+        }
+
+        $cropable = new Cropable($this->media);
+
+        // Handle cropable settings
+        $cropableData = request('cropable');
+
+        // If no cropable data from request but group has cropable setting
+        if ( ! $cropableData && ! empty($groupSettings)) {
+            $groupKey       = array_key_first($groupSettings);
+            $requiredWidth  = $groupSettings[$groupKey]['width'] ?? null;
+            $requiredHeight = $groupSettings[$groupKey]['height'] ?? null;
+
+            // Check if image dimensions match exactly
+            $imageWidth  = $this->image->width();
+            $imageHeight = $this->image->height();
+
+            $isExactMatch = ($imageWidth == $requiredWidth && $imageHeight == $requiredHeight);
+
+            // Only set cropable if cropable is true AND dimensions don't match exactly
+            if (isset($groupSettings[$groupKey]['cropable'])
+                && $groupSettings[$groupKey]['cropable'] === true
+                &&
+                ! $isExactMatch
+            ) {
+                // Set cropable dimensions from group settings
+                $label        = $groupSettings[$groupKey]['label'] ?? ucfirst($groupKey);
+                $cropableData = [
+                    $groupKey => [
+                        $requiredWidth,
+                        $requiredHeight,
+                    ],
+                ];
+            }
+        }
+
+        if (is_string($cropableData)) {
+            // Try to decode if it's JSON
+            $decoded = json_decode($cropableData, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $cropableData = $decoded;
+            }
+        }
+
+        $cropable->setCropableFromComponent($cropableData);
+
+        $this->responseElement('cropable_links', $cropable->links());
+        $this->responseElement('cropable_settings', json_encode($cropable->getCropableSettings()));
+
+        $this->mediaResponse();
+
+        return $this;
+    }
+
+    /**
+     * @throws \Exception
+     */
+    private function store(): Media
+    {
+        if (config()->has('app.cacheables') & in_array($this->model->type, (array)config('app.cacheables'))) {
+            cache()->forget($this->model->type);
+        }
+
+        $morphable = Relation::morphMap() ? array_key_first(array_filter(Relation::morphMap(), fn($item) => $item == get_class($this->model))) : get_class($this->model);
+        $path      = Path::mediaFolderName($this->model);
+
+        if ( ! $morphable) {
+            File::delete(File::glob($this->disk->path($path.DIRECTORY_SEPARATOR.'*'.$this->filename.'*')));
+            throw new Exception("Invalid Media morphable");
+        }
+
+        return Media::query()->create([
+            'model_type'        => $morphable,
+            'model_id'          => $this->is_ghost ? null : $this->model_id,
+            'group'             => $this->media_group,
+            'subgroup'          => request('subgroup') ?: null,
+            'description'       => request('description'),
+            'position'          => request('position') ?: 'left',
+            'mime'              => $this->uploadedFile->getMimeType(),
+            'original_filename' => $this->uploadedFile->getClientOriginalName(),
+            'filename'          => $this->filename,
+            'temp'              => $this->is_ghost ? null : $this->temp,
+            'storable'          => $this->getStorables(),
+        ]);
+    }
+
+    private function mediaResponse(): static
+    {
+        $this->responseElement('uploaded', $this->media);
+        $this->responseElement('temp', $this->temp);
+        $this->responseElement('count_files', request('count_files'));
+
+        return $this;
+    }
+
+    /**
+     * Check if there are errors in the upload process
+     * This should be added to FileUploadImages.php
+     */
+    private function hasErrors(): bool
+    {
+        // Check if file upload failed
+        if ( ! request()->hasFile('files') || ! request()->file('files')[0]->isValid()) {
+            $this->responseError(__('mediaclass.errors.upload_failed'));
+
+            return true;
+        }
+
+        // Check file size
+        $file    = request()->file('files')[0];
+        $maxSize = $this->calculateMaxFileSize(request('maxfilesize'));
+
+        if ($file->getSize() > $maxSize) {
+            $this->responseError(__('mediaclass.errors.maxFileSize').' '.$this->formatBytes($maxSize));
+
+            return true;
+        }
+
+        // Check file type
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/svg+xml', 'application/pdf'];
+        if ( ! in_array($file->getMimeType(), $allowedTypes)) {
+            $this->responseError(__('mediaclass.errors.acceptFileTypes'));
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Format bytes to human-readable format
+     */
+    private function formatBytes(int|float $bytes, int $precision = 2): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+
+        $bytes = max($bytes, 0);
+        $pow   = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow   = min($pow, count($units) - 1);
+
+        $bytes /= pow(1024, $pow);
+
+        return round($bytes, $precision).' '.$units[$pow];
+    }
+
+
+    /**
+     * Calculate max file size from string format (e.g., "5MB", "500KB")
+     */
+    private function calculateMaxFileSize(?string $size): int
+    {
+        if ( ! $size) {
+            return 16 * 1024 * 1024; // 16MB default
+        }
+
+        $size  = strtoupper(trim($size));
+        $value = (int)preg_replace('/[^0-9]/', '', $size);
+
+        return match (true) {
+            str_contains($size, 'KB') => $value * 1024,
+            str_contains($size, 'MB') => $value * 1024 * 1024,
+            str_contains($size, 'GB') => $value * 1024 * 1024 * 1024,
+            default => $value,
+        };
+    }
+}
