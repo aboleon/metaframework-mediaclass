@@ -45,7 +45,7 @@ class Config
     public static function getModelSizes(MediaclassInterface $model): array
     {
         if (method_exists($model, 'mediaclassSettings')) {
-            return $model->mediaClassSettings();
+            return $model->mediaclassSettings();
         }
 
         return [];
@@ -115,7 +115,7 @@ class Config
     public static function getDefaultKeys(): array
     {
         return array_keys(self::$sizes);
-}
+    }
 
     private static function config(string $key, mixed $default = null): mixed
     {

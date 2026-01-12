@@ -10,5 +10,5 @@ function mediaclass_url(
     return (new Printer(
         model: $model,
         size: $size,
-        type: 'url'))->render();
+        type: 'url'))->output();
 }

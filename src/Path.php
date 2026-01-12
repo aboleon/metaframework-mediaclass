@@ -3,6 +3,7 @@
 namespace MetaFramework\Mediaclass;
 
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use MetaFramework\Mediaclass\Interfaces\MediaclassInterface;
 use MetaFramework\Mediaclass\Models\Media;
 use ReflectionClass;
@@ -26,8 +27,18 @@ class Path
     {
         // For ghost models, use just the model name folder
         if ($media->model_id === null) {
-            $modelName = Str::snake((new ReflectionClass($media->model_type))->getShortName());
-            return $modelName;
+            $modelClass = $media->model_type;
+            $morphMap = Relation::morphMap();
+
+            if (!empty($morphMap)) {
+                $modelClass = $morphMap[$modelClass] ?? $modelClass;
+            }
+
+            $modelName = class_exists($modelClass)
+                ? (new ReflectionClass($modelClass))->getShortName()
+                : class_basename($modelClass);
+
+            return Str::snake($modelName);
         }
 
         // For regular models, use the standard path with ID

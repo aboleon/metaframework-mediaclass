@@ -57,7 +57,7 @@ trait Accessors
     public function settings(): array
     {
 
-        $bindedModelSettings = $this->bindedModel()->mediaClassSettings();
+        $bindedModelSettings = $this->bindedModel()->mediaclassSettings();
 
         if ($bindedModelSettings && array_key_exists($this->group, $bindedModelSettings)) {
             return $bindedModelSettings[$this->group];

@@ -4,7 +4,6 @@ namespace MetaFramework\Mediaclass\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Support\Facades\Storage;
 use MetaFramework\Mediaclass\Config;
 use MetaFramework\Mediaclass\Path;
 use MetaFramework\Mediaclass\Traits\Accessors;
@@ -72,7 +71,7 @@ class Media extends Model
             }
         }
 
-        return Storage::disk('media')->url(
+        return Config::getDisk()->url(
             Path::mediaFolderForMedia($this).'/'.$this->dimensionPrefix(prefix: $size).$this->filename.'.'.$this->extension(),
         );
     }
@@ -80,7 +79,7 @@ class Media extends Model
 
     public function file(string $size = 'sm'): string
     {
-        return Storage::disk('media')->get(Path::mediaFolderForMedia($this).'/'.$this->dimensionPrefix(prefix: $size).$this->filename.'.'.$this->extension());
+        return Config::getDisk()->get(Path::mediaFolderForMedia($this).'/'.$this->dimensionPrefix(prefix: $size).$this->filename.'.'.$this->extension());
     }
 
 
@@ -96,7 +95,7 @@ class Media extends Model
             $path = Path::mediaFolderForMedia($this);
 
             // Get all files in the media folder
-            $files = Storage::disk('media')->files($path);
+            $files = Config::getDisk()->files($path);
 
             // Check if any file matches the cropped pattern
             foreach ($files as $file) {
@@ -140,7 +139,7 @@ class Media extends Model
      */
     public function isCroppedForKey(string $key): bool
     {
-        return Storage::disk('media')->exists(
+        return Config::getDisk()->exists(
             Path::mediaFolderForMedia($this).'/'.'cropped_'.$key.'_'.$this->filename.'.'.$this->extension(),
         );
     }
@@ -158,7 +157,7 @@ class Media extends Model
             return null;
         }
 
-        return Storage::disk('media')->url(
+        return Config::getDisk()->url(
             Path::mediaFolderForMedia($this).'/'.'cropped_'.$key.'_'.$this->filename.'.'.$this->extension(),
         );
     }

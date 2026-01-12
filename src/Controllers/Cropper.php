@@ -2,7 +2,6 @@
 
 namespace MetaFramework\Mediaclass\Controllers;
 
-use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use MetaFramework\Mediaclass\Config;
@@ -75,7 +74,7 @@ class Cropper
             $cropable->setWidth((int)request('wiimage'));
             $cropable->setHeight((int)request('heimage'));
 
-            $img = Storage::disk('media')->url($filename);
+            $img = Config::getDisk()->url($filename);
             $cropper->responseElement('sizes', $cropable->printSizes());
             $cropper->responseElement('cropable_links', $cropable->links());
             $cropper->responseElement('uploaded', $media);

@@ -457,7 +457,7 @@ class FileUploadImages
      */
     private function store(): Media
     {
-        if (config()->has('app.cacheables') & in_array($this->model->type, (array)config('app.cacheables'))) {
+        if (config()->has('app.cacheables') && in_array($this->model->type, (array)config('app.cacheables'))) {
             cache()->forget($this->model->type);
         }
 

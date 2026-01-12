@@ -4,10 +4,10 @@ namespace MetaFramework\Mediaclass\Traits;
 
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\LazyCollection;
 use Illuminate\Support\Str;
 use MetaFramework\Accessors\Locale;
+use MetaFramework\Mediaclass\Config;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Path;
 use MetaFramework\Support\Traits\Responses;
@@ -69,14 +69,15 @@ trait Mediaclass
 
             $modelFolder = Path::mediaFolderName($this->model());
             $tempFolder = Path::mediaTempFolderName($this->model());
+            $disk = Config::getDisk();
 
-            LazyCollection::make($recorded)->each(function($row) use($tempFolder, $modelFolder) {
+            LazyCollection::make($recorded)->each(function($row) use($tempFolder, $modelFolder, $disk) {
 
-                $files = File::glob(Storage::disk('media')
+                $files = File::glob($disk
                     ->path($tempFolder . DIRECTORY_SEPARATOR . '*' . $row->filename . '*'));
 
                 if ($files) {
-                    Path::checkMakeDir(Storage::disk('media')->path($modelFolder));
+                    Path::checkMakeDir($disk->path($modelFolder));
                     foreach($files as $media) {
                         File::move($media, str_replace($tempFolder, $modelFolder, $media));
                     }
@@ -97,9 +98,11 @@ trait Mediaclass
             return $this;
         }
 
+        $disk = Config::getDisk();
+
         try {
             foreach ($this->model()->media as $media) {
-                File::delete(File::glob(Storage::disk('media')->path($this->accessKey()) . DIRECTORY_SEPARATOR . '*' . $media->filename . '*'));
+                File::delete(File::glob($disk->path($this->accessKey()) . DIRECTORY_SEPARATOR . '*' . $media->filename . '*'));
                 $media->delete();
             }
         } catch (Throwable $e) {
