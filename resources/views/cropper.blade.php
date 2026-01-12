@@ -16,7 +16,7 @@
             e.preventDefault();
             $('#mediaclass-crop-btn').addClass('d-none');
             $('#mediaclas-loader').removeClass('d-none');
-            ajax('action=crop&' + $('#mediaclass-cropable-form input').serialize(), $('#mediaclass-cropable-form'));
+            mfwAjax('action=crop&' + $('#mediaclass-cropable-form input').serialize(), $('#mediaclass-cropable-form'));
         });
     });
 </script>

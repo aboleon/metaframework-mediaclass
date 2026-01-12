@@ -122,7 +122,7 @@ const MediaclassUploader = {
                 MediaclassUploader.confirmDeleteModal().modal('hide');
 
                 // Perform the deletion
-                ajax(deleteData.formData, MediaclassUploader.template());
+                mfwAjax(deleteData.formData, MediaclassUploader.template());
 
                 $(document).off('ajaxSuccess.mediaclassDelete').on('ajaxSuccess.mediaclassDelete', function () {
                     deleteData.selector.remove();
@@ -597,7 +597,7 @@ const MediaclassUploader = {
         // Handle delete button click
         $modal.on('click', '#mediaclass-delete-crop-btn', function () {
             let c = MediaclassUploader.deleteCropForm();
-            ajax('action=deleteCrop&media_id=' + c.attr('data-media-id') + '&crop_key=' + c.attr('data-crop-key'), $(c));
+            mfwAjax('action=deleteCrop&media_id=' + c.attr('data-media-id') + '&crop_key=' + c.attr('data-crop-key'), $(c));
         });
 
         // Handle AJAX success
