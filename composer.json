@@ -30,14 +30,11 @@
       "aliases": {
         "Mediaclass": "MetaFramework\\Mediaclass\\Facades\\MediaclassFacade"
       }
+    },
+    "branch-alias": {
+      "dev-main": "0.1.x-dev"
     }
   },
   "minimum-stability": "dev",
-  "prefer-stable": true,
-  "repositories": [
-    {
-      "type": "path",
-      "url": "../_packages/aboleon/*"
-    }
-  ]
+  "prefer-stable": true
 }
