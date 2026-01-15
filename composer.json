@@ -11,8 +11,8 @@
     "illuminate/routing": "^11.0|^12.0",
     "illuminate/view": "^11.0|^12.0",
     "illuminate/database": "^11.0|^12.0",
-    "aboleon/metaframework-support": "^0.1",
-    "aboleon/metaframework-inputable": "^0.1"
+    "aboleon/metaframework-support": "0.*",
+    "aboleon/metaframework-inputable": "0.*"
   },
   "autoload": {
     "psr-4": {
