@@ -3,11 +3,13 @@
 namespace MetaFramework\Mediaclass\Traits;
 
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\LazyCollection;
 use Illuminate\Support\Str;
 use MetaFramework\Accessors\Locale;
 use MetaFramework\Mediaclass\Config;
+use MetaFramework\Mediaclass\MediaBuilder;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Path;
 use MetaFramework\Support\Traits\Responses;
@@ -20,15 +22,72 @@ trait Mediaclass
 
     public ?object $instance = null;
 
-
     /**
-     * Retourne tous les médias du model,
-     * si elles existent
-     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
+     * Get the media relationship.
      */
     public function media(): MorphMany
     {
         return $this->morphMany(Media::class, 'model');
+    }
+
+    /**
+     * Get a fluent MediaBuilder for a single media in a group.
+     *
+     * @example
+     * // Get URL
+     * $post->img('cover')->url();
+     * $post->img('cover')->url('lg');
+     *
+     * // Get img tag
+     * $post->img('cover')->class('rounded')->lazy()->img();
+     *
+     * // Get cropped version
+     * $post->img('cover')->crop('banner')->url();
+     */
+    public function img(string $group, ?string $subgroup = null): MediaBuilder
+    {
+        $query = $this->media()->where('group', $group);
+
+        if ($subgroup !== null) {
+            $query->where('subgroup', $subgroup);
+        }
+
+        $media = $query->orderBy('position')->first();
+
+        $builder = new MediaBuilder($media);
+
+        // Inject model into media for path resolution
+        if ($media) {
+            $media->setRelation('model', $this);
+        }
+
+        return $builder;
+    }
+
+    /**
+     * Get MediaBuilder instances for all media in a group.
+     *
+     * @example
+     * // Loop through gallery
+     * foreach ($post->imgs('gallery') as $img) {
+     *     echo $img->url();
+     * }
+     *
+     * // Get all URLs
+     * $urls = $post->imgs('gallery')->map(fn($img) => $img->url());
+     */
+    public function imgs(string $group, ?string $subgroup = null): Collection
+    {
+        $query = $this->media()->where('group', $group);
+
+        if ($subgroup !== null) {
+            $query->where('subgroup', $subgroup);
+        }
+
+        return $query->orderBy('position')->get()->map(function (Media $media) {
+            $media->setRelation('model', $this);
+            return new MediaBuilder($media);
+        });
     }
 
     public function model(): static

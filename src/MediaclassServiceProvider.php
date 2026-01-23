@@ -21,6 +21,9 @@ class MediaclassServiceProvider extends ServiceProvider
     {
         Blade::componentNamespace('MetaFramework\\Mediaclass\\Components', 'mediaclass');
 
+        // Register simplified component with mfw- prefix
+        Blade::component('mfw-media', \MetaFramework\Mediaclass\Components\Media::class);
+
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'mediaclass');
         $this->registerTranslations();
         $this->loadRoutesFrom(__DIR__.'/../routes/public.php');

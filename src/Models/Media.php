@@ -5,6 +5,7 @@ namespace MetaFramework\Mediaclass\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use MetaFramework\Mediaclass\Config;
+use MetaFramework\Mediaclass\MediaBuilder;
 use MetaFramework\Mediaclass\Path;
 use MetaFramework\Mediaclass\Traits\Accessors;
 use Symfony\Component\Mime\MimeTypes;
@@ -189,6 +190,65 @@ class Media extends Model
         }
 
         return $out;
+    }
+
+    // -------------------------------------------------------------------------
+    // Fluent Builder Methods
+    // -------------------------------------------------------------------------
+
+    /**
+     * Get a fluent MediaBuilder for this media.
+     *
+     * @example
+     * $media->builder()->class('rounded')->lazy()->img();
+     */
+    public function builder(): MediaBuilder
+    {
+        return new MediaBuilder($this);
+    }
+
+    /**
+     * Shorthand: Check if crop exists (alias for isCroppedForKey).
+     */
+    public function hasCrop(string $key): bool
+    {
+        return $this->isCroppedForKey($key);
+    }
+
+    /**
+     * Shorthand: Get crop URL (alias for getCroppedUrl).
+     */
+    public function crop(string $key): ?string
+    {
+        return $this->getCroppedUrl($key);
+    }
+
+    /**
+     * Get all available size keys.
+     */
+    public function sizes(): array
+    {
+        return array_keys(Config::getSizes());
+    }
+
+    /**
+     * Check if this is an image.
+     */
+    public function isImage(): bool
+    {
+        return str_contains($this->mime, 'image');
+    }
+
+    /**
+     * Render as img tag with optional attributes.
+     *
+     * @example
+     * {!! $media->img() !!}
+     * {!! $media->img('lg', ['class' => 'rounded']) !!}
+     */
+    public function img(string $size = 'sm', array $attributes = []): string
+    {
+        return (string) $this->builder()->size($size)->attrs($attributes)->img();
     }
 
 }
