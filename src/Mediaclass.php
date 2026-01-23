@@ -34,11 +34,6 @@ class Mediaclass
      */
     protected bool $single = false;
 
-    public function __construct()
-    {
-        $this->mediaCollection = null;
-    }
-
     /**
      * Associates the current instance with a MediaclassInterface object.
      *

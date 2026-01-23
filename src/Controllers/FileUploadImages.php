@@ -68,7 +68,7 @@ class FileUploadImages
     public function setModel(?string $model = null): static
     {
         if ( ! $model) {
-            $this->responseError(__('mediaclass.missing_model'));
+            $this->responseError(__('mfw-mediaclass.missing_model'));
 
             return $this;
         }
@@ -162,7 +162,7 @@ class FileUploadImages
 
                         if ($imageWidth < $requiredWidth || $imageHeight < $requiredHeight) {
                             $this->responseError(
-                                __('mediaclass.errors.dimensions', [
+                                __('mfw-mediaclass.errors.dimensions', [
                                     'width'           => $requiredWidth,
                                     'height'          => $requiredHeight,
                                     'uploaded_width'  => $imageWidth,
@@ -192,7 +192,7 @@ class FileUploadImages
         }
 
         if (strstr($this->uploadedFile->getMimeType(), '/', true) != 'image') {
-            $this->responseAbort(trans('mediaclass.errors.mustBeImage'));
+            $this->responseAbort(__('mfw-mediaclass.errors.mustBeImage'));
 
             return $this;
         }
@@ -267,7 +267,7 @@ class FileUploadImages
             if ($requiredWidth && $requiredHeight) {
                 if ($imageWidth < $requiredWidth || $imageHeight < $requiredHeight) {
                     $this->responseError(
-                        __('mediaclass.errors.dimensions', [
+                        __('mfw-mediaclass.errors.dimensions', [
                             'width'           => $requiredWidth,
                             'height'          => $requiredHeight,
                             'uploaded_width'  => $imageWidth,
@@ -306,7 +306,7 @@ class FileUploadImages
                             $minOriginalHeight = (int)ceil($requiredHeight / $minScale);
 
                             $this->responseError(
-                                __('mediaclass.errors.scale_for_crop', [
+                                __('mfw-mediaclass.errors.scale_for_crop', [
                                     'width'           => $requiredWidth,
                                     'height'          => $requiredHeight,
                                     'min_width'       => $minOriginalWidth,
@@ -501,7 +501,7 @@ class FileUploadImages
     {
         // Check if file upload failed
         if ( ! request()->hasFile('files') || ! request()->file('files')[0]->isValid()) {
-            $this->responseError(__('mediaclass.errors.upload_failed'));
+            $this->responseError(__('mfw-mediaclass.errors.upload_failed'));
 
             return true;
         }
@@ -511,7 +511,7 @@ class FileUploadImages
         $maxSize = $this->calculateMaxFileSize(request('maxfilesize'));
 
         if ($file->getSize() > $maxSize) {
-            $this->responseError(__('mediaclass.errors.maxFileSize').' '.$this->formatBytes($maxSize));
+            $this->responseError(__('mfw-mediaclass.errors.maxFileSize').' '.$this->formatBytes($maxSize));
 
             return true;
         }
@@ -519,7 +519,7 @@ class FileUploadImages
         // Check file type
         $allowedTypes = ['image/jpeg', 'image/png', 'image/svg+xml', 'application/pdf'];
         if ( ! in_array($file->getMimeType(), $allowedTypes)) {
-            $this->responseError(__('mediaclass.errors.acceptFileTypes'));
+            $this->responseError(__('mfw-mediaclass.errors.acceptFileTypes'));
 
             return true;
         }

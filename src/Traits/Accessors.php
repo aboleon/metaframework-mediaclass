@@ -8,9 +8,9 @@ trait Accessors
 {
 
     /**
-     * Retourne Meta/Model
+     * Returns the bound model instance.
      */
-    public function bindedModel(): object
+    public function boundModel(): object
     {
         // For ghost models (no model_id), try to get the model relation
         if ($this->model_id === null) {
@@ -56,17 +56,24 @@ trait Accessors
 
     public function settings(): array
     {
+        $boundModel = $this->boundModel();
 
-        $bindedModelSettings = $this->bindedModel()->mediaclassSettings();
-
-        if ($bindedModelSettings && array_key_exists($this->group, $bindedModelSettings)) {
-            return $bindedModelSettings[$this->group];
+        if (method_exists($boundModel, 'mediaclassSettings')) {
+            $boundModelSettings = $boundModel->mediaclassSettings();
+            if ($boundModelSettings && array_key_exists($this->group, $boundModelSettings)) {
+                return $boundModelSettings[$this->group];
+            }
         }
 
-        if (!is_array($this->bindedModel()->fillables)) {
+        $fillables = $boundModel->fillables;
+        if (!is_array($fillables)) {
             return [];
         }
-        return (array)current(array_filter(array_filter($this->bindedModel()->fillables, fn($key) => $key == 'media', ARRAY_FILTER_USE_KEY), fn($item) => ($item['group'] ?? Config::defaultGroup()) == $this->group));
+
+        $mediaFillables = array_filter($fillables, fn($key) => $key === 'media', ARRAY_FILTER_USE_KEY);
+        $matchingGroup = array_filter($mediaFillables, fn($item) => ($item['group'] ?? Config::defaultGroup()) === $this->group);
+
+        return (array)current($matchingGroup);
     }
 
 }

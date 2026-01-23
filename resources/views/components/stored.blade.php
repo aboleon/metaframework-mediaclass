@@ -38,7 +38,7 @@
                                 <p class="name">
                                     <span class="rounded-1 py-1 px-2 text-bg-secondary">{{ $media->original_filename }}</span>
                                     <span class="rounded-1 py-1 px-2 bg-light-subtle text-dark opacity-75">
-                                    {{ __('mediaclass.uploaded_at', ['date' => $media->created_at->format('d/m/Y'), 'time' => $media->created_at->format('H:i')]) }}
+                                    {{ __('mfw-mediaclass.uploaded_at', ['date' => $media->created_at->format('d/m/Y'), 'time' => $media->created_at->format('H:i')]) }}
                                     </span>
                                 </p>
                             </div>

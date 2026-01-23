@@ -401,6 +401,6 @@ class Parser
             return $this->media->$name;
         }
 
-        throw new \Exception("Property {$name} does not exist on Parser");
+        throw new \InvalidArgumentException("Property {$name} does not exist on Parser");
     }
 }

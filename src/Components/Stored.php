@@ -66,7 +66,7 @@ class Stored extends Component
                 ->values();
         }
 
-        $this->nomedia = $this->nomedia ?: __('mediaclass.no_media');
+        $this->nomedia = $this->nomedia ?: __('mfw-mediaclass.no_media');
 
         // Check if model has mediaclassSettings for this group
         if ($this->cropable === null && method_exists($this->model, 'mediaclassSettings')) {

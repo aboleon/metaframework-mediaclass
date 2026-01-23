@@ -45,7 +45,7 @@ class Uploadable extends Component
         $this->group = $this->settings['group'] ?? $this->group;
         $this->label = $this->settings['label'] ?? $this->label;
         $this->description = $this->description ? 1 : 0;
-        $this->nomedia = $this->nomedia ?: __('mediaclass.no_media');
+        $this->nomedia = $this->nomedia ?: __('mfw-mediaclass.no_media');
 
         // Check if model has mediaclassSettings for this group
         if ($this->cropable === null && method_exists($this->model, 'mediaclassSettings')) {

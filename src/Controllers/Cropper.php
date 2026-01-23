@@ -81,7 +81,7 @@ class Cropper
             $cropper->responseElement('callback', 'mediaclassCropped');
             $cropper->responseElement('crop_key', $cropKey);
             $cropper->responseElement('urls', ['xl' => $img, 'sm' => $img]);
-            $cropper->responseSuccess('Image recadrée avec succès');
+            $cropper->responseSuccess(__('mfw-mediaclass.crop_success'));
 
         } catch (Throwable $e) {
             $cropper->responseException($e);
@@ -129,7 +129,7 @@ class Cropper
             $cropper->responseElement('media_id', $mediaId);
             $cropper->responseElement('cropable_links', $cropable->links());
             $cropper->responseElement('callback', 'mediaclassDeletedCrop');
-            $cropper->responseSuccess(__('Recadrage supprimé avec succès'));
+            $cropper->responseSuccess(__('mfw-mediaclass.crop_deleted'));
 
         } catch (Throwable $e) {
             $cropper->responseException($e);

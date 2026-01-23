@@ -3,7 +3,6 @@
 namespace MetaFramework\Mediaclass\Controllers;
 
 
-use MetaFramework\Accessors\Users;
 use MetaFramework\Controllers\Controller;
 use MetaFramework\Support\Traits\Ajax;
 
@@ -15,7 +14,6 @@ class AjaxController extends Controller
 
     public function __construct()
     {
-        $users          = (new Users());
         $this->uploader = new FileUploadImages;
     }
 
