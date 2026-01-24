@@ -32,7 +32,7 @@ class FileUploadImages
     protected string $filename;
     protected object $uploadedFile;
 
-    private Media $media;
+    private ?Media $media = null;
     private ?string $temp;
     private ?int $model_id;
     private string $folder_name = '';
@@ -68,7 +68,7 @@ class FileUploadImages
     public function setModel(?string $model = null): static
     {
         if ( ! $model) {
-            $this->responseError(__('mfw-mediaclass.missing_model'));
+            $this->responseError(__('mfw-mediaclass.errors.missing_model'));
 
             return $this;
         }
@@ -78,6 +78,11 @@ class FileUploadImages
 
             if ($this->model_id && ! $this->is_ghost) {
                 $this->model = $this->model->find($this->model_id);
+                if ( ! $this->model) {
+                    $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+
+                    return $this;
+                }
             }
 
             // For ghost models, use just the model name folder
@@ -132,6 +137,10 @@ class FileUploadImages
 
     public function upload(): static
     {
+        if ($this->responseHasErrors()) {
+            return $this;
+        }
+
         $this->filename     = Str::random(6);
         $this->uploadedFile = request()->file('files')[0];
 
@@ -205,7 +214,7 @@ class FileUploadImages
         $this->response['filetype'] = 'file';
         $this->response['filename'] = $this->filename.'.'.$this->uploadedFile->guessExtension();
         $this->response['link']     = $this->disk->url($this->folder_name.'/'.$this->response['filename'].'?'.time());;
-        $this->response['fileicon'] = asset('vendor/mfw/mediaclass/images/files/'.$this->uploadedFile->guessExtension().'.png');
+        $this->response['fileicon'] = asset('vendor/mfw-mediaclass/images/files/'.$this->uploadedFile->guessExtension().'.png');
         $this->response['preview']  = $this->response['fileicon'];
 
         try {
@@ -226,7 +235,7 @@ class FileUploadImages
         $this->response['filename'] = $this->filename.'.svg';
         $file                       = $this->folder_name.'/'.$this->response['filename'];
         $img                        = $this->disk->url($file.'?'.time());
-        $this->response['fileicon'] = asset('vendor/mfw/mediaclass/images/files/svg.png');
+        $this->response['fileicon'] = asset('vendor/mfw-mediaclass/images/files/svg.png');
 
         try {
             $this->media = $this->store();
@@ -249,8 +258,8 @@ class FileUploadImages
         // Get group settings if available
         $groupSettings = MediaclassConfig::getGroupSetings($this->model, $this->media_group);
 
-        // Load dimensions from group settings or default
-        $this->dimensions = $groupSettings ?: MediaclassConfig::getSizes();
+        // Load dimensions from group settings or default (largest -> smallest)
+        $this->dimensions = $groupSettings ?: MediaclassConfig::getSizesInReverseOrder();
 
         $this->image = $this->imageManager->read($this->uploadedFile);
 
@@ -331,7 +340,7 @@ class FileUploadImages
         $mimeType = $this->uploadedFile->getMimeType();
 
         $this->mime_type            = (str_contains($mimeType, 'png') ? 'png' : 'jpg');
-        $this->response['fileicon'] = asset('vendor/mfw/mediaclass/images/files/jpg.png');
+        $this->response['fileicon'] = asset('vendor/mfw-mediaclass/images/files/jpg.png');
 
         $ratio                   = ($this->image->width() / $this->image->height()) > 1 ? 'h' : 'v';
         $this->response['ratio'] = $ratio;
@@ -344,6 +353,8 @@ class FileUploadImages
             $imageWidth   = $this->image->width();
             $imageHeight  = $this->image->height();
 
+            // Always resize from the original to avoid cumulative downscaling
+            $sourceImage = clone $this->image;
             $resizedImage = null;
 
             // For group settings (single dimension), apply special logic
@@ -355,13 +366,13 @@ class FileUploadImages
 
                 // If main dimension is exact, keep original image
                 if ($currentMainDimension === $mainDimension) {
-                    $resizedImage = clone $this->image;
+                    $resizedImage = $sourceImage;
                 } else {
                     // Main dimension is larger, resize to exact main dimension and scale the other proportionally
                     $scaleRatio   = $mainDimension / $currentMainDimension;
                     $newWidth     = (int)($imageWidth * $scaleRatio);
                     $newHeight    = (int)($imageHeight * $scaleRatio);
-                    $resizedImage = $this->image->resize($newWidth, $newHeight);
+                    $resizedImage = $sourceImage->resize($newWidth, $newHeight);
                 }
             } else {
                 // For default dimensions, use standard scaling (don't upsize)
@@ -371,7 +382,7 @@ class FileUploadImages
 
                 $newWidth     = (int)($imageWidth * $scaleRatio);
                 $newHeight    = (int)($imageHeight * $scaleRatio);
-                $resizedImage = $this->image->resize($newWidth, $newHeight);
+                $resizedImage = $sourceImage->resize($newWidth, $newHeight);
             }
 
             $encodedImage = $this->mime_type === 'png'
@@ -391,6 +402,10 @@ class FileUploadImages
             $this->media = $this->store();
         } catch (Throwable $e) {
             $this->responseException($e);
+        }
+
+        if ( ! $this->media) {
+            return $this;
         }
 
         // For ghost models, inject the model instance
@@ -525,6 +540,11 @@ class FileUploadImages
         }
 
         return false;
+    }
+
+    private function responseHasErrors(): bool
+    {
+        return array_key_exists('error', $this->response) || array_key_exists('abort', $this->response);
     }
 
     /**

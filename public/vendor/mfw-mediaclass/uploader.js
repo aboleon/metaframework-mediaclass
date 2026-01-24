@@ -1,9 +1,5 @@
 /*jshint esversion: 11 */
 
-/**
- * depends on /vendor/mfw/js/commons.js
- */
-
 const MediaclassUploader = {
     // Cache common jQuery selectors
     template() {
@@ -18,11 +14,11 @@ const MediaclassUploader = {
     fileupload(uploadContainer) {
         return uploadContainer.find('.mediaclass-fileupload').first();
     },
-    messages() {
-        return $('.mediaclass-messages');
+    messages(uploadable = null) {
+        return uploadable ? uploadable.find('.mediaclass-messages').first() : $('.mediaclass-messages');
     },
-    progress() {
-        return $('.mediaclass-progress');
+    progress(uploadable = null) {
+        return uploadable ? uploadable.find('.mediaclass-progress').first() : $('.mediaclass-progress');
     },
     deleteCropForm() {
         return $('#mediaclass-delete-crop-form');
@@ -33,14 +29,30 @@ const MediaclassUploader = {
     confirmDeleteBtn() {
         return $('#confirm-delete-btn');
     },
-    alerts() {
-        return $('.mediaclass-alerts');
+    alerts(uploadable = null) {
+        return uploadable ? uploadable.find('.mediaclass-alerts').first() : $('.mediaclass-alerts');
+    },
+    setVeil(container) {
+        const $container = container instanceof jQuery ? container : $(container);
+        this.removeVeil($container);
+        $container.prepend('<div class="veil" style="border-radius:25px"><img class="loading" src="/vendor/mfw-mediaclass/loading.svg" width="40" alt="..."></div>');
+    },
+    removeVeil(container = null) {
+        if (container) {
+            const $container = container instanceof jQuery ? container : $(container);
+            $container.find('> .veil').remove();
+            return;
+        }
+        $('.veil').remove();
     },
     // Constants
     defaultFileSize: 16000000,
     positions_tags: ['left', 'up', 'down', 'right'],
 
     // Helper methods
+    csrfToken() {
+        return $('meta[name="csrf-token"]').attr('content');
+    },
     calculateMaxFileSize(size) {
         if (!size || (!size.includes('KB') && !size.includes('MB'))) {
             return this.defaultFileSize;
@@ -122,14 +134,16 @@ const MediaclassUploader = {
                 MediaclassUploader.confirmDeleteModal().modal('hide');
 
                 // Perform the deletion
+                MediaclassUploader.setVeil(deleteData.selector);
                 mfwAjax(deleteData.formData, MediaclassUploader.template());
 
                 $(document).off('ajaxSuccess.mediaclassDelete').on('ajaxSuccess.mediaclassDelete', function () {
+                    MediaclassUploader.removeVeil(deleteData.selector);
                     deleteData.selector.remove();
 
                     if (deleteData.container.find('.unlinkable').length < 1) {
                         // Find the alerts container specific to this uploadable
-                        const alertsContainer = deleteData.uploadable.find('.mediaclass-alerts');
+                        const alertsContainer = deleteData.uploadable.find('.mediaclass-alerts').first();
                         alertsContainer.html(`<div class="alert alert-info">${alertsContainer.data('msg')}</div>`);
                     }
 
@@ -140,6 +154,11 @@ const MediaclassUploader = {
 
                     // Remove this specific success handler
                     $(document).off('ajaxSuccess.mediaclassDelete');
+                });
+
+                $(document).off('ajaxError.mediaclassDelete').on('ajaxError.mediaclassDelete', function () {
+                    MediaclassUploader.removeVeil(deleteData.selector);
+                    $(document).off('ajaxError.mediaclassDelete');
                 });
             });
         });
@@ -154,7 +173,7 @@ const MediaclassUploader = {
             if (MediaclassUploader.isLimitReached(instantiator)) {
                 // Optional: Show a message that the limit has been reached
                 const limit = Number(instantiator.data('limit'));
-                MediaclassUploader.alerts().html(`<div class="alert alert-warning">Limite de ${limit} fichier(s) atteinte</div>`);
+                MediaclassUploader.alerts(instantiator).html(`<div class="alert alert-warning">Limite de ${limit} fichier(s) atteinte</div>`);
                 return; // Don't show the uploader
             }
 
@@ -270,15 +289,15 @@ const MediaclassUploader = {
             sequentialUploads: true,
             type: 'POST',
             done: () => {
-                MediaclassUploader.progress().hide();
+                MediaclassUploader.progress(uploadable).hide();
             },
             success: (data) => {
-                MediaclassUploader.alerts().html('');
+                MediaclassUploader.alerts(uploadable).html('');
 
                 // Check for errors FIRST before doing anything else
                 if (data.hasOwnProperty('errors') || data.hasOwnProperty('error')) {
                     const errorData = data.mfw_ajax_messages ?? data.messages;
-                    notificator(200, errorData, MediaclassUploader.messages(), false, {isDismissable: true});
+                    notificator(200, errorData, MediaclassUploader.messages(uploadable), false, {isDismissable: true});
 
                     uploadable.find('.files .template-upload').fadeOut(function () {
                         $(this).remove();
@@ -291,7 +310,7 @@ const MediaclassUploader = {
 
                 if (!data.uploaded) {
                     console.error('No uploaded data in response', data);
-                    notificator('Erreur lors du téléchargement', 'danger', MediaclassUploader.messages());
+                    notificator('Erreur lors du téléchargement', 'danger', MediaclassUploader.messages(uploadable));
                     return;
                 }
 
@@ -367,13 +386,13 @@ const MediaclassUploader = {
                     const errorData = {
                         danger: [xhr.responseJSON.errors]
                     };
-                    notificator(200, errorData, MediaclassUploader.messages(), false, {isDismissable: true});
+                    notificator(200, errorData, MediaclassUploader.messages(uploadable), false, {isDismissable: true});
                 } else {
                     // Generic error message
                     const errorData = {
                         danger: ['Une erreur est survenue lors du téléchargement de votre fichier']
                     };
-                    notificator(200, errorData, MediaclassUploader.messages(), false, {isDismissable: true});
+                    notificator(200, errorData, MediaclassUploader.messages(uploadable), false, {isDismissable: true});
                 }
 
                 // Clean up the upload UI
@@ -387,13 +406,13 @@ const MediaclassUploader = {
                 });
             },
             start: () => {
-                MediaclassUploader.messages().html('');
-                MediaclassUploader.progress().show();
+                MediaclassUploader.messages(uploadable).html('');
+                MediaclassUploader.progress(uploadable).show();
             },
         });
 
         fileuploadContainer.bind('fileuploadsubmit', (e, data) => {
-            MediaclassUploader.messages().html('');
+            MediaclassUploader.messages(uploadable).html('');
 
             // Count valid files
             let validFiles = 0;
@@ -414,7 +433,7 @@ const MediaclassUploader = {
 
             // Set form data
             data.formData = [
-                {name: '_token', value: token()},
+                {name: '_token', value: MediaclassUploader.csrfToken()},
                 {name: 'action', value: 'upload'},
                 {name: 'group', value: uploadable.data('group')},
                 {name: 'subgroup', value: uploadable.data('subgroup')},

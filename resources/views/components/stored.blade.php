@@ -6,7 +6,7 @@
                 $is_image = $isImage($media);
                 $cropableImg = new \MetaFramework\Mediaclass\Cropable($media);
                 $cropableImg->setCropableFromComponent($cropable);
-                $preview = $is_image ? $media->url($cropableImg->isCropped() ? 'cropped': 'sm') : asset('vendor/mfw/mediaclass/images/files/' . $media->extension().'.png');
+                $preview = $is_image ? $media->url($cropableImg->isCropped() ? 'cropped': 'sm') : asset('vendor/mfw-mediaclass/images/files/' . $media->extension().'.png');
                 $fullSizeUrl = $is_image ? $media->url('xl') : null;
             @endphp
             <div class="mediaclass unlinkable uploaded-image my-2" data-id="{{ $media->id }}"

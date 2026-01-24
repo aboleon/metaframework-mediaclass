@@ -1,6 +1,6 @@
-<link href="{!! asset('vendor/mfw/mediaclass/jcrop/jquery.Jcrop.css') !!}" rel="stylesheet">
-<script src="{!! asset('vendor/mfw/mediaclass/jcrop/jquery.Jcrop.js') !!}"></script>
-<script src="{!! asset('vendor/mfw/mediaclass/jcrop/jcrop.js') !!}"></script>
+<link href="{!! asset('vendor/mfw-mediaclass/jcrop/jquery.Jcrop.css') !!}" rel="stylesheet">
+<script src="{!! asset('vendor/mfw-mediaclass/jcrop/jquery.Jcrop.js') !!}"></script>
+<script src="{!! asset('vendor/mfw-mediaclass/jcrop/jcrop.js') !!}"></script>
 <script>
     function cropped(result) {
         if (!result.hasOwnProperty('error')) {
@@ -89,7 +89,7 @@
                 </div>
             </div>
             <div class="col-sm-6 text-end">
-                <img src="{{ asset('vendor/mfw/mediaclass/jcrop/loading.svg') }}" alt="" class="d-inline-block d-none" id="mediaclas-loader" style='height:40px'>
+                <img src="{{ asset('vendor/mfw-mediaclass/jcrop/loading.svg') }}" alt="" class="d-inline-block d-none" id="mediaclas-loader" style='height:40px'>
                 <button type="submit" class="btn btn-secondary" id="mediaclass-crop-btn">Valider le recadrage</button>
                 <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
             </div>

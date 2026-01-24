@@ -30,6 +30,8 @@ class MediaclassServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/panel.php');
 
         if ($this->app->runningInConsole()) {
+            $migrationTimestamp = date('Y_m_d_His');
+
             $this->publishes([
                 __DIR__.'/../config/mfw-mediaclass.php' => config_path('mfw-mediaclass.php'),
             ], 'mfw-mediaclass-config');
@@ -44,11 +46,11 @@ class MediaclassServiceProvider extends ServiceProvider
             ], 'mfw-mediaclass-lang');
 
             $this->publishes([
-                __DIR__.'/../database/migrations/' => database_path('migrations'),
+                __DIR__.'/../database/migrations/create_mediaclass.php' => database_path("migrations/{$migrationTimestamp}_create_mediaclass.php"),
             ], 'mfw-mediaclass-migrations');
 
             $this->publishes([
-                __DIR__.'/../public/vendor/mfw/mediaclass' => public_path('vendor/mfw/mediaclass'),
+                __DIR__.'/../public/vendor/mfw-mediaclass' => public_path('vendor/mfw-mediaclass'),
             ], 'mfw-mediaclass-assets');
         }
     }
