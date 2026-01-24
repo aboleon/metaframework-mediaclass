@@ -1,5 +1,12 @@
 # MetaFramework Mediaclass
 
+[![Tests](https://github.com/aboleon/metaframework-mediaclass/actions/workflows/tests.yml/badge.svg)](https://github.com/aboleon/metaframework-mediaclass/actions)
+[![codecov](https://codecov.io/gh/aboleon/metaframework-mediaclass/graph/badge.svg)](https://codecov.io/gh/aboleon/metaframework-mediaclass)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/aboleon/metaframework-mediaclass.svg?style=flat-square)](https://packagist.org/packages/aboleon/metaframework-mediaclass)
+[![Total Downloads](https://img.shields.io/packagist/dt/aboleon/metaframework-mediaclass.svg?style=flat-square)](https://packagist.org/packages/aboleon/metaframework-mediaclass)
+[![PHP Version](https://img.shields.io/packagist/php-v/aboleon/metaframework-mediaclass.svg?style=flat-square)](https://packagist.org/packages/aboleon/metaframework-mediaclass)
+[![License](https://img.shields.io/packagist/l/aboleon/metaframework-mediaclass.svg?style=flat-square)](https://packagist.org/packages/aboleon/metaframework-mediaclass)
+
 Media management components for MetaFramework (Laravel). This package provides
 upload UI, database persistence, image resizing, optional cropping, and helpers
 to retrieve and render media for Eloquent models.
