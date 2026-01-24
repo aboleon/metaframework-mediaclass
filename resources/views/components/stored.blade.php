@@ -63,7 +63,7 @@
 
                             @foreach(\MetaFramework\Accessors\Locale::projectLocales() as $locale)
                                 <div class="col-lg-6 col-12 description {{ !$description ? 'd-none' :'' }}">
-                                    <x-mfw-input::textarea name="mediaclass[{{ $media->id }}][description][{{ $locale }}]"
+                                    <x-mfw-inputable::textarea name="mediaclass[{{ $media->id }}][description][{{ $locale }}]"
                                                      :height="100" class="mt-2 description"
                                                      :value="$media->description[$locale] ?? ''"
                                                      label="Description ({{ $locale }})"/>
