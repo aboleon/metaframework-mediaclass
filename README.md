@@ -36,6 +36,9 @@ Publish assets and run migrations:
 php artisan vendor:publish --tag=mfw-mediaclass-config
 php artisan vendor:publish --tag=mfw-mediaclass-assets
 php artisan vendor:publish --tag=mfw-mediaclass-migrations
+php artisan vendor:publish --tag=mfw-mediaclass-lang
+// Views for customization, if needed
+php artisan vendor:publish --tag=mfw-mediaclass-views
 php artisan migrate
 ```
 
