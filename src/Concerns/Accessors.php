@@ -1,8 +1,8 @@
 <?php
 
-namespace MetaFramework\Mediaclass\Traits;
+namespace MetaFramework\Mediaclass\Concerns;
 
-use MetaFramework\Mediaclass\Config;
+use MetaFramework\Mediaclass\Support\Config;
 
 trait Accessors
 {

@@ -4,10 +4,10 @@ namespace MetaFramework\Mediaclass\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use MetaFramework\Mediaclass\Config;
+use MetaFramework\Mediaclass\Support\Config;
 use MetaFramework\Mediaclass\MediaBuilder;
-use MetaFramework\Mediaclass\Path;
-use MetaFramework\Mediaclass\Traits\Accessors;
+use MetaFramework\Mediaclass\Support\Path;
+use MetaFramework\Mediaclass\Concerns\Accessors;
 use Symfony\Component\Mime\MimeTypes;
 
 /**
@@ -17,7 +17,7 @@ use Symfony\Component\Mime\MimeTypes;
  * @property string                                                   $mime
  * @property int                                                      $id
  * @property string                                                   $group
- * @property \MetaFramework\Mediaclass\Interfaces\MediaclassInterface $model
+ * @property \MetaFramework\Mediaclass\Contracts\MediaclassInterface $model
  */
 class Media extends Model
 {

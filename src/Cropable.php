@@ -3,8 +3,9 @@
 namespace MetaFramework\Mediaclass;
 
 use Illuminate\Support\Facades\Route;
+use MetaFramework\Mediaclass\Concerns\Accessors;
 use MetaFramework\Mediaclass\Models\Media;
-use MetaFramework\Mediaclass\Traits\Accessors;
+use MetaFramework\Mediaclass\Support\Config;
 
 class Cropable
 {

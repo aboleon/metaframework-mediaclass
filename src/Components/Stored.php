@@ -5,7 +5,7 @@ namespace MetaFramework\Mediaclass\Components;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\View\Component;
-use MetaFramework\Mediaclass\Interfaces\MediaclassInterface;
+use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 use MetaFramework\Mediaclass\Models\Media;
 
 class Stored extends Component

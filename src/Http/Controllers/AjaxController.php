@@ -1,12 +1,11 @@
 <?php
 
-namespace MetaFramework\Mediaclass\Controllers;
+namespace MetaFramework\Mediaclass\Http\Controllers;
 
 
-use MetaFramework\Controllers\Controller;
 use MetaFramework\Support\Traits\Ajax;
 
-class AjaxController extends Controller
+class AjaxController
 {
     use Ajax;
 

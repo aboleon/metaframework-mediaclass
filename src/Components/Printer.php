@@ -4,7 +4,7 @@ namespace MetaFramework\Mediaclass\Components;
 
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\View\Component;
-use MetaFramework\Mediaclass\Config;
+use MetaFramework\Mediaclass\Support\Config;
 use MetaFramework\Mediaclass\Parser;
 use MetaFramework\Mediaclass\Printer as MediaPrinter;
 

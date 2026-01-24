@@ -44,12 +44,12 @@ class MediaclassServiceProvider extends ServiceProvider
             ], 'mfw-mediaclass-lang');
 
             $this->publishes([
-                __DIR__.'/../public' => public_path('vendor/mfw/mediaclass'),
-            ], 'mfw-mediaclass-assets');
-
-            $this->publishes([
                 __DIR__.'/../database/migrations/' => database_path('migrations'),
             ], 'mfw-mediaclass-migrations');
+
+            $this->publishes([
+                __DIR__.'/../public/vendor/mfw/mediaclass' => public_path('vendor/mfw/mediaclass'),
+            ], 'mfw-mediaclass-assets');
         }
     }
 

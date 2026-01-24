@@ -1,2 +1,10 @@
-.idea
-/pint.json
+.idea/
+.claude/
+.phpunit.cache/
+.phpunit.result.cache
+/vendor/
+/coverage/
+composer.lock
+pint.json
+settings.local.json
+nul

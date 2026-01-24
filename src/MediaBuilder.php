@@ -6,6 +6,7 @@ namespace MetaFramework\Mediaclass;
 
 use Illuminate\Support\HtmlString;
 use MetaFramework\Mediaclass\Models\Media;
+use MetaFramework\Mediaclass\Support\Config;
 
 /**
  * Fluent builder for media URLs and HTML rendering.

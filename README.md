@@ -36,8 +36,8 @@ php artisan migrate
 
 ```php
 use Illuminate\Database\Eloquent\Model;
-use MetaFramework\Mediaclass\Interfaces\MediaclassInterface;
-use MetaFramework\Mediaclass\Traits\Mediaclass as MediaclassTrait;
+use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
+use MetaFramework\Mediaclass\Concerns\Mediaclass as MediaclassTrait;
 
 class Post extends Model implements MediaclassInterface
 {
@@ -358,6 +358,13 @@ $html = (new Printer($parser))
 
 - `POST /mediaclass-ajax` - Upload/delete/crop actions
 - `GET /mediaclass/cropable/{media}` - Crop UI
+
+## Testing
+
+```bash
+composer install
+composer test
+```
 
 ## Requirements
 

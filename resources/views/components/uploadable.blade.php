@@ -97,7 +97,7 @@
 @endonce
 
 @once
-    @if ($model instanceof \MetaFramework\Mediaclass\Interfaces\MediaclassInterface && !isset($model->id) && !$ghost)
+    @if ($model instanceof \MetaFramework\Mediaclass\Contracts\MediaclassInterface && !isset($model->id) && !$ghost)
         <input type="hidden" name="mediaclass_temp_id" value="{{ Str::random(32) }}">
     @endif
 

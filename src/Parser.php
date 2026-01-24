@@ -3,6 +3,8 @@
 namespace MetaFramework\Mediaclass;
 
 use MetaFramework\Mediaclass\Models\Media;
+use MetaFramework\Mediaclass\Support\Config;
+use MetaFramework\Mediaclass\Support\Path;
 
 /**
  * Parser class for transforming Media models into convenient data objects

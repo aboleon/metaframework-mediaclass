@@ -1,12 +1,11 @@
 <?php
 
-namespace MetaFramework\Mediaclass;
+namespace MetaFramework\Mediaclass\Support;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Config as ConfigFacade;
 use Illuminate\Support\Facades\Storage;
-use MetaFramework\Mediaclass\Config as MediaclassConfig;
-use MetaFramework\Mediaclass\Interfaces\MediaclassInterface;
+use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 
 class Config
 {

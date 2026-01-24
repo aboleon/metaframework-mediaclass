@@ -1,10 +1,10 @@
 <?php
 
-namespace MetaFramework\Mediaclass;
+namespace MetaFramework\Mediaclass\Support;
 
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use MetaFramework\Mediaclass\Interfaces\MediaclassInterface;
+use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 use MetaFramework\Mediaclass\Models\Media;
 use ReflectionClass;
 

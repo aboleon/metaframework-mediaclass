@@ -2,6 +2,8 @@
 
 namespace MetaFramework\Mediaclass;
 
+use MetaFramework\Mediaclass\Support\Config;
+
 /**
  * Printer class for rendering media as HTML elements
  *

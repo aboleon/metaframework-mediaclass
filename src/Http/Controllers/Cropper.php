@@ -1,13 +1,13 @@
 <?php
 
-namespace MetaFramework\Mediaclass\Controllers;
+namespace MetaFramework\Mediaclass\Http\Controllers;
 
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
-use MetaFramework\Mediaclass\Config;
+use MetaFramework\Mediaclass\Support\Config;
 use MetaFramework\Mediaclass\Cropable;
 use MetaFramework\Mediaclass\Models\Media;
-use MetaFramework\Mediaclass\Path;
+use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Support\Traits\Ajax;
 use MetaFramework\Support\Traits\Responses;
 use Throwable;

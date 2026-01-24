@@ -1,6 +1,6 @@
 <?php
 
-namespace MetaFramework\Mediaclass\Controllers;
+namespace MetaFramework\Mediaclass\Http\Controllers;
 
 use Exception;
 use Illuminate\Contracts\Filesystem\Filesystem;
@@ -10,11 +10,11 @@ use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Interfaces\ImageInterface;
-use MetaFramework\Mediaclass\Config as MediaclassConfig;
+use MetaFramework\Mediaclass\Support\Config as MediaclassConfig;
 use MetaFramework\Mediaclass\Cropable;
-use MetaFramework\Mediaclass\Interfaces\MediaclassInterface;
+use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 use MetaFramework\Mediaclass\Models\Media;
-use MetaFramework\Mediaclass\Path;
+use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Support\Traits\Responses;
 use ReflectionClass;
 use Throwable;

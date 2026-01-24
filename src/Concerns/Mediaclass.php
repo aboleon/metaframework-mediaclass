@@ -1,6 +1,6 @@
 <?php
 
-namespace MetaFramework\Mediaclass\Traits;
+namespace MetaFramework\Mediaclass\Concerns;
 
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
@@ -8,10 +8,10 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\LazyCollection;
 use Illuminate\Support\Str;
 use MetaFramework\Accessors\Locale;
-use MetaFramework\Mediaclass\Config;
+use MetaFramework\Mediaclass\Support\Config;
 use MetaFramework\Mediaclass\MediaBuilder;
 use MetaFramework\Mediaclass\Models\Media;
-use MetaFramework\Mediaclass\Path;
+use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Support\Traits\Responses;
 use ReflectionClass;
 use Throwable;
