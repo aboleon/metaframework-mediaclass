@@ -16,7 +16,7 @@ class Uploadable extends Component
         public bool   $positions = false,
         public string $group = 'media',
         public string $size = '',
-        public string $label = 'Médias',
+        public string $label = '',
         public int|bool $description = true,
         public array|string|null $cropable = null,
         /**
@@ -44,6 +44,7 @@ class Uploadable extends Component
     {
         $this->group = $this->settings['group'] ?? $this->group;
         $this->label = $this->settings['label'] ?? $this->label;
+        $this->label = $this->label ?: __('mfw-mediaclass.labels.media');
         $this->description = $this->description ? 1 : 0;
         $this->nomedia = $this->nomedia ?: __('mfw-mediaclass.no_media');
 

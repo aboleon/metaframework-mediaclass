@@ -12,6 +12,16 @@ return [
         'error' => 'Грешка',
         'select' => 'Избери',
     ],
+    'labels' => [
+        'media' => 'Медии',
+        'positions' => 'Позиции спрямо съдържанието',
+        'description' => 'Описание',
+        'processing' => 'Обработване...',
+    ],
+    'notices' => [
+        'limit_reached' => 'Достигнат е лимитът от :count файл(а)',
+        'dimension_requirements' => 'Изисквани размери: минимум :width × :height px',
+    ],
     'file' => 'файл|файлове',
     'uploaded_at' => 'Качено на :date в :time',
     'errors' => [
@@ -23,6 +33,11 @@ return [
         'scale_for_crop' => 'Мащабът на изображението не е подходящ за изрязване.',
         'upload_failed' => 'Качването неуспешно',
         'acceptFileTypes' => 'Неразрешен тип файл',
+        'minImageWidth' => 'Минимална ширина: :width px',
+        'minImageHeight' => 'Минимална височина: :height px',
+        'imageDimensions' => 'Минимални размери: :width × :height px',
+        'upload_error_title' => 'Грешка при качване',
+        'upload_error_generic' => 'Възникна грешка при качването на вашия файл',
     ],
     'no_media' => 'Няма добавени медии',
     'no_documents' => 'Няма добавени документи',

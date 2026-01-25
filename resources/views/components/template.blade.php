@@ -51,7 +51,7 @@
                                     <strong class="error text-danger"></strong>
                                 </div>
                                 <div class="col-sm-2">
-                                    <p class="size">Processing...</p>
+                                    <p class="size">{{ __('mfw-mediaclass.labels.processing') }}</p>
                                     <div class="mediaclass-progress progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                                         <div class="progress-bar progress-bar-success" style="width:0%;"></div>
                                     </div>
@@ -67,7 +67,7 @@
             </div>
             <div class="row params mt-3">
                 <div class="col-12 positions text-center ps-2">
-                    <b>Positions par rapport au contenu</b>
+                    <b>{{ __('mfw-mediaclass.labels.positions') }}</b>
                     <div class="choices pt-2">
                         <i class="bi bi-arrow-left-square-fill active" data-position="left"></i>
                         <i class="bi bi-arrow-up-square-fill" data-position="up"></i>
@@ -78,7 +78,7 @@
                 </div>
                 @foreach(\MetaFramework\Accessors\Locale::projectLocales() as $locale)
                     <div class="col-lg-6 col-12 description">
-                        <b>Description <span class="lang">{{ __('lang.'.$locale.'.label') }}</span></b>
+                        <b>{{ __('mfw-mediaclass.labels.description') }} <span class="lang">{{ __('lang.'.$locale.'.label') }}</span></b>
                     <textarea name="description[{{ $locale }}]" type="text" class="mt-2 form-control description"></textarea>
                 </div>
                 @endforeach

@@ -50,7 +50,7 @@
 
                         <div class="row params mt-3">
                             <div class="col-12 positions text-center ps-2{{ $positions ? '' : ' d-none' }}">
-                                <b>Positions par rapport au contenu</b>
+                                <b>{{ __('mfw-mediaclass.labels.positions') }}</b>
                                 <div class="choices pt-2">
                                     @foreach($getPositionning() as $p)
                                         <i class="bi bi-arrow-{{ $p }}-square-fill{{ ($media->position == $p ? ' active':'') }}"
@@ -66,7 +66,7 @@
                                     <x-mfw-inputable::textarea name="mediaclass[{{ $media->id }}][description][{{ $locale }}]"
                                                      :height="100" class="mt-2 description"
                                                      :value="$media->description[$locale] ?? ''"
-                                                     label="Description ({{ $locale }})"/>
+                                                     label="{{ __('mfw-mediaclass.labels.description') }} ({{ $locale }})"/>
                                 </div>
                             @endforeach
                         </div>

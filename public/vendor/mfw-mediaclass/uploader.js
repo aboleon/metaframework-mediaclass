@@ -69,6 +69,29 @@ const MediaclassUploader = {
 
         return this.defaultFileSize;
     },
+    getI18n(uploadable) {
+        if (!uploadable || uploadable.length < 1) {
+            return {};
+        }
+        const i18n = uploadable.data('i18n');
+        return i18n && typeof i18n === 'object' ? i18n : {};
+    },
+    i18nText(uploadable, key, fallback = '') {
+        const i18n = this.getI18n(uploadable);
+        const value = Object.prototype.hasOwnProperty.call(i18n, key) ? i18n[key] : '';
+        return value !== undefined && value !== null && String(value).length > 0 ? value : fallback;
+    },
+    interpolate(template, params = {}) {
+        if (!template) return '';
+        let output = String(template);
+        Object.keys(params).forEach((key) => {
+            output = output.replace(new RegExp(`:${key}\\b`, 'g'), params[key]);
+        });
+        return output;
+    },
+    locale() {
+        return document.documentElement.lang || navigator.language || 'en';
+    },
 
     // Execute callback if it exists
     executeCallback(uploadable, data) {
@@ -173,7 +196,9 @@ const MediaclassUploader = {
             if (MediaclassUploader.isLimitReached(instantiator)) {
                 // Optional: Show a message that the limit has been reached
                 const limit = Number(instantiator.data('limit'));
-                MediaclassUploader.alerts(instantiator).html(`<div class="alert alert-warning">Limite de ${limit} fichier(s) atteinte</div>`);
+                const limitTemplate = MediaclassUploader.i18nText(instantiator, 'limit_reached');
+                const limitMessage = MediaclassUploader.interpolate(limitTemplate, {count: limit});
+                MediaclassUploader.alerts(instantiator).html(`<div class="alert alert-warning">${limitMessage}</div>`);
                 return; // Don't show the uploader
             }
 
@@ -187,9 +212,11 @@ const MediaclassUploader = {
 
                 if (requiredWidth && requiredHeight) {
                     const fileuploadBar = uploadContainer.find('.fileupload-buttonbar');
+                    const dimensionTemplate = MediaclassUploader.i18nText(instantiator, 'dimension_requirements');
+                    const dimensionText = MediaclassUploader.interpolate(dimensionTemplate, {width: requiredWidth, height: requiredHeight});
                     const dimensionHint = `<div class="dimension-requirements text-center mb-3">
             <i class="bi bi-info-circle"></i>
-            <strong>Dimensions requises :</strong> ${requiredWidth} × ${requiredHeight} px minimum
+            <strong>${dimensionText}</strong>
           </div>`;
                     fileuploadBar.prepend(dimensionHint);
                 }
@@ -217,6 +244,7 @@ const MediaclassUploader = {
         const inputFileSize = uploadable.data('maxfilesize');
         const maxFileSize = this.calculateMaxFileSize(inputFileSize);
         const messagesUI = uploadable.find('.ui-messages');
+        const acceptFileTypes = this.i18nText(uploadable, 'accept_file_types');
 
         // Get dimensions from data attributes
         const requiredWidth = uploadable.data('required-width');
@@ -231,16 +259,19 @@ const MediaclassUploader = {
             maxNumberOfFiles: limit > 0 ? limit : null,
             messages: {
                 maxNumberOfFiles: `${messagesUI.find('.maxNumberOfFiles').first().text()} ${limit}`,
-                acceptFileTypes: 'Type de fichier non autorisé',
+                acceptFileTypes: acceptFileTypes,
                 maxFileSize: `${messagesUI.find('.maxFileSize').first().text()} ${inputFileSize || ((this.defaultFileSize / 1024 / 1024) + 'MB')}`,
             },
         };
 
         // Add dimension validation messages if requirements exist
         if (requiredWidth && requiredHeight) {
-            options.messages.minImageWidth = `Largeur minimale requise : ${requiredWidth}px`;
-            options.messages.minImageHeight = `Hauteur minimale requise : ${requiredHeight}px`;
-            options.messages.imageDimensions = `Dimensions minimales requises : ${requiredWidth} × ${requiredHeight} px`;
+            const minWidthTemplate = this.i18nText(uploadable, 'min_image_width');
+            const minHeightTemplate = this.i18nText(uploadable, 'min_image_height');
+            const imageDimensionsTemplate = this.i18nText(uploadable, 'image_dimensions');
+            options.messages.minImageWidth = this.interpolate(minWidthTemplate, {width: requiredWidth});
+            options.messages.minImageHeight = this.interpolate(minHeightTemplate, {height: requiredHeight});
+            options.messages.imageDimensions = this.interpolate(imageDimensionsTemplate, {width: requiredWidth, height: requiredHeight});
         }
 
         fileuploadContainer.fileupload('option', options);
@@ -310,7 +341,8 @@ const MediaclassUploader = {
 
                 if (!data.uploaded) {
                     console.error('No uploaded data in response', data);
-                    notificator('Erreur lors du téléchargement', 'danger', MediaclassUploader.messages(uploadable));
+                    const uploadErrorTitle = MediaclassUploader.i18nText(uploadable, 'upload_error_title');
+                    notificator(uploadErrorTitle, 'danger', MediaclassUploader.messages(uploadable));
                     return;
                 }
 
@@ -322,7 +354,7 @@ const MediaclassUploader = {
                     $(this).html('').show();
 
                     // Now that the upload queue is cleared, add the new content
-                    const html = MediaclassUploader.buildUploadedFileHTML(data, hideDescription);
+                    const html = MediaclassUploader.buildUploadedFileHTML(data, hideDescription, uploadable);
 
                     // Find or create the lightgallery container
                     let lightGalleryContainer = uploadable.find('.lightgallery-container');
@@ -389,8 +421,9 @@ const MediaclassUploader = {
                     notificator(200, errorData, MediaclassUploader.messages(uploadable), false, {isDismissable: true});
                 } else {
                     // Generic error message
+                    const uploadErrorGeneric = MediaclassUploader.i18nText(uploadable, 'upload_error_generic');
                     const errorData = {
-                        danger: ['Une erreur est survenue lors du téléchargement de votre fichier']
+                        danger: [uploadErrorGeneric]
                     };
                     notificator(200, errorData, MediaclassUploader.messages(uploadable), false, {isDismissable: true});
                 }
@@ -466,8 +499,19 @@ const MediaclassUploader = {
         });
     },
 
-    buildUploadedFileHTML(data, hideDescription) {
+    buildUploadedFileHTML(data, hideDescription, uploadable) {
         const {uploaded, filetype, preview, link, cropable_links, has_positions} = data;
+        const locale = this.locale();
+        const uploadedAtTemplate = this.i18nText(uploadable, 'uploaded_at');
+        const uploadedAtText = this.interpolate(uploadedAtTemplate, {
+            date: new Date(uploaded.created_at).toLocaleDateString(locale),
+            time: new Date(uploaded.created_at).toLocaleTimeString(locale, {
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        });
+        const positionsLabel = this.i18nText(uploadable, 'positions_label');
+        const descriptionLabel = this.i18nText(uploadable, 'description_label');
 
         // For images, we need to get the full size URL for LightGallery
         const fullSizeUrl = filetype === 'image' ? (data.urls && data.urls.xl ? data.urls.xl : link) : link;
@@ -510,10 +554,7 @@ const MediaclassUploader = {
                     <p class="name">
                         <span class="rounded-1 py-1 px-2 text-bg-secondary">${uploaded.original_filename}</span>
                         <span class="rounded-1 py-1 px-2 bg-light-subtle text-dark opacity-75">
-                            Uploadé le ${new Date(uploaded.created_at).toLocaleDateString('fr-FR')} à ${new Date(uploaded.created_at).toLocaleTimeString('fr-FR', {
-            hour: '2-digit',
-            minute: '2-digit'
-        })}
+                            ${uploadedAtText}
                         </span>
                     </p>
                 </div>
@@ -521,7 +562,7 @@ const MediaclassUploader = {
             ${filetype === 'image' && cropable_links ? cropable_links : ''}
             <div class="row params mt-3">
                 <div class="col-12 positions text-center ps-2${has_positions === true ? '' : ' d-none'}">
-                    <b>Positions par rapport au contenu</b>
+                    <b>${positionsLabel}</b>
                     <div class="choices pt-2">`;
 
         // Add position buttons
@@ -541,7 +582,7 @@ const MediaclassUploader = {
             html += `
                 <div class="col-lg-6 col-12 description ${hideDescription ? ' d-none' : ''}">
                     <div class="mt-2">
-                        <label class="form-label">Description (${key})</label>
+                        <label class="form-label">${descriptionLabel} (${key})</label>
                         <textarea name="mediaclass[${uploaded.id}][description][${key}]"
                                 class="form-control description"
                                 rows="3">${value || ''}</textarea>
