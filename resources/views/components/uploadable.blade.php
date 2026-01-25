@@ -1,5 +1,18 @@
 @php
     $positions = (array_key_exists('positions',$settings) && $settings['positions'] === true);
+    $i18n = [
+        'limit_reached' => __('mfw-mediaclass.notices.limit_reached'),
+        'dimension_requirements' => __('mfw-mediaclass.notices.dimension_requirements'),
+        'uploaded_at' => __('mfw-mediaclass.uploaded_at'),
+        'positions_label' => __('mfw-mediaclass.labels.positions'),
+        'description_label' => __('mfw-mediaclass.labels.description'),
+        'accept_file_types' => __('mfw-mediaclass.errors.acceptFileTypes'),
+        'min_image_width' => __('mfw-mediaclass.errors.minImageWidth'),
+        'min_image_height' => __('mfw-mediaclass.errors.minImageHeight'),
+        'image_dimensions' => __('mfw-mediaclass.errors.imageDimensions'),
+        'upload_error_title' => __('mfw-mediaclass.errors.upload_error_title'),
+        'upload_error_generic' => __('mfw-mediaclass.errors.upload_error_generic'),
+    ];
 @endphp
 <div class="mediaclass-uploadable {{ $size }}"
      data-maxfilesize="{{ $maxfilesize }}"
@@ -12,19 +25,7 @@
      data-has-description="{{ $description }}"
      data-cropable="{{ $cropable }}"
      data-ghost="{{ $ghost ? '1' : '0' }}"
-     data-i18n='@json([
-         "limit_reached" => __("mfw-mediaclass.notices.limit_reached"),
-         "dimension_requirements" => __("mfw-mediaclass.notices.dimension_requirements"),
-         "uploaded_at" => __("mfw-mediaclass.uploaded_at"),
-         "positions_label" => __("mfw-mediaclass.labels.positions"),
-         "description_label" => __("mfw-mediaclass.labels.description"),
-         "accept_file_types" => __("mfw-mediaclass.errors.acceptFileTypes"),
-         "min_image_width" => __("mfw-mediaclass.errors.minImageWidth"),
-         "min_image_height" => __("mfw-mediaclass.errors.minImageHeight"),
-         "image_dimensions" => __("mfw-mediaclass.errors.imageDimensions"),
-         "upload_error_title" => __("mfw-mediaclass.errors.upload_error_title"),
-         "upload_error_generic" => __("mfw-mediaclass.errors.upload_error_generic"),
-     ], JSON_UNESCAPED_UNICODE)'
+     data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE)'
      @if($callback)
          data-callback="{{ $callback }}"
      @endif

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use MetaFramework\Mediaclass\Concerns\Accessors;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Support\Config;
+use MetaFramework\Mediaclass\Support\Path;
 
 class Cropable
 {
