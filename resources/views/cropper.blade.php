@@ -67,8 +67,8 @@
     <input type=hidden name=resized_temp_w value="{!! $current_w !!}">
 
     <div class="crop-info">
-        <h5>Recadrage : {{ $cropLabel  }}</h5>
-        <div class="dimensions">Dimensions cibles : {{ $cropable->width() }} x {{ $cropable->height() }} px</div>
+        <h5>{{ __('mfw-mediaclass.labels.crop') }} : {{ $cropLabel  }}</h5>
+        <div class="dimensions">{{ __('mfw-mediaclass.labels.target_dimensions') }} : {{ $cropable->width() }} x {{ $cropable->height() }} px</div>
     </div>
 
     <div style="padding: 10px;margin:0 auto;">
@@ -78,20 +78,20 @@
         <div class="row">
             <div class="col-sm-3">
                 <div class="input-group">
-                    <span class="input-group-text">Largeur</span>
+                    <span class="input-group-text">{{ __('mfw-mediaclass.labels.width') }}</span>
                     <input type="text" class="form-control" id="w" name="wimage"/>
                 </div>
             </div>
             <div class="col-sm-3">
                 <div class="input-group">
-                    <span class="input-group-text">Hauteur</span>
+                    <span class="input-group-text">{{ __('mfw-mediaclass.labels.height') }}</span>
                     <input type="text" class="form-control" id="h" name="himage"/>
                 </div>
             </div>
             <div class="col-sm-6 text-end">
                 <img src="{{ asset('vendor/mfw-mediaclass/jcrop/loading.svg') }}" alt="" class="d-inline-block d-none" id="mediaclas-loader" style='height:40px'>
-                <button type="submit" class="btn btn-secondary" id="mediaclass-crop-btn">Valider le recadrage</button>
-                <button type="button" class="btn btn-default" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-secondary" id="mediaclass-crop-btn">{{ __('mfw-mediaclass.buttons.validate_crop') }}</button>
+                <button type="button" class="btn btn-default" data-bs-dismiss="modal">{{ __('mfw-mediaclass.buttons.cancel') }}</button>
             </div>
         </div>
     </div>

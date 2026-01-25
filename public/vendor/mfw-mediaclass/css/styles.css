@@ -1,3 +1,4 @@
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css");
 
 .fileupload-container {
     padding: 20px;
@@ -24,12 +25,12 @@
         }
     }
 
-    i.fa-arrows {
+    i.bi-arrows-move {
         padding-right: 7px;
         cursor: move;
     }
 
-    i.fa-remove {
+    i.bi-x-lg {
         position: absolute;
         right: 0;
         font-size: 14px;
@@ -256,7 +257,7 @@ canvas {
             top: 46%;
             transform: translate(-10%,-50%);
             font-size: 31px;
-            &.fa-circle-check {
+            &.bi-check-circle-fill {
                 color: #8bc34a;
             }
         }
@@ -350,8 +351,7 @@ canvas {
     align-items: center;
 }
 
-.crop-actions-bar::before {
-    content: 'Recadrages :';
+.crop-actions-title {
     font-weight: 600;
     color: #495057;
     margin-right: 10px;
@@ -496,6 +496,28 @@ canvas {
 
 .crop-actions-bar .crop.just-cropped {
     animation: cropSuccess 0.4s ease;
+}
+.mediaclass-crop-dialog {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1140px;
+    width: auto;
+}
+#mediaclass-crop .modal-content {
+    width: auto;
+    margin: 0 auto;
+}
+.crop-view-container {
+    margin: 0 auto;
+}
+.crop-preview {
+    text-align: center;
+}
+.crop-preview-image {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    display: inline-block;
 }
 /* Ensure lightgallery items don't break the layout */
 .lightgallery-item {

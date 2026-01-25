@@ -21,12 +21,12 @@
                                     <a href="{{ $fullSizeUrl }}"
                                        class="lightgallery-item zoom"
                                        data-sub-html="<h4>{{ $media->original_filename }}</h4><p>{{ $media->description[app()->getLocale()] ?? '' }}</p>">
-                                        <i class="fa-sharp fa-solid fa-magnifying-glass"></i>
+                                        <i class="bi bi-zoom-in"></i>
                                     </a>
                                 @else
                                     {{-- Non-image files open in new tab --}}
                                     <a target="_blank" href="{{ $media->url() }}" class="zoom">
-                                        <i class="fa-sharp fa-solid fa-magnifying-glass"></i>
+                                        <i class="bi bi-zoom-in"></i>
                                     </a>
                                 @endif
                             </div>

@@ -7,7 +7,7 @@ use MetaFramework\Mediaclass\Models\Media;
 
 Route::prefix('mediaclass')
     ->name('mediaclass.')
-    ->middleware(['web', 'auth:sanctum'])
+    ->middleware(['web', 'auth'])
     ->group(function () {
         Route::get('cropable/{media}', fn(Media $media) => Cropable::form($media))->name('cropable');
     });

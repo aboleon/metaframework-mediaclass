@@ -223,7 +223,7 @@ class Cropable
 
                 $isCropped  = $this->isCroppedForKey($key);
                 $cropClass  = $isCropped ? 'crop cropped' : 'crop';
-                $iconClass  = $isCropped ? 'fa-solid fa-crop-simple' : 'fa-solid fa-crop';
+                $iconClass  = $isCropped ? 'bi bi-crop' : 'bi bi-scissors';
                 $previewUrl = $isCropped ? $this->media->getCroppedUrl($key) : '';
 
                 $buttons[] = '<a class="'.$cropClass.'"
@@ -240,7 +240,7 @@ class Cropable
            title="'.$label.' ('.$width.'x'.$height.')">
            <i class="'.$iconClass.'"></i>
            <span class="crop-label">'.$label.'</span>
-           '.($isCropped ? '<i class="fa-solid fa-circle-check check-icon"></i>' : '').'
+           '.($isCropped ? '<i class="bi bi-check-circle-fill check-icon"></i>' : '').'
          </a>';
             }
         }
@@ -250,7 +250,8 @@ class Cropable
             return '';
         }
 
-        return '<div class="crop-actions-bar">' . implode('', $buttons) . '</div>';
+        $title = __('mfw-mediaclass.labels.crops') . ' :';
+        return '<div class="crop-actions-bar"><span class="crop-actions-title">'.$title.'</span>' . implode('', $buttons) . '</div>';
     }
 
     /**
@@ -303,7 +304,7 @@ class Cropable
                data-bs-toggle="modal"
                data-bs-target="#mediaclass-crop"
                href="'.route('mediaclass.cropable', $this->media).'?w='.$width.'&h='.$height.'&crop_key='.$firstKey.'">
-                <i class="fa-solid fa-crop"></i>
+                <i class="bi bi-scissors"></i>
             </a>';
     }
 
@@ -477,7 +478,7 @@ class Cropable
                 $html .= '<span class="crop-size-item">';
                 $html .= $label.': '.$width.' x '.$height;
                 if ($isCropped) {
-                    $html .= ' <i class="fa-solid fa-circle-check"></i>';
+                    $html .= ' <i class="bi bi-check-circle-fill"></i>';
                 }
                 $html .= '</span>';
             }
@@ -500,7 +501,7 @@ class Cropable
         }
 
         if ($hasAnyCrop) {
-            return '<i class="fa-solid fa-circle-check"></i>';
+            return '<i class="bi bi-check-circle-fill"></i>';
         }
 
         return '';

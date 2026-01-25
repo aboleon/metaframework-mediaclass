@@ -43,6 +43,7 @@ class MediaclassServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../resources/lang/en' => lang_path('en'),
                 __DIR__.'/../resources/lang/fr' => lang_path('fr'),
+                __DIR__.'/../resources/lang/bg' => lang_path('bg'),
             ], 'mfw-mediaclass-lang');
 
             $this->publishes([
@@ -59,15 +60,17 @@ class MediaclassServiceProvider extends ServiceProvider
     {
         $langPath = __DIR__.'/../resources/lang';
 
-        foreach (['en', 'fr'] as $locale) {
-            $projectFile = lang_path("{$locale}/mfw-mediaclass.php");
+        foreach (['en', 'fr', 'bg'] as $locale) {
+            $packageFile = "{$langPath}/{$locale}/mfw-mediaclass.php";
+            if (file_exists($packageFile)) {
+                $lines = $this->flattenTranslations(require $packageFile, 'mfw-mediaclass');
+                Lang::addLines($lines, $locale, '*');
+            }
 
-            if (!file_exists($projectFile)) {
-                $packageFile = "{$langPath}/{$locale}/mfw-mediaclass.php";
-                if (file_exists($packageFile)) {
-                    $lines = $this->flattenTranslations(require $packageFile, 'mfw-mediaclass');
-                    Lang::addLines($lines, $locale, '*');
-                }
+            $projectFile = lang_path("{$locale}/mfw-mediaclass.php");
+            if (file_exists($projectFile)) {
+                $lines = $this->flattenTranslations(require $projectFile, 'mfw-mediaclass');
+                Lang::addLines($lines, $locale, '*');
             }
         }
     }

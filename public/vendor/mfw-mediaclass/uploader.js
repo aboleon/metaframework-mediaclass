@@ -530,7 +530,7 @@ const MediaclassUploader = {
                data-sub-html="<h4>${uploaded.original_filename}</h4><p>${uploaded.description ? (uploaded.description[document.documentElement.lang] || '') : ''}</p>"
                style="background-image: url(${preview}); background-size: contain; background-repeat: no-repeat; background-position: center;">
                 <div class="actions">
-                    <i class="fa-sharp fa-solid fa-magnifying-glass"></i>
+                    <i class="bi bi-zoom-in"></i>
                 </div>
             </a>`;
         } else {
@@ -541,7 +541,7 @@ const MediaclassUploader = {
                class="file-preview-link d-block w-100 h-100"
                style="background-image: url(${preview}); background-size: contain; background-repeat: no-repeat; background-position: center;">
                 <div class="actions">
-                    <i class="fa-sharp fa-solid fa-magnifying-glass"></i>
+                    <i class="bi bi-zoom-in"></i>
                 </div>
             </a>`;
         }
@@ -643,6 +643,29 @@ const MediaclassUploader = {
                     $form.attr('data-ajax', ajaxUrl);
                     $form.attr('data-media-id', $btn.data('media-id'));
                     $form.attr('data-crop-key', $btn.data('crop-key'));
+
+                    // Resize container to image width (cap at modal width and 1140px)
+                    const $container = $modal.find('.crop-view-container');
+                    const $img = $modal.find('.crop-preview-image');
+                    const setContainerWidth = () => {
+                        const modalBody = $modal.find('.modal-body').get(0);
+                        const style = modalBody ? getComputedStyle(modalBody) : null;
+                        const paddingLeft = style ? parseFloat(style.paddingLeft) || 0 : 0;
+                        const paddingRight = style ? parseFloat(style.paddingRight) || 0 : 0;
+                        const paddingX = paddingLeft + paddingRight;
+                        const viewportMax = Math.max(0, (window.innerWidth || 1140) - 32);
+                        const maxDialogWidth = Math.min(1140, viewportMax);
+                        const maxContentWidth = Math.max(0, maxDialogWidth - paddingX);
+                        const naturalWidth = $img.get(0)?.naturalWidth || 0;
+                        const contentWidth = Math.min(maxContentWidth, naturalWidth || maxContentWidth);
+                        const dialogWidth = contentWidth + paddingX;
+                        $container.css('width', `${contentWidth}px`);
+                        $modal.find('.mediaclass-crop-dialog').css('width', `${dialogWidth}px`);
+                    };
+                    $img.off('load.mediaclassCrop').on('load.mediaclassCrop', setContainerWidth);
+                    if ($img.get(0)?.complete) {
+                        setContainerWidth();
+                    }
                 }, 50);
 
                 $modal.modal('show');
@@ -678,6 +701,7 @@ const MediaclassUploader = {
         // Clean up on modal close
         $modal.on('hidden.bs.modal', function () {
             $(this).find('.modal-body').empty();
+            $(this).find('.mediaclass-crop-dialog').css('width', '');
         });
     },
 
@@ -707,12 +731,12 @@ const MediaclassUploader = {
 
                     // Change the icon to the filled crop icon
                     $cropButton.find('i').first()
-                        .removeClass('fa-solid fa-crop')
-                        .addClass('fa-solid fa-crop-simple');
+                        .removeClass('bi-scissors')
+                        .addClass('bi-crop');
 
                     // Add the check mark icon if it doesn't exist
-                    if (!$cropButton.find('.fa-circle-check').length) {
-                        $cropButton.append(' <i class="fa-solid fa-circle-check check-icon"></i>');
+                    if (!$cropButton.find('.bi-check-circle-fill').length) {
+                        $cropButton.append(' <i class="bi bi-check-circle-fill check-icon"></i>');
                     }
 
                     // Update the preview URL data attribute if we have the new URL
@@ -755,11 +779,11 @@ const MediaclassUploader = {
 
                 // Change the icon from filled to regular crop icon
                 $cropButton.find('i').first()
-                    .removeClass('fa-solid fa-crop-simple')
-                    .addClass('fa-solid fa-crop');
+                    .removeClass('bi-crop')
+                    .addClass('bi-scissors');
 
                 // Remove the check mark icon if it exists
-                $cropButton.find('.fa-circle-check').remove();
+                $cropButton.find('.bi-check-circle-fill').remove();
 
                 // Clear the preview URL data attribute
                 $cropButton.attr('data-preview-url', '');
