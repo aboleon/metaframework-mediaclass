@@ -7,7 +7,7 @@
 [![PHP Version](https://img.shields.io/packagist/php-v/aboleon/metaframework-mediaclass.svg?style=flat-square)](https://packagist.org/packages/aboleon/metaframework-mediaclass)
 [![License](https://img.shields.io/packagist/l/aboleon/metaframework-mediaclass.svg?style=flat-square)](https://packagist.org/packages/aboleon/metaframework-mediaclass)
 
-Media management components for MetaFramework (Laravel). This package provides
+Media management components for Laravel applications. This package provides
 upload UI, database persistence, image resizing, optional cropping, and helpers
 to retrieve and render media for Eloquent models.
 
