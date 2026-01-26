@@ -3,9 +3,12 @@
 namespace MetaFramework\Mediaclass\Tests\Unit;
 
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Facades\Storage;
 use MetaFramework\Mediaclass\MediaBuilder;
 use MetaFramework\Mediaclass\Models\Media;
+use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Mediaclass\Tests\Fixtures\Post;
+use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
 use MetaFramework\Mediaclass\Tests\TestCase;
 
 class MediaBuilderTest extends TestCase
@@ -323,5 +326,31 @@ class MediaBuilderTest extends TestCase
         $img = (string) $builder->img();
 
         $this->assertStringContainsString('alt="Test &quot;quoted&quot; &lt;script&gt;"', $img);
+    }
+
+    public function test_urls_use_group_sizes_when_defined(): void
+    {
+        $post = PostWithGroupSizes::create(['title' => 'Sized Post']);
+        $media = Media::create([
+            'model_type' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'test.jpg',
+            'filename' => 'sized123',
+            'position' => 'left',
+        ]);
+        $media->setRelation('model', $post);
+
+        $folder = Path::mediaFolderForMedia($media);
+        Storage::disk('testing')->put($folder.'/1600_'.$media->filename.'.jpg', 'test');
+        Storage::disk('testing')->put($folder.'/1200_'.$media->filename.'.jpg', 'test');
+
+        $builder = new MediaBuilder($media);
+        $urls = $builder->urls();
+
+        $this->assertArrayHasKey('xl', $urls);
+        $this->assertArrayHasKey('sm', $urls);
+        $this->assertArrayNotHasKey('md', $urls);
     }
 }

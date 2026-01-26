@@ -386,7 +386,8 @@ class MediaBuilder
         }
 
         $urls = [];
-        $sizes = Config::getSizes();
+        $groupSizes = Config::getGroupSizes($this->media->model, $this->media->group);
+        $sizes = !empty($groupSizes) ? $groupSizes : Config::getSizes();
 
         foreach (array_keys($sizes) as $size) {
             $url = $this->media->url($size);

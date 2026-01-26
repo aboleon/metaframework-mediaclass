@@ -50,10 +50,68 @@ class Config
         return [];
     }
 
+    public static function getGroupSettings(MediaclassInterface $model, string $group): array
+    {
+        $sizes = self::getModelSizes($model);
+        return $sizes[$group] ?? [];
+    }
+
     public static function getGroupSetings(MediaclassInterface $model, string $group): array
     {
         $sizes = self::getModelSizes($model);
         return isset($sizes[$group]) ? [$group => $sizes[$group]] : [];
+    }
+
+    public static function getGroupSizes(MediaclassInterface $model, string $group): array
+    {
+        $settings = self::getGroupSettings($model, $group);
+
+        if (isset($settings['sizes']) && is_array($settings['sizes'])) {
+            return self::normalizeSizesArray($settings['sizes']);
+        }
+
+        return [];
+    }
+
+    public static function getGroupResizeDimensions(MediaclassInterface $model, string $group): array
+    {
+        $settings = self::getGroupSettings($model, $group);
+        $groupSizes = self::getGroupSizes($model, $group);
+
+        if (!empty($groupSizes)) {
+            return self::sortSizesByWidthDesc($groupSizes);
+        }
+
+        if (isset($settings['width'], $settings['height'])) {
+            return [
+                $group => [
+                    'width' => (int) $settings['width'],
+                    'height' => (int) $settings['height'],
+                ],
+            ];
+        }
+
+        return self::getSizesInReverseOrder();
+    }
+
+    public static function getGroupRequiredDimensions(MediaclassInterface $model, string $group): ?array
+    {
+        $settings = self::getGroupSettings($model, $group);
+        $groupSizes = self::getGroupSizes($model, $group);
+
+        if (!empty($groupSizes)) {
+            $sorted = self::sortSizesByWidthDesc($groupSizes);
+            $first = $sorted[array_key_first($sorted)] ?? null;
+            if ($first && isset($first['width'], $first['height'])) {
+                return [(int) $first['width'], (int) $first['height']];
+            }
+        }
+
+        if (isset($settings['width'], $settings['height'])) {
+            return [(int) $settings['width'], (int) $settings['height']];
+        }
+
+        return null;
     }
 
     public static function getSizesInReverseOrder(): array
@@ -125,5 +183,30 @@ class Config
         }
 
         return ConfigFacade::get('mediaclass.' . $key, $default);
+    }
+
+    private static function normalizeSizesArray(array $sizes): array
+    {
+        $normalized = [];
+        foreach ($sizes as $key => $value) {
+            if (!is_array($value) || !isset($value['width'], $value['height'])) {
+                continue;
+            }
+            $normalized[$key] = [
+                'width' => (int) $value['width'],
+                'height' => (int) $value['height'],
+            ];
+        }
+
+        return $normalized;
+    }
+
+    private static function sortSizesByWidthDesc(array $sizes): array
+    {
+        uasort($sizes, function ($a, $b) {
+            return $b['width'] <=> $a['width'];
+        });
+
+        return $sizes;
     }
 }

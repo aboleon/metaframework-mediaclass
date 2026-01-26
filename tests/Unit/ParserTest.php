@@ -4,8 +4,11 @@ namespace MetaFramework\Mediaclass\Tests\Unit;
 
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Parser;
+use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Mediaclass\Tests\Fixtures\Post;
+use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
 use MetaFramework\Mediaclass\Tests\TestCase;
+use Illuminate\Support\Facades\Storage;
 
 class ParserTest extends TestCase
 {
@@ -217,5 +220,30 @@ class ParserTest extends TestCase
 
         // Description should be a string (localized)
         $this->assertIsString($parser->description);
+    }
+
+    public function test_parser_uses_group_sizes_when_defined(): void
+    {
+        $post = PostWithGroupSizes::create(['title' => 'Sized Post']);
+        $media = Media::create([
+            'model_type' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'test.jpg',
+            'filename' => 'sized123',
+            'position' => 'right',
+        ]);
+        $media->setRelation('model', $post);
+
+        $folder = Path::mediaFolderForMedia($media);
+        Storage::disk('testing')->put($folder.'/1600_'.$media->filename.'.jpg', 'test');
+        Storage::disk('testing')->put($folder.'/1200_'.$media->filename.'.jpg', 'test');
+
+        $parser = new Parser($media);
+
+        $this->assertArrayHasKey('xl', $parser->urls);
+        $this->assertArrayHasKey('sm', $parser->urls);
+        $this->assertArrayNotHasKey('md', $parser->urls);
     }
 }

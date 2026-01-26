@@ -73,6 +73,62 @@ class Post extends Model implements MediaclassInterface
 ```
 
 ---
+## Two Groups Example (Cover + Gallery)
+
+Use group keys in `mediaclassSettings()` to define the required dimensions per group:
+
+```php
+public function mediaclassSettings(): array
+{
+    return [
+        'cover' => [
+            'label' => 'Cover',
+            'width' => 1600,
+            'height' => 900,
+            'cropable' => true, // single crop using the group dimensions
+        ],
+        'gallery' => [
+            'label' => 'Gallery',
+            'width' => 1200,
+            'height' => 800,
+            // 'cropable' => ['thumb' => [400, 300]] // optional extra crops
+        ],
+    ];
+}
+```
+
+If no group is defined, the package falls back to the default sizes defined in
+`config/mfw-mediaclass.php` under `dimensions`.
+
+---
+## Group-Specific Sizes
+
+You can define multiple sizes for a single group using a `sizes` array. These
+sizes will be used for resizing and for size keys when calling `url('key')`:
+
+```php
+public function mediaclassSettings(): array
+{
+    return [
+        'cover' => [
+            'label' => 'Cover',
+            'sizes' => [
+                'xl' => ['width' => 1600, 'height' => 900],
+                'sm' => ['width' => 1200, 'height' => 500],
+            ],
+            'cropable' => true, // uses the largest size as the crop target
+        ],
+    ];
+}
+```
+
+If `sizes` is not provided for a group, the package uses the single `width` /
+`height` pair for that group, or falls back to the global `dimensions` defaults.
+
+**Note:** Upload processing relies on Intervention Image. If Intervention Image
+is not installed, upload tests that hit the upload controller will be skipped.
+
+---
 
 ## Displaying Images
 

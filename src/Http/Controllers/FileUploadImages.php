@@ -153,34 +153,29 @@ class FileUploadImages
             &&
             ! str_contains($this->uploadedFile->getMimeType(), 'svg')
         ) {
-            // Get group settings if available
-            $groupSettings = MediaclassConfig::getGroupSetings($this->model, $this->media_group);
+            $required = MediaclassConfig::getGroupRequiredDimensions($this->model, $this->media_group);
 
-            if ( ! empty($groupSettings)) {
-                $groupKey       = array_key_first($groupSettings);
-                $requiredWidth  = $groupSettings[$groupKey]['width'] ?? null;
-                $requiredHeight = $groupSettings[$groupKey]['height'] ?? null;
+            if ($required) {
+                [$requiredWidth, $requiredHeight] = $required;
 
-                if ($requiredWidth && $requiredHeight) {
-                    // Get image dimensions
-                    $imageInfo = @getimagesize($this->uploadedFile->getPathname());
+                // Get image dimensions
+                $imageInfo = @getimagesize($this->uploadedFile->getPathname());
 
-                    if ($imageInfo) {
-                        $imageWidth  = $imageInfo[0];
-                        $imageHeight = $imageInfo[1];
+                if ($imageInfo) {
+                    $imageWidth  = $imageInfo[0];
+                    $imageHeight = $imageInfo[1];
 
-                        if ($imageWidth < $requiredWidth || $imageHeight < $requiredHeight) {
-                            $this->responseError(
-                                __('mfw-mediaclass.errors.dimensions', [
-                                    'width'           => $requiredWidth,
-                                    'height'          => $requiredHeight,
-                                    'uploaded_width'  => $imageWidth,
-                                    'uploaded_height' => $imageHeight,
-                                ]),
-                            );
+                    if ($imageWidth < $requiredWidth || $imageHeight < $requiredHeight) {
+                        $this->responseError(
+                            __('mfw-mediaclass.errors.dimensions', [
+                                'width'           => $requiredWidth,
+                                'height'          => $requiredHeight,
+                                'uploaded_width'  => $imageWidth,
+                                'uploaded_height' => $imageHeight,
+                            ]),
+                        );
 
-                            return $this;
-                        }
+                        return $this;
                     }
                 }
             }
@@ -256,18 +251,18 @@ class FileUploadImages
     private function processImage(): static
     {
         // Get group settings if available
-        $groupSettings = MediaclassConfig::getGroupSetings($this->model, $this->media_group);
+        $groupSettings = MediaclassConfig::getGroupSettings($this->model, $this->media_group);
 
         // Load dimensions from group settings or default (largest -> smallest)
-        $this->dimensions = $groupSettings ?: MediaclassConfig::getSizesInReverseOrder();
+        $this->dimensions = MediaclassConfig::getGroupResizeDimensions($this->model, $this->media_group);
 
         $this->image = $this->imageManager->read($this->uploadedFile);
 
         // Check dimensions if group settings exist
         if ( ! empty($groupSettings)) {
-            $groupKey       = array_key_first($groupSettings);
-            $requiredWidth  = $groupSettings[$groupKey]['width'] ?? null;
-            $requiredHeight = $groupSettings[$groupKey]['height'] ?? null;
+            $required = MediaclassConfig::getGroupRequiredDimensions($this->model, $this->media_group);
+            $requiredWidth = $required ? $required[0] : null;
+            $requiredHeight = $required ? $required[1] : null;
 
             $imageWidth  = $this->image->width();
             $imageHeight = $this->image->height();
@@ -291,7 +286,7 @@ class FileUploadImages
                 }
 
                 // NEW: Check if cropable is enabled and validate scale
-                if (isset($groupSettings[$groupKey]['cropable']) && $groupSettings[$groupKey]['cropable'] === true) {
+                if (isset($groupSettings['cropable']) && $groupSettings['cropable'] === true) {
                     // Calculate what the resized dimensions would be
                     $isWidthMain          = $requiredWidth >= $requiredHeight;
                     $mainDimension        = $isWidthMain ? $requiredWidth : $requiredHeight;
@@ -345,6 +340,10 @@ class FileUploadImages
         $ratio                   = ($this->image->width() / $this->image->height()) > 1 ? 'h' : 'v';
         $this->response['ratio'] = $ratio;
 
+        $isSingleGroupSize = !empty($groupSettings)
+            && empty($groupSettings['sizes'])
+            && isset($groupSettings['width'], $groupSettings['height']);
+
         foreach ($this->dimensions as $key => $dimensions) {
             $file = $this->folder_name.'/'.$dimensions['width'].'_'.$this->filename.'.'.$this->mime_type;
 
@@ -358,7 +357,7 @@ class FileUploadImages
             $resizedImage = null;
 
             // For group settings (single dimension), apply special logic
-            if ( ! empty($groupSettings) && $key === array_key_first($groupSettings)) {
+            if ($isSingleGroupSize) {
                 // Determine which is the main dimension (the larger one)
                 $isWidthMain          = $targetWidth >= $targetHeight;
                 $mainDimension        = $isWidthMain ? $targetWidth : $targetHeight;
@@ -422,9 +421,9 @@ class FileUploadImages
 
         // If no cropable data from request but group has cropable setting
         if ( ! $cropableData && ! empty($groupSettings)) {
-            $groupKey       = array_key_first($groupSettings);
-            $requiredWidth  = $groupSettings[$groupKey]['width'] ?? null;
-            $requiredHeight = $groupSettings[$groupKey]['height'] ?? null;
+            $required = MediaclassConfig::getGroupRequiredDimensions($this->model, $this->media_group);
+            $requiredWidth = $required ? $required[0] : null;
+            $requiredHeight = $required ? $required[1] : null;
 
             // Check if image dimensions match exactly
             $imageWidth  = $this->image->width();
@@ -433,19 +432,19 @@ class FileUploadImages
             $isExactMatch = ($imageWidth == $requiredWidth && $imageHeight == $requiredHeight);
 
             // Only set cropable if cropable is true AND dimensions don't match exactly
-            if (isset($groupSettings[$groupKey]['cropable'])
-                && $groupSettings[$groupKey]['cropable'] === true
-                &&
-                ! $isExactMatch
-            ) {
-                // Set cropable dimensions from group settings
-                $label        = $groupSettings[$groupKey]['label'] ?? ucfirst($groupKey);
-                $cropableData = [
-                    $groupKey => [
-                        $requiredWidth,
-                        $requiredHeight,
-                    ],
-                ];
+            if (isset($groupSettings['cropable'])) {
+                if (is_array($groupSettings['cropable'])) {
+                    $cropableData = $groupSettings['cropable'];
+                } elseif ($groupSettings['cropable'] === true && ! $isExactMatch) {
+                    // Set cropable dimensions from group settings
+                    $label        = $groupSettings['label'] ?? ucfirst($this->media_group);
+                    $cropableData = [
+                        $this->media_group => [
+                            $requiredWidth,
+                            $requiredHeight,
+                        ],
+                    ];
+                }
             }
         }
 

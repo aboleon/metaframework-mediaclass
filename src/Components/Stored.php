@@ -74,15 +74,36 @@ class Stored extends Component
 
             if (isset($modelSettings[$this->group])) {
                 $groupSettings = $modelSettings[$this->group];
+                $requiredWidth = $groupSettings['width'] ?? null;
+                $requiredHeight = $groupSettings['height'] ?? null;
+
+                if ((!$requiredWidth || !$requiredHeight) && isset($groupSettings['sizes']) && is_array($groupSettings['sizes'])) {
+                    $sizes = [];
+                    foreach ($groupSettings['sizes'] as $size) {
+                        if (is_array($size) && isset($size['width'], $size['height'])) {
+                            $sizes[] = [(int) $size['width'], (int) $size['height']];
+                        }
+                    }
+                    usort($sizes, fn (array $a, array $b) => $b[0] <=> $a[0]);
+                    if (!empty($sizes)) {
+                        $requiredWidth = $sizes[0][0];
+                        $requiredHeight = $sizes[0][1];
+                    }
+                }
 
                 // Set cropable if defined in group settings
-                if (isset($groupSettings['cropable']) && $groupSettings['cropable'] === true) {
-                    $this->cropable = [
-                        $this->group => [
-                            $groupSettings['width'],
-                            $groupSettings['height']
-                        ]
-                    ];
+                if (isset($groupSettings['cropable'])) {
+                    if ($groupSettings['cropable'] === true
+                        && $requiredWidth && $requiredHeight) {
+                        $this->cropable = [
+                            $this->group => [
+                                $requiredWidth,
+                                $requiredHeight
+                            ]
+                        ];
+                    } elseif (is_array($groupSettings['cropable'])) {
+                        $this->cropable = $groupSettings['cropable'];
+                    }
                 }
             }
         }

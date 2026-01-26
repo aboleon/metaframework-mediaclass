@@ -44,11 +44,8 @@
         <span class="subcontrol mediaclass-uploader">
             <i class="{{ $icon }}"></i> {!! $displayLabel !!}
         </span>
-        @if($requiredWidth && $requiredHeight)
-            <span class="subcontrol dimensions-badge me-3"
-                  style="font-size: 16px; background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 4px;">
-            {{ $requiredWidth }}px × {{ $requiredHeight }}px
-        </span>
+        @if($dimensionsInline)
+            <span class="subcontrol dimensions-inline me-3">{{ $dimensionsInline }}</span>
         @endif
     </div>
     <div class="mediaclass-upload-container"></div>
@@ -85,6 +82,12 @@
             .mediaclass-uploadable .dimensions-badge {
                 font-family: monospace;
                 font-weight: 600;
+            }
+
+            .mediaclass-uploadable .dimensions-inline {
+                font-family: monospace;
+                font-size: 13px;
+                opacity: 0.8;
             }
 
             /* Disabled state styling */

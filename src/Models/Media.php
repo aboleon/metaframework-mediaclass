@@ -123,7 +123,27 @@ class Media extends Model
 
         $modelSettings =  $this->model->mediaclassSettings();
         if (array_key_exists($this->group, $modelSettings)) {
-            return $modelSettings[$this->group]['width'].'_';
+            $groupSettings = $modelSettings[$this->group];
+
+            if (isset($groupSettings['sizes'][$prefix]['width'])) {
+                return $groupSettings['sizes'][$prefix]['width'].'_';
+            }
+
+            if (isset($groupSettings['sizes']) && is_array($groupSettings['sizes'])) {
+                $groupSizes = Config::getGroupSizes($this->model, $this->group);
+                if (!empty($groupSizes)) {
+                    $sizes = array_values($groupSizes);
+                    usort($sizes, fn ($a, $b) => $b['width'] <=> $a['width']);
+                    $largest = $sizes[0] ?? null;
+                    if ($largest && isset($largest['width'])) {
+                        return $largest['width'].'_';
+                    }
+                }
+            }
+
+            if (isset($groupSettings['width'])) {
+                return $groupSettings['width'].'_';
+            }
             // TODO: A voir dans le futur pour combiner avec un sortable [sizes => w,h] ou 'responsive'
         }
         $prefix = array_key_exists($prefix, Config::getSizes()) ? $prefix : array_key_first(Config::getSizes());
@@ -228,6 +248,11 @@ class Media extends Model
      */
     public function sizes(): array
     {
+        $groupSettings = Config::getGroupSettings($this->model, $this->group);
+        if (isset($groupSettings['sizes']) && is_array($groupSettings['sizes'])) {
+            return array_keys($groupSettings['sizes']);
+        }
+
         return array_keys(Config::getSizes());
     }
 

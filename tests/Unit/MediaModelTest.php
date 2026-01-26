@@ -5,6 +5,7 @@ namespace MetaFramework\Mediaclass\Tests\Unit;
 use MetaFramework\Mediaclass\MediaBuilder;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Tests\Fixtures\Post;
+use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
 use MetaFramework\Mediaclass\Tests\TestCase;
 
 class MediaModelTest extends TestCase
@@ -75,6 +76,60 @@ class MediaModelTest extends TestCase
         $this->assertContains('md', $sizes);
         $this->assertContains('lg', $sizes);
         $this->assertContains('xl', $sizes);
+    }
+
+    public function test_sizes_returns_group_sizes_when_defined(): void
+    {
+        $post = PostWithGroupSizes::create(['title' => 'Sized Post']);
+        $media = Media::create([
+            'model_type' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'test.jpg',
+            'filename' => 'sized123',
+            'position' => 'left',
+        ]);
+        $media->setRelation('model', $post);
+
+        $sizes = $media->sizes();
+
+        $this->assertSame(['xl', 'sm'], $sizes);
+    }
+
+    public function test_dimension_prefix_uses_group_sizes(): void
+    {
+        $post = PostWithGroupSizes::create(['title' => 'Sized Post']);
+        $media = Media::create([
+            'model_type' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'test.jpg',
+            'filename' => 'sized123',
+            'position' => 'left',
+        ]);
+        $media->setRelation('model', $post);
+
+        $this->assertSame('1600_', $media->dimensionPrefix('xl'));
+        $this->assertSame('1200_', $media->dimensionPrefix('sm'));
+    }
+
+    public function test_dimension_prefix_falls_back_to_largest_group_size(): void
+    {
+        $post = PostWithGroupSizes::create(['title' => 'Sized Post']);
+        $media = Media::create([
+            'model_type' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'test.jpg',
+            'filename' => 'sized123',
+            'position' => 'left',
+        ]);
+        $media->setRelation('model', $post);
+
+        $this->assertSame('1600_', $media->dimensionPrefix('md'));
     }
 
     public function test_img_returns_html_string(): void

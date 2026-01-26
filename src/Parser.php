@@ -163,7 +163,8 @@ class Parser
      */
     protected function parseUrls(Media $media, array $customSizes = []): array
     {
-        $sizes = $customSizes ?: Config::getSizes();
+        $groupSizes = Config::getGroupSizes($media->model, $media->group);
+        $sizes = $customSizes ?: (!empty($groupSizes) ? $groupSizes : Config::getSizes());
         $urls = [];
 
         // Add standard size URLs first

@@ -47,6 +47,27 @@ class Cropable
                 ];
             }
         }
+        // Handle sizes-based group settings
+        elseif (isset($this->settings['sizes']) && is_array($this->settings['sizes'])) {
+            if (isset($this->settings['cropable']) && $this->settings['cropable'] === true) {
+                $sizes = [];
+                foreach ($this->settings['sizes'] as $size) {
+                    if (is_array($size) && isset($size['width'], $size['height'])) {
+                        $sizes[] = [(int) $size['width'], (int) $size['height']];
+                    }
+                }
+                usort($sizes, fn (array $a, array $b) => $b[0] <=> $a[0]);
+                if (!empty($sizes)) {
+                    $this->cropable_settings = [
+                        $this->media->group => [
+                            $sizes[0][0],
+                            $sizes[0][1],
+                            $this->settings['label'] ?? ucfirst($this->media->group)
+                        ]
+                    ];
+                }
+            }
+        }
         // Original handling for cropable array
         elseif (array_key_exists('cropable', $this->settings)) {
             $cropable = $this->settings['cropable'];
@@ -126,11 +147,22 @@ class Cropable
     {
         try {
             // First check if we have custom group settings - this tells us which file to check
-            $groupSettings = Config::getGroupSetings($this->media->model, $this->media->group);
+            $groupSettings = Config::getGroupSettings($this->media->model, $this->media->group);
+            $groupSizes = Config::getGroupSizes($this->media->model, $this->media->group);
 
-            if (!empty($groupSettings) && isset($groupSettings[$this->media->group])) {
-                // For custom group settings, the file is stored with the group's width prefix
-                $width = $groupSettings[$this->media->group]['width'];
+            if (!empty($groupSizes)) {
+                // For group sizes, use the largest width prefix
+                $sizesSorted = [];
+                foreach ($groupSizes as $size) {
+                    $sizesSorted[] = $size;
+                }
+                usort($sizesSorted, fn($a, $b) => $b['width'] <=> $a['width']);
+                $largest = $sizesSorted[0] ?? null;
+                $width = $largest['width'] ?? null;
+                $filename = $width . '_' . $this->media->filename . '.' . $this->media->extension();
+            } elseif (!empty($groupSettings) && isset($groupSettings['width'])) {
+                // For custom group settings (single size), the file is stored with the group's width prefix
+                $width = $groupSettings['width'];
                 $filename = $width . '_' . $this->media->filename . '.' . $this->media->extension();
             } else {
                 // For default sizes, get the largest size
