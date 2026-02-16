@@ -107,12 +107,9 @@ class FileUploadImages
     public function delete(): static
     {
         try {
-            $media = Media::query()->find(request('id'));
-
-            // For ghost models, we need to inject the model instance
-            if ($media->model_id === null) {
-                // Set the model relation without querying
-                $media->setRelation('model', (new ReflectionClass($media->model_type))->newInstance());
+            $media = Media::query()->find((int)request('id'));
+            if (!$media) {
+                return $this;
             }
 
             $path = Path::mediaFolderForMedia($media);
