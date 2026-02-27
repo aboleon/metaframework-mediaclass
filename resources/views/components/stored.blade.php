@@ -66,7 +66,6 @@
                                 <div class="col-lg-6 col-12 description {{ !$description ? 'd-none' :'' }}">
                                     <x-mfw-inputable::textarea
                                             name="mediaclass[{{ $media->id }}][description][{{ $locale }}]"
-                                            mode="plain"
                                             :height="100" class="mt-2 description"
                                             :value="$media->description[$locale] ?? ''"
                                             label="{{ __('mfw-mediaclass.labels.description') }} ({{ $locale }})"/>
