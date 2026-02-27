@@ -5,7 +5,7 @@
   "license": "MIT",
   "require": {
     "php": "^8.3",
-    "aboleon/metaframework-inputable": "^1.0",
+    "aboleon/metaframework-inputable": "^2.0",
     "aboleon/metaframework-support": "^1.0",
     "css-crush/css-crush": "^v5.0.0",
     "intervention/image": "^3.11",

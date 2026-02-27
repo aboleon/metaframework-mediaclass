@@ -14,7 +14,8 @@
                 <span class="unlink"><i class="bi bi-x-circle-fill"></i></span>
                 <div class="row m-0">
                     <div class="col-xl-3 pe-xl-4 col-12 impImg position-relative preview {{ $is_image ? 'image' : 'file' }}">
-                        <div class="w-100 h-100" style="background-image: url({{ $preview  }});background-size: contain;background-repeat: no-repeat;background-position: center;">
+                        <div class="w-100 h-100"
+                             style="background-image: url({{ $preview  }});background-size: contain;background-repeat: no-repeat;background-position: center;">
                             <div class="actions">
                                 @if($is_image)
                                     {{-- LightGallery trigger --}}
@@ -63,10 +64,12 @@
 
                             @foreach(\MetaFramework\Accessors\Locale::projectLocales() as $locale)
                                 <div class="col-lg-6 col-12 description {{ !$description ? 'd-none' :'' }}">
-                                    <x-mfw-inputable::textarea name="mediaclass[{{ $media->id }}][description][{{ $locale }}]"
-                                                     :height="100" class="mt-2 description"
-                                                     :value="$media->description[$locale] ?? ''"
-                                                     label="{{ __('mfw-mediaclass.labels.description') }} ({{ $locale }})"/>
+                                    <x-mfw-inputable::textarea
+                                            name="mediaclass[{{ $media->id }}][description][{{ $locale }}]"
+                                            mode="plain"
+                                            :height="100" class="mt-2 description"
+                                            :value="$media->description[$locale] ?? ''"
+                                            label="{{ __('mfw-mediaclass.labels.description') }} ({{ $locale }})"/>
                                 </div>
                             @endforeach
                         </div>
@@ -85,7 +88,10 @@
 
 {{-- Include LightGallery CSS and JS once --}}
 @pushonce('css')
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery-bundle.min.css" integrity="sha512-fXavT4uA4L0uTUFHC275D7zd751ohbSuD6VUMc5JysWfmR+NxTI3w7etE7N9hjTETcoh0w0V+24Cel4xXnqvCg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery-bundle.min.css"
+          integrity="sha512-fXavT4uA4L0uTUFHC275D7zd751ohbSuD6VUMc5JysWfmR+NxTI3w7etE7N9hjTETcoh0w0V+24Cel4xXnqvCg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
 
     <style>
         /* Custom styles for lightgallery integration */
@@ -115,7 +121,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/thumbnail/lg-thumbnail.min.js"></script>
     <script>
         // Initialize LightGallery on page load for existing images
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.lightgallery-container').forEach(container => {
                 const imageLinks = container.querySelectorAll('.lightgallery-item');
                 if (imageLinks.length > 0) {
