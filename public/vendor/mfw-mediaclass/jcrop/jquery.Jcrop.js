@@ -888,7 +888,7 @@
         }).addClass('ord-'+ord);
 
         if (Touch.support) {
-          jq.bind('touchstart.jcrop', Touch.createDragger(ord));
+          jq.on('touchstart.jcrop', Touch.createDragger(ord));
         }
 
         $hdl_holder.append(jq);
@@ -1070,19 +1070,19 @@
       // Insert draggable elements {{{
       // Insert border divs for outline
 
-      if (options.dragEdges && $.isArray(options.createDragbars))
+      if (options.dragEdges && Array.isArray(options.createDragbars))
         createDragbars(options.createDragbars);
 
-      if ($.isArray(options.createHandles))
+      if (Array.isArray(options.createHandles))
         createHandles(options.createHandles);
 
-      if (options.drawBorders && $.isArray(options.createBorders))
+      if (options.drawBorders && Array.isArray(options.createBorders))
         createBorders(options.createBorders);
 
       //}}}
 
       // This is a hack for iOS5 to support drag/move touch functionality
-      $(document).bind('touchstart.jcrop-ios',function(e) {
+      $(document).on('touchstart.jcrop-ios',function(e) {
         if ($(e.currentTarget).hasClass('jcrop-tracker')) e.stopPropagation();
       });
 
@@ -1093,7 +1093,7 @@
       });
 
       if (Touch.support) {
-        $track.bind('touchstart.jcrop', Touch.createDragger('move'));
+        $track.on('touchstart.jcrop', Touch.createDragger('move'));
       }
 
       $img_holder.append($track);
@@ -1136,13 +1136,13 @@
         });
         if (Touch.support) {
           $(document)
-            .bind('touchmove.jcrop', trackTouchMove)
-            .bind('touchend.jcrop', trackTouchEnd);
+            .on('touchmove.jcrop', trackTouchMove)
+            .on('touchend.jcrop', trackTouchEnd);
         }
         if (trackDoc) {
           $(document)
-            .bind('mousemove.jcrop',trackMove)
-            .bind('mouseup.jcrop',trackUp);
+            .on('mousemove.jcrop',trackMove)
+            .on('mouseup.jcrop',trackUp);
         }
       }
       //}}}
@@ -1151,7 +1151,7 @@
         $trk.css({
           zIndex: 290
         });
-        $(document).unbind('.jcrop');
+        $(document).off('.jcrop');
       }
       //}}}
       function trackMove(e) //{{{
@@ -1535,7 +1535,7 @@
     //}}}
     //}}}
 
-    if (Touch.support) $trk.bind('touchstart.jcrop', Touch.newSelection);
+    if (Touch.support) $trk.on('touchstart.jcrop', Touch.newSelection);
 
     $hdl_holder.hide();
     interfaceUpdate(true);
@@ -1578,7 +1578,7 @@
     };
 
     /*if ($.browser.msie)
-      $div.bind('selectstart', function () { return false; });
+      $div.on('selectstart', function () { return false; });
   */
     $origimg.data('Jcrop', api);
     return api;
@@ -1601,12 +1601,12 @@
           $.Jcrop.Loader(this,function(){
             $(this).css({display:'block',visibility:'hidden'});
             api = $.Jcrop(this, options);
-            if ($.isFunction(callback)) callback.call(api);
+            if (typeof callback === 'function') callback.call(api);
           });
         else {
           $(this).css({display:'block',visibility:'hidden'});
           api = $.Jcrop(this, options);
-          if ($.isFunction(callback)) callback.call(api);
+          if (typeof callback === 'function') callback.call(api);
         }
       }
     });
@@ -1622,21 +1622,21 @@
 
     function completeCheck(){
       if (img.complete) {
-        $img.unbind('.jcloader');
-        if ($.isFunction(success)) success.call(img);
+        $img.off('.jcloader');
+        if (typeof success === 'function') success.call(img);
       }
       else window.setTimeout(completeCheck,50);
     }
 
     $img
-      .bind('load.jcloader',completeCheck)
-      .bind('error.jcloader',function(e){
-        $img.unbind('.jcloader');
-        if ($.isFunction(error)) error.call(img);
+      .on('load.jcloader',completeCheck)
+      .on('error.jcloader',function(e){
+        $img.off('.jcloader');
+        if (typeof error === 'function') error.call(img);
       });
 
-    if (img.complete && $.isFunction(success)){
-      $img.unbind('.jcloader');
+    if (img.complete && typeof success === 'function'){
+      $img.off('.jcloader');
       success.call(img);
     }
   };

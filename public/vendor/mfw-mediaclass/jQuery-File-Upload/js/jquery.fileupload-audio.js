@@ -73,7 +73,7 @@
         if (
           this._audioElement.canPlayType &&
           this._audioElement.canPlayType(file.type) &&
-          ($.type(options.maxFileSize) !== 'number' ||
+          (typeof options.maxFileSize !== 'number' ||
             file.size <= options.maxFileSize) &&
           (!options.fileTypes || options.fileTypes.test(file.type))
         ) {

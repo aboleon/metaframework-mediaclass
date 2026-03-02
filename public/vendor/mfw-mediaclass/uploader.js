@@ -444,7 +444,7 @@ const MediaclassUploader = {
             },
         });
 
-        fileuploadContainer.bind('fileuploadsubmit', (e, data) => {
+        fileuploadContainer.on('fileuploadsubmit', (e, data) => {
             MediaclassUploader.messages(uploadable).html('');
 
             // Count valid files
