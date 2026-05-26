@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass;
 
 use MetaFramework\Mediaclass\Models\Media;
@@ -82,8 +84,8 @@ class Parser
     /**
      * Create a new Parser instance
      *
-     * @param Media $media The Media model to parse
-     * @param array $sizes Optional custom sizes to generate URLs for
+     * @param  Media  $media  The Media model to parse
+     * @param  array  $sizes  Optional custom sizes to generate URLs for
      */
     public function __construct(Media $media, array $sizes = [])
     {
@@ -112,9 +114,6 @@ class Parser
 
     /**
      * Parse the localized description
-     *
-     * @param Media $media
-     * @return string|null
      */
     protected function parseDescription(Media $media): ?string
     {
@@ -156,13 +155,13 @@ class Parser
 
     /**
      * Parse URLs for different image sizes
-     *
-     * @param Media $media
-     * @param array $customSizes
-     * @return array
      */
     protected function parseUrls(Media $media, array $customSizes = []): array
     {
+        if ($media->isExternalUrl()) {
+            return ['original' => $media->url()];
+        }
+
         $groupSizes = Config::getGroupSizes($media->model, $media->group);
         $sizes = $customSizes ?: (!empty($groupSizes) ? $groupSizes : Config::getSizes());
         $urls = [];
@@ -184,9 +183,6 @@ class Parser
 
     /**
      * Add cropped URLs to the urls array
-     *
-     * @param Media $media
-     * @param array &$urls
      */
     protected function addCroppedUrls(Media $media, array &$urls): void
     {
@@ -234,10 +230,6 @@ class Parser
 
     /**
      * Get the file path for a specific size
-     *
-     * @param Media $media
-     * @param string $size
-     * @return string
      */
     protected function getFilePath(Media $media, string $size): string
     {
@@ -251,8 +243,6 @@ class Parser
 
     /**
      * Get the default URL (prioritizing cropped versions)
-     *
-     * @return string
      */
     protected function getDefaultUrl(): string
     {
@@ -288,13 +278,13 @@ class Parser
         }
 
         // 5. Otherwise return the last (typically largest) URL
-        return end($this->urls);
+        $urls = $this->urls;
+
+        return end($urls);
     }
 
     /**
      * Check if any cropped version exists
-     *
-     * @return bool
      */
     protected function hasAnyCroppedVersion(): bool
     {
@@ -313,9 +303,6 @@ class Parser
 
     /**
      * Get a specific size URL
-     *
-     * @param string $size
-     * @return string|null
      */
     public function getUrl(string $size): ?string
     {
@@ -324,9 +311,6 @@ class Parser
 
     /**
      * Check if a specific size exists
-     *
-     * @param string $size
-     * @return bool
      */
     public function hasSize(string $size): bool
     {
@@ -335,8 +319,6 @@ class Parser
 
     /**
      * Get all available sizes
-     *
-     * @return array
      */
     public function getAvailableSizes(): array
     {
@@ -346,8 +328,7 @@ class Parser
     /**
      * Check if the media has been cropped
      *
-     * @param string|null $key Specific crop key to check
-     * @return bool
+     * @param  string|null  $key  Specific crop key to check
      */
     public function isCropped(?string $key = null): bool
     {
@@ -360,8 +341,6 @@ class Parser
 
     /**
      * Get the original Media model
-     *
-     * @return Media
      */
     public function getMedia(): Media
     {
@@ -370,8 +349,6 @@ class Parser
 
     /**
      * Convert to array representation
-     *
-     * @return array
      */
     public function toArray(): array
     {
@@ -394,7 +371,6 @@ class Parser
     /**
      * Magic method to get properties
      *
-     * @param string $name
      * @return mixed
      */
     public function __get(string $name)

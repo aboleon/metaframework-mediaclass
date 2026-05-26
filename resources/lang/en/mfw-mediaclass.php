@@ -12,9 +12,14 @@ return [
         'validate_crop' => 'Save crop',
         'delete_crop' => 'Delete crop',
         'close' => 'Close',
+        'add' => 'Add',
     ],
     'labels' => [
         'media' => 'Media',
+        'image' => 'Image',
+        'video' => 'Video',
+        'video_url' => 'Video URL',
+        'video_url_placeholder' => 'https://...',
         'positions' => 'Positions relative to content',
         'description' => 'Description',
         'processing' => 'Processing...',
@@ -30,6 +35,7 @@ return [
     'notices' => [
         'limit_reached' => 'Limit of :count file(s) reached',
         'dimension_requirements' => 'Required dimensions: :width × :height px minimum',
+        'bridge_deleted' => 'Media deleted successfully',
     ],
     'errors' => [
         'missing_model' => "Media must belong to an object",
@@ -45,6 +51,9 @@ return [
         'imageDimensions' => 'Minimum required dimensions: :width × :height px',
         'upload_error_title' => 'Upload error',
         'upload_error_generic' => 'An error occurred while uploading your file',
+        'invalidUrl' => 'The video URL is invalid',
+        'bridgeDeleteUnsupported' => 'This media cannot be deleted by this component',
+        'bridgeDeleteFailed' => 'The media could not be deleted',
     ],
     'uploaded_at' => "Uploaded on :date at :time",
     'crop_success' => "Image cropped successfully",

@@ -1,7 +1,8 @@
 <?php
 
-namespace MetaFramework\Mediaclass\Http\Controllers;
+declare(strict_types=1);
 
+namespace MetaFramework\Mediaclass\Http\Controllers;
 
 use MetaFramework\Support\Traits\Ajax;
 
@@ -21,6 +22,11 @@ class AjaxController
         return $this->uploader->setModel(request('model'))->upload()->fetchResponse();
     }
 
+    public function uploadUrl(): array
+    {
+        return $this->uploader->setModel(request('model'))->uploadUrl()->fetchResponse();
+    }
+
     public function crop(): array
     {
         return Cropper::crop();
@@ -31,11 +37,13 @@ class AjaxController
         return Cropper::deleteCrop();
     }
 
-
     public function delete(): array
     {
         return $this->uploader->delete()->fetchResponse();
     }
 
-
+    public function deleteBridge(): array
+    {
+        return $this->uploader->setModel(request('model'))->deleteBridge()->fetchResponse();
+    }
 }

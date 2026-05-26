@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Tests\Unit;
 
 use MetaFramework\Mediaclass\MediaBuilder;
@@ -11,6 +13,7 @@ use MetaFramework\Mediaclass\Tests\TestCase;
 class MediaModelTest extends TestCase
 {
     protected Post $post;
+
     protected Media $media;
 
     protected function setUp(): void
@@ -239,6 +242,30 @@ class MediaModelTest extends TestCase
         ]);
 
         $this->assertFalse($pdfMedia->sizeable());
+    }
+
+    public function test_external_video_url_uses_stored_url(): void
+    {
+        $url = 'https://www.youtube.com/watch?v=abc123';
+        $media = Media::create([
+            'model_type' => Post::class,
+            'model_id' => $this->post->id,
+            'group' => 'gallery',
+            'mime' => 'video/url',
+            'original_filename' => $url,
+            'filename' => 'vid123',
+            'position' => 'left',
+            'storable' => ['url' => $url],
+        ]);
+
+        $media->setRelation('model', $this->post);
+
+        $this->assertFalse($media->isImage());
+        $this->assertTrue($media->isVideo());
+        $this->assertTrue($media->isExternalUrl());
+        $this->assertSame('mov', $media->extension());
+        $this->assertSame($url, $media->url());
+        $this->assertFalse($media->sizeable());
     }
 
     public function test_description_is_cast_to_array(): void

@@ -1,17 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Components;
 
 use Illuminate\Contracts\Support\Renderable;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 use Illuminate\View\Component;
 use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 use MetaFramework\Mediaclass\Models\Media;
+use MetaFramework\Mediaclass\Support\BridgeMedia;
 
 class Stored extends Component
 {
     protected array $positionning = [
-        'left','up','down','right'
+        'left', 'up', 'down', 'right',
     ];
 
     public Collection $medias;
@@ -20,14 +23,13 @@ class Stored extends Component
         public MediaclassInterface $model,
         public string $group,
         public ?string $subgroup = null,
-        public bool       $positions = false,
-        public int|bool   $description = true,
+        public bool $positions = false,
+        public int|bool $description = true,
         public array|string|null $cropable = null,
         public string $nomedia = '',
         public bool $ghost = false,
         public array $storables = []
-    )
-    {
+    ) {
         $this->description = $this->description ? 1 : 0;
         $this->storables = $this->sanitizeStorables($this->storables);
 
@@ -49,7 +51,7 @@ class Stored extends Component
             $this->medias = $query->get();
 
             // Inject the ghost model into each media
-            $this->medias->each(function($media) {
+            $this->medias->each(function ($media) {
                 $media->setRelation('model', $this->model);
             });
         } else {
@@ -62,9 +64,13 @@ class Stored extends Component
 
         if ($this->storables !== []) {
             $this->medias = $this->medias
-                ->filter(fn(Media $media) => $this->mediaMatchesStorables($media))
+                ->filter(fn (Media $media) => $this->mediaMatchesStorables($media))
                 ->values();
         }
+
+        $this->medias = $this->medias
+            ->concat($this->bridgeMedia())
+            ->values();
 
         $this->nomedia = $this->nomedia ?: __('mfw-mediaclass.no_media');
 
@@ -98,8 +104,8 @@ class Stored extends Component
                         $this->cropable = [
                             $this->group => [
                                 $requiredWidth,
-                                $requiredHeight
-                            ]
+                                $requiredHeight,
+                            ],
                         ];
                     } elseif (is_array($groupSettings['cropable'])) {
                         $this->cropable = $groupSettings['cropable'];
@@ -146,7 +152,7 @@ class Stored extends Component
 
                 return $value;
             })
-            ->filter(static fn($value) => $value !== null && $value !== '')
+            ->filter(static fn ($value) => $value !== null && $value !== '')
             ->all();
     }
 
@@ -156,7 +162,7 @@ class Stored extends Component
             return true;
         }
 
-        $mediaStorables = (array)($media->storable ?? []);
+        $mediaStorables = (array) ($media->storable ?? []);
 
         foreach ($this->storables as $key => $expected) {
             $mediaValue = $mediaStorables[$key] ?? null;
@@ -171,5 +177,27 @@ class Stored extends Component
         }
 
         return true;
+    }
+
+    private function bridgeMedia(): Collection
+    {
+        if (!method_exists($this->model, 'mediaclassBridgeMedia')) {
+            return collect();
+        }
+
+        return collect($this->model->mediaclassBridgeMedia($this->group, $this->subgroup))
+            ->map(static function (mixed $media): ?BridgeMedia {
+                if ($media instanceof BridgeMedia) {
+                    return $media;
+                }
+
+                if (is_array($media)) {
+                    return BridgeMedia::fromArray($media);
+                }
+
+                return null;
+            })
+            ->filter()
+            ->values();
     }
 }

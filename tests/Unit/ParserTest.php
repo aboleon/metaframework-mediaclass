@@ -1,18 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Tests\Unit;
 
+use Illuminate\Support\Facades\Storage;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Parser;
 use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Mediaclass\Tests\Fixtures\Post;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
 use MetaFramework\Mediaclass\Tests\TestCase;
-use Illuminate\Support\Facades\Storage;
 
 class ParserTest extends TestCase
 {
     protected Post $post;
+
     protected Media $media;
 
     protected function setUp(): void
@@ -108,6 +111,27 @@ class ParserTest extends TestCase
 
         $this->assertTrue($parser->isFile);
         $this->assertFalse($parser->isImage);
+    }
+
+    public function test_parser_uses_external_video_url(): void
+    {
+        $url = 'https://www.youtube.com/watch?v=abc123';
+        $videoMedia = Media::create([
+            'model_type' => Post::class,
+            'model_id' => $this->post->id,
+            'group' => 'gallery',
+            'mime' => 'video/url',
+            'original_filename' => $url,
+            'filename' => 'vid123',
+            'position' => 'left',
+            'storable' => ['url' => $url],
+        ]);
+        $videoMedia->setRelation('model', $this->post);
+
+        $parser = new Parser($videoMedia);
+
+        $this->assertSame(['original' => $url], $parser->urls);
+        $this->assertSame($url, $parser->url);
     }
 
     public function test_parser_exposes_url(): void
@@ -237,8 +261,8 @@ class ParserTest extends TestCase
         $media->setRelation('model', $post);
 
         $folder = Path::mediaFolderForMedia($media);
-        Storage::disk('testing')->put($folder.'/1600_'.$media->filename.'.jpg', 'test');
-        Storage::disk('testing')->put($folder.'/1200_'.$media->filename.'.jpg', 'test');
+        Storage::disk('testing')->put($folder . '/1600_' . $media->filename . '.jpg', 'test');
+        Storage::disk('testing')->put($folder . '/1200_' . $media->filename . '.jpg', 'test');
 
         $parser = new Parser($media);
 

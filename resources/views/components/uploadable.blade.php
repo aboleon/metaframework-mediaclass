@@ -1,5 +1,5 @@
 @php
-    $positions = (array_key_exists('positions',$settings) && $settings['positions'] === true);
+    $positions = array_key_exists('positions', $settings) && $settings['positions'] === true;
     $i18n = [
         'limit_reached' => __('mfw-mediaclass.notices.limit_reached'),
         'dimension_requirements' => __('mfw-mediaclass.notices.dimension_requirements'),
@@ -12,53 +12,53 @@
         'image_dimensions' => __('mfw-mediaclass.errors.imageDimensions'),
         'upload_error_title' => __('mfw-mediaclass.errors.upload_error_title'),
         'upload_error_generic' => __('mfw-mediaclass.errors.upload_error_generic'),
+        'invalid_url' => __('mfw-mediaclass.errors.invalidUrl'),
+        'video_url_label' => __('mfw-mediaclass.labels.video_url'),
+        'video_url_placeholder' => __('mfw-mediaclass.labels.video_url_placeholder'),
+        'add' => __('mfw-mediaclass.buttons.add'),
+        'cancel' => __('mfw-mediaclass.buttons.cancel'),
     ];
 @endphp
-<div class="mediaclass-uploadable {{ $size }}"
-     data-maxfilesize="{{ $maxfilesize }}"
-     data-limit="{{ $limit }}"
-     data-model="{{ get_class($model) }}"
-     data-model-id="{{ $model->id ?? '' }}"
-     data-positions="{{ $positions }}"
-     data-group="{{ $group }}"
-     data-subgroup="{{ $settings['subgroup'] ?? false }}"
-     data-has-description="{{ $description }}"
-     data-cropable="{{ $cropable }}"
-     data-ghost="{{ $ghost ? '1' : '0' }}"
-     data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE)'
-     @if($callback)
-         data-callback="{{ $callback }}"
-     @endif
-     @if($requiredWidth && $requiredHeight)
-         data-required-width="{{ $requiredWidth }}"
-     data-required-height="{{ $requiredHeight }}"
-        @endif
->
+<div class="mediaclass-uploadable {{ $size }}" data-maxfilesize="{{ $maxfilesize }}"
+    data-limit="{{ $limit }}" data-model="{{ get_class($model) }}" data-model-id="{{ $model->id ?? '' }}"
+    data-positions="{{ $positions }}" data-group="{{ $group }}"
+    data-subgroup="{{ $settings['subgroup'] ?? false }}" data-has-description="{{ $description }}"
+    data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
+    data-media-types='@json($mediaTypeOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)' data-media-locales='@json($mediaLocales, JSON_UNESCAPED_UNICODE)'
+    @if ($callback) data-callback="{{ $callback }}" @endif
+    @if ($requiredWidth && $requiredHeight) data-required-width="{{ $requiredWidth }}"
+     data-required-height="{{ $requiredHeight }}" @endif>
 
 
-    @foreach((array)$storables as $key => $value)
-        <input type="hidden" name="mediaclass_storable[{{ $key }}]" value="{{ $value }}"/>
+    @foreach ((array) $storables as $key => $value)
+        <input type="hidden" name="mediaclass_storable[{{ $key }}]" value="{{ $value }}" />
     @endforeach
 
     <div class="controls d-flex justify-content-between align-items-center" style="background: #EFEFEF">
         <span class="subcontrol mediaclass-uploader">
             <i class="{{ $icon }}"></i> {!! $displayLabel !!}
         </span>
-        @if($dimensionsInline)
+        @if ($dimensionsInline)
             <span class="subcontrol dimensions-inline me-3">{{ $dimensionsInline }}</span>
         @endif
     </div>
+    @if (count($mediaTypeOptions) > 1)
+        <div class="mediaclass-media-type-options media_choice_holder">
+            @foreach ($mediaTypeOptions as $mediaType => $mediaTypeLabel)
+                <div class="radio">
+                    <label>
+                        <input type="radio" name="{{ $mediaTypeInputName }}" class="mediaclass-media-type"
+                            value="{{ $mediaType }}" @checked($loop->first) />
+                        <span class="lbl">{{ $mediaTypeLabel }}</span>
+                    </label>
+                </div>
+            @endforeach
+        </div>
+    @endif
     <div class="mediaclass-upload-container"></div>
     <div class="uploaded">
-        <x-mediaclass::stored :cropable="$cropable"
-                              :positions="$positions"
-                              :model="$model"
-                              :nomedia="$nomedia"
-                              :group="$group"
-                              :subgroup="$settings['subgroup'] ?? null "
-                              :description="$description"
-                              :ghost="$ghost"
-                              :storables="$storables"/>
+        <x-mediaclass::stored :cropable="$cropable" :positions="$positions" :model="$model" :nomedia="$nomedia" :group="$group"
+            :subgroup="$settings['subgroup'] ?? null" :description="$description" :ghost="$ghost" :storables="$storables" />
     </div>
 </div>
 
@@ -109,6 +109,20 @@
                 color: #666;
                 margin-bottom: 10px;
             }
+
+            .mediaclass-uploadable .mediaclass-media-type-options {
+                margin: 10px 0 12px;
+                padding: 8px 12px;
+            }
+
+            .mediaclass-uploadable .mediaclass-media-type-options .radio {
+                display: inline-block;
+                margin: 0 16px 0 0;
+            }
+
+            .mediaclass-uploadable .mediaclass-video-url-form {
+                margin-top: 12px;
+            }
         </style>
     @endpush
 @endonce
@@ -120,11 +134,11 @@
 
 
     @include('mediaclass::fileupload_scripts')
-    <x-mediaclass::template/>
-    <x-mediaclass::crop-template/>
+    <x-mediaclass::template />
+    <x-mediaclass::crop-template />
 @endonce
 
 @once
-    <x-mediaclass::crop-modal/>
-    <x-mediaclass::confirm-delete-modal/>
+    <x-mediaclass::crop-modal />
+    <x-mediaclass::confirm-delete-modal />
 @endonce

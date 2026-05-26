@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Tests\Feature;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
 use MetaFramework\Mediaclass\Tests\TestCase;
@@ -69,5 +72,33 @@ class FileUploadImagesGroupSizesTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('error', true);
+    }
+
+    public function test_upload_url_stores_external_video_url(): void
+    {
+        $post = PostWithGroupSizes::create(['title' => 'Video Upload']);
+        $url = 'https://www.youtube.com/watch?v=abc123';
+
+        $response = $this->post('mediaclass-ajax', [
+            'action' => 'uploadUrl',
+            'model' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'gallery',
+            'url' => $url,
+            'description' => ['en' => 'Video description'],
+            'positions' => true,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('error', null);
+        $response->assertJsonPath('filetype', 'video');
+        $response->assertJsonPath('link', $url);
+
+        $media = Media::query()->where('group', 'gallery')->firstOrFail();
+
+        $this->assertSame('video/url', $media->mime);
+        $this->assertSame($url, $media->original_filename);
+        $this->assertSame($url, $media->storable['url']);
+        $this->assertSame($url, $media->url());
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Concerns;
 
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -8,9 +10,9 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\LazyCollection;
 use Illuminate\Support\Str;
 use MetaFramework\Accessors\Locale;
-use MetaFramework\Mediaclass\Support\Config;
 use MetaFramework\Mediaclass\MediaBuilder;
 use MetaFramework\Mediaclass\Models\Media;
+use MetaFramework\Mediaclass\Support\Config;
 use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Support\Traits\Responses;
 use ReflectionClass;
@@ -86,6 +88,7 @@ trait Mediaclass
 
         return $query->orderBy('position')->get()->map(function (Media $media) {
             $media->setRelation('model', $this);
+
             return new MediaBuilder($media);
         });
     }
@@ -97,7 +100,6 @@ trait Mediaclass
         return $this;
     }
 
-
     /**
      * Mets à jour les infos relatives aux médias rattachés
      * au Meta model
@@ -108,9 +110,13 @@ trait Mediaclass
             foreach (request('mediaclass') as $key => $value) {
                 Media::where('id', $key)->update([
                     'description' => $value['description'],
-                    'position' => $value['position']
+                    'position' => $value['position'],
                 ]);
             }
+        }
+
+        if (request()->has('mediaclass_bridge') && method_exists($this, 'syncMediaclassBridgeMedia')) {
+            $this->syncMediaclassBridgeMedia((array) request('mediaclass_bridge'));
         }
 
         if (request()->has('mediaclass_temp_id')) {
@@ -123,27 +129,26 @@ trait Mediaclass
 
             Media::where('temp', request('mediaclass_temp_id'))->update([
                 'model_id' => $this->model()->id,
-                'temp' => null
+                'temp' => null,
             ]);
 
             $modelFolder = Path::mediaFolderName($this->model());
             $tempFolder = Path::mediaTempFolderName($this->model());
             $disk = Config::getDisk();
 
-            LazyCollection::make($recorded)->each(function($row) use($tempFolder, $modelFolder, $disk) {
+            LazyCollection::make($recorded)->each(function ($row) use ($tempFolder, $modelFolder, $disk) {
 
                 $files = File::glob($disk
                     ->path($tempFolder . DIRECTORY_SEPARATOR . '*' . $row->filename . '*'));
 
                 if ($files) {
                     Path::checkMakeDir($disk->path($modelFolder));
-                    foreach($files as $media) {
+                    foreach ($files as $media) {
                         File::move($media, str_replace($tempFolder, $modelFolder, $media));
                     }
                 }
 
             });
-
 
         }
 
@@ -190,5 +195,4 @@ trait Mediaclass
     {
         return [];
     }
-
 }

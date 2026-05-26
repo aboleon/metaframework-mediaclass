@@ -1,21 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Components;
 
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Support\Str;
 use Illuminate\View\Component;
 use MetaFramework\Mediaclass\Support\Config as MediaclassConfig;
 
 class Uploadable extends Component
 {
     public ?int $requiredWidth = null;
+
     public ?int $requiredHeight = null;
+
     public string $displayLabel = '';
+
     public string $dimensionsInline = '';
+
+    public array $mediaTypeOptions = [];
+
+    public string $mediaTypeInputName;
+
+    public array $mediaLocales = [];
 
     public function __construct(
         public object $model,
-        public bool   $positions = false,
+        public bool $positions = false,
         public string $group = 'media',
         public string $size = '',
         public string $label = '',
@@ -23,12 +35,12 @@ class Uploadable extends Component
         public array|string|null $cropable = null,
         /**
          * @var int
-         * max number of files to be uploaded
+         *          max number of files to be uploaded
          */
         public int $limit = 0,
         /**
          * @var string|null
-         * ex 500KB, 5MB (default is 16MB)
+         *                  ex 500KB, 5MB (default is 16MB)
          */
         public ?string $maxfilesize = null,
         public array $settings = [],
@@ -38,15 +50,19 @@ class Uploadable extends Component
         public bool $ghost = false,
         /**
          * @var string|null
-         * JavaScript callback function name to call after successful upload
-         * The function will receive the upload response data as parameter
+         *                  JavaScript callback function name to call after successful upload
+         *                  The function will receive the upload response data as parameter
          */
-        public ?string $callback = null
-    )
-    {
+        public ?string $callback = null,
+        public array|string $mediaTypes = ['image'],
+    ) {
         $this->group = $this->settings['group'] ?? $this->group;
         $this->label = $this->settings['label'] ?? $this->label;
         $this->label = $this->label ?: __('mfw-mediaclass.labels.media');
+        $this->mediaTypes = $this->settings['media_types'] ?? $this->settings['mediaTypes'] ?? $this->mediaTypes;
+        $this->mediaTypeOptions = $this->normalizeMediaTypes($this->mediaTypes);
+        $this->mediaTypeInputName = 'mediaclass_media_type_' . Str::random(10);
+        $this->mediaLocales = \MetaFramework\Accessors\Locale::projectLocales();
         $this->description = $this->description ? 1 : 0;
         $this->nomedia = $this->nomedia ?: __('mfw-mediaclass.no_media');
 
@@ -92,8 +108,8 @@ class Uploadable extends Component
                         $this->cropable = [
                             $this->group => [
                                 $this->requiredWidth,
-                                $this->requiredHeight
-                            ]
+                                $this->requiredHeight,
+                            ],
                         ];
                     } elseif (is_array($groupSettings['cropable'])) {
                         $this->cropable = $groupSettings['cropable'];
@@ -137,7 +153,7 @@ class Uploadable extends Component
         }
 
         $this->dimensionsInline = implode(', ', array_map(
-            fn (array $pair) => $pair[0].'×'.$pair[1],
+            fn (array $pair) => $pair[0] . '×' . $pair[1],
             $dimensions
         ));
 
@@ -149,6 +165,33 @@ class Uploadable extends Component
         if (is_array($this->cropable)) {
             $this->cropable = json_encode($this->cropable);
         }
+    }
+
+    private function normalizeMediaTypes(array|string $mediaTypes): array
+    {
+        if (is_string($mediaTypes)) {
+            $mediaTypes = array_filter(array_map('trim', explode(',', $mediaTypes)));
+        }
+
+        $options = [];
+
+        foreach ($mediaTypes as $key => $value) {
+            $type = is_int($key) ? (string) $value : (string) $key;
+            $label = is_int($key) ? $this->mediaTypeLabel($type) : (string) $value;
+
+            if ($type !== '') {
+                $options[$type] = $label !== '' ? $label : $this->mediaTypeLabel($type);
+            }
+        }
+
+        return $options ?: ['image' => $this->mediaTypeLabel('image')];
+    }
+
+    private function mediaTypeLabel(string $type): string
+    {
+        $translation = __('mfw-mediaclass.labels.' . $type);
+
+        return $translation === 'mfw-mediaclass.labels.' . $type ? ucfirst($type) : $translation;
     }
 
     public function render(): Renderable

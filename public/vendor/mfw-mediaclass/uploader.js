@@ -92,6 +92,25 @@ const MediaclassUploader = {
     locale() {
         return document.documentElement.lang || navigator.language || 'en';
     },
+    selectedMediaType(uploadable) {
+        const selected = uploadable.find('.mediaclass-media-type:checked').first();
+
+        return selected.length > 0 ? selected.val() : 'image';
+    },
+    mediaLocales(uploadable) {
+        const locales = uploadable.data('media-locales');
+
+        return Array.isArray(locales) && locales.length > 0 ? locales : [this.locale()];
+    },
+    isValidUrl(value) {
+        try {
+            const url = new URL(value);
+
+            return ['http:', 'https:'].includes(url.protocol);
+        } catch (error) {
+            return false;
+        }
+    },
 
     // Execute callback if it exists
     executeCallback(uploadable, data) {
@@ -114,7 +133,7 @@ const MediaclassUploader = {
             return false; // No limit defined
         }
 
-        const currentCount = uploadable.find('.uploaded > div.mediaclass.unlinkable').length;
+        const currentCount = uploadable.find('.uploaded div.mediaclass.unlinkable').length;
         return currentCount >= limit;
     },
 
@@ -135,7 +154,7 @@ const MediaclassUploader = {
                 selector: selector,
                 container: container,
                 uploadable: uploadable,
-                formData: `action=delete&id=${selector.attr('data-id')}&model=${uploadable.attr('data-model')}`
+                formData: MediaclassUploader.deleteFormData(selector, uploadable)
             };
 
             const $modal = MediaclassUploader.confirmDeleteModal();
@@ -160,8 +179,15 @@ const MediaclassUploader = {
                 MediaclassUploader.setVeil(deleteData.selector);
                 mfwAjax(deleteData.formData, MediaclassUploader.template());
 
-                $(document).off('ajaxSuccess.mediaclassDelete').on('ajaxSuccess.mediaclassDelete', function () {
+                $(document).off('ajaxSuccess.mediaclassDelete').on('ajaxSuccess.mediaclassDelete', function (_event, xhr) {
                     MediaclassUploader.removeVeil(deleteData.selector);
+                    const response = xhr.responseJSON || MediaclassUploader.parseJsonResponse(xhr.responseText);
+
+                    if (response && (response.error || response.abort)) {
+                        $(document).off('ajaxSuccess.mediaclassDelete');
+                        return;
+                    }
+
                     deleteData.selector.remove();
 
                     if (deleteData.container.find('.unlinkable').length < 1) {
@@ -187,10 +213,40 @@ const MediaclassUploader = {
         });
     },
 
+    parseJsonResponse(responseText) {
+        try {
+            return JSON.parse(responseText);
+        } catch (error) {
+            return null;
+        }
+    },
+
+    deleteFormData(selector, uploadable) {
+        const isBridge = String(selector.attr('data-bridge') || '') === '1';
+
+        if (isBridge) {
+            return $.param({
+                action: 'deleteBridge',
+                id: selector.attr('data-id'),
+                model: uploadable.attr('data-model'),
+                model_id: uploadable.attr('data-model-id'),
+                group: uploadable.attr('data-group'),
+                subgroup: uploadable.attr('data-subgroup') || ''
+            });
+        }
+
+        return $.param({
+            action: 'delete',
+            id: selector.attr('data-id'),
+            model: uploadable.attr('data-model')
+        });
+    },
+
     uploaderCall() {
         $('span.mediaclass-uploader').off().on('click', function () {
             const instantiator = $(this).closest('.mediaclass-uploadable');
             const uploadContainer = MediaclassUploader.uploadableContainer($(this));
+            const mediaType = MediaclassUploader.selectedMediaType(instantiator);
 
             // Check if we've reached the upload limit
             if (MediaclassUploader.isLimitReached(instantiator)) {
@@ -200,6 +256,11 @@ const MediaclassUploader = {
                 const limitMessage = MediaclassUploader.interpolate(limitTemplate, {count: limit});
                 MediaclassUploader.alerts(instantiator).html(`<div class="alert alert-warning">${limitMessage}</div>`);
                 return; // Don't show the uploader
+            }
+
+            if (mediaType === 'video') {
+                MediaclassUploader.toggleVideoUrlForm(uploadContainer);
+                return;
             }
 
             if (uploadContainer.find('.fileupload-container').length < 1) {
@@ -233,6 +294,145 @@ const MediaclassUploader = {
             const $this = $(this);
             if (MediaclassUploader.isLimitReached($this)) {
                 $this.find('span.mediaclass-uploader').addClass('disabled');
+            }
+        });
+    },
+
+    toggleVideoUrlForm(uploadContainer) {
+        const uploadable = this.uploadable(uploadContainer);
+
+        if (uploadContainer.find('.mediaclass-video-url-form').length > 0) {
+            uploadContainer.html('');
+            return;
+        }
+
+        uploadContainer.html(this.videoUrlForm(uploadable));
+        this.positions(uploadable);
+    },
+
+    videoUrlForm(uploadable) {
+        const videoUrlLabel = this.i18nText(uploadable, 'video_url_label', 'Video URL');
+        const videoUrlPlaceholder = this.i18nText(uploadable, 'video_url_placeholder', 'https://...');
+        const addLabel = this.i18nText(uploadable, 'add', 'Add');
+        const cancelLabel = this.i18nText(uploadable, 'cancel', 'Cancel');
+        const descriptionLabel = this.i18nText(uploadable, 'description_label', 'Description');
+        const positionsLabel = this.i18nText(uploadable, 'positions_label', 'Positions');
+        const hideDescription = Number(uploadable.attr('data-has-description')) !== 1;
+        const showPositions = uploadable.data('positions') === 1;
+
+        let positions = '';
+        if (showPositions) {
+            positions = `
+                <div class="col-12 positions text-center ps-2">
+                    <b>${positionsLabel}</b>
+                    <div class="choices pt-2">
+                        <i class="bi bi-arrow-left-square-fill active" data-position="left"></i>
+                        <i class="bi bi-arrow-up-square-fill" data-position="up"></i>
+                        <i class="bi bi-arrow-down-square-fill" data-position="down"></i>
+                        <i class="bi bi-arrow-right-square-fill" data-position="right"></i>
+                        <input type="hidden" name="position" value="left">
+                    </div>
+                </div>`;
+        }
+
+        const descriptions = this.mediaLocales(uploadable).map((locale) => `
+            <div class="col-lg-6 col-12 description ${hideDescription ? 'd-none' : ''}">
+                <label class="form-label">${descriptionLabel} (${locale})</label>
+                <textarea name="description[${locale}]" class="form-control description" rows="3"></textarea>
+            </div>`).join('');
+
+        return `
+            <div class="mediaclass-video-url-form">
+                <div class="mb-3">
+                    <label class="form-label">${videoUrlLabel}</label>
+                    <input type="url" name="url" class="form-control" placeholder="${videoUrlPlaceholder}">
+                </div>
+                <div class="row params mt-3">
+                    ${positions}
+                    ${descriptions}
+                </div>
+                <button type="button" class="btn btn-sm btn-warning mediaclass-video-url-submit">${addLabel}</button>
+                <button type="button" class="btn btn-sm btn-secondary mediaclass-video-url-cancel ms-2">${cancelLabel}</button>
+            </div>`;
+    },
+
+    submitVideoUrl(button) {
+        const form = button.closest('.mediaclass-video-url-form');
+        const uploadable = this.uploadable(form);
+        const urlInput = form.find('input[name="url"]').first();
+        const url = String(urlInput.val() || '').trim();
+
+        MediaclassUploader.messages(uploadable).html('');
+
+        if (!this.isValidUrl(url)) {
+            const invalidUrl = this.i18nText(uploadable, 'invalid_url', 'The video URL is invalid');
+            notificator(200, {danger: [invalidUrl]}, this.messages(uploadable), false, {isDismissable: true});
+            urlInput.addClass('is-invalid');
+            return;
+        }
+
+        urlInput.removeClass('is-invalid');
+        this.setVeil(form);
+
+        const formData = [
+            {name: '_token', value: this.csrfToken()},
+            {name: 'action', value: 'uploadUrl'},
+            {name: 'group', value: uploadable.data('group')},
+            {name: 'subgroup', value: uploadable.data('subgroup')},
+            {name: 'positions', value: uploadable.data('positions')},
+            {name: 'model', value: uploadable.data('model')},
+            {name: 'model_id', value: uploadable.data('model-id')},
+            {name: 'mediaclass_temp_id', value: $('input[name="mediaclass_temp_id"]').first().val() ?? ''},
+            {name: 'count_files', value: 1},
+            {name: 'ghost', value: uploadable.data('ghost') || '0'},
+            {name: 'url', value: url},
+        ];
+
+        uploadable
+            .find(':input[name^="mediaclass_storable"]')
+            .serializeArray()
+            .forEach((field) => {
+                formData.push({
+                    name: field.name.replace(/^mediaclass_storable/, 'storables'),
+                    value: (field.value ?? '').trim(),
+                });
+            });
+
+        form.find('textarea, input[type="hidden"]').each(function () {
+            formData.push({
+                name: $(this).attr('name'),
+                value: $(this).val()
+            });
+        });
+
+        $.ajax({
+            url: this.template().data('ajax'),
+            type: 'POST',
+            dataType: 'json',
+            data: formData,
+            success: (data) => {
+                this.removeVeil(form);
+
+                if (data.hasOwnProperty('errors') || data.hasOwnProperty('error')) {
+                    const errorData = data.mfw_ajax_messages ?? data.messages;
+                    notificator(200, errorData, this.messages(uploadable), false, {isDismissable: true});
+                    return;
+                }
+
+                if (!data.uploaded) {
+                    const uploadErrorTitle = this.i18nText(uploadable, 'upload_error_title');
+                    notificator(uploadErrorTitle, 'danger', this.messages(uploadable));
+                    return;
+                }
+
+                this.executeCallback(uploadable, data);
+                this.appendUploadedMedia(uploadable, data, Number(uploadable.attr('data-has-description')) !== 1);
+                this.uploadableContainer(uploadable).html('');
+            },
+            error: () => {
+                this.removeVeil(form);
+                const uploadErrorGeneric = this.i18nText(uploadable, 'upload_error_generic');
+                notificator(200, {danger: [uploadErrorGeneric]}, this.messages(uploadable), false, {isDismissable: true});
             }
         });
     },
@@ -352,61 +552,7 @@ const MediaclassUploader = {
                 // Hide the upload queue first, then add the new content after it's hidden
                 uploadable.find('.files').fadeOut(300, function () {
                     $(this).html('').show();
-
-                    // Now that the upload queue is cleared, add the new content
-                    const html = MediaclassUploader.buildUploadedFileHTML(data, hideDescription, uploadable);
-
-                    // Find or create the lightgallery container
-                    let lightGalleryContainer = uploadable.find('.lightgallery-container');
-                    if (lightGalleryContainer.length === 0) {
-                        uploadable.find('.uploaded').wrapInner(`<div id="lightgallery-${uploadable.data('group')}-${uploadable.data('model-id')}" class="lightgallery-container"></div>`);
-                        lightGalleryContainer = uploadable.find('.lightgallery-container');
-                    }
-
-                    // Add the new content to the lightgallery container
-                    lightGalleryContainer.append(html);
-
-                    // Initialize events
-                    MediaclassUploader.unlinkable();
-
-                    // Initialize LightGallery for this specific container
-                    setTimeout(() => {
-                        // Only initialize LightGallery if there are actual image items
-                        const imageItems = lightGalleryContainer.find('.lightgallery-item');
-
-                        if (imageItems.length > 0) {
-                            // Destroy existing instance if any
-                            const lgInstance = lightGalleryContainer.data('lightGallery');
-                            if (lgInstance) {
-                                lgInstance.destroy();
-                            }
-
-                            lightGallery(lightGalleryContainer[0], {
-                                selector: '.lightgallery-item',
-                                speed: 500,
-                                download: true,
-                                counter: true,
-                                zoom: true,
-                                thumbnail: imageItems.length > 1,
-                                plugins: [lgZoom, lgThumbnail],
-                                mobileSettings: {
-                                    controls: true,
-                                    showCloseIcon: true,
-                                    download: true
-                                }
-                            });
-                        }
-                    }, 100);
-
-                    // Check limits and close uploader if needed
-                    if (MediaclassUploader.isLimitReached(uploadable)) {
-                        uploadable.find('span.mediaclass-uploader').addClass('disabled');
-                        MediaclassUploader.uploadableContainer(uploadable).html('');
-                    } else if (uploadable.find('.uploaded > div.mediaclass.unlinkable').length === Number(data.count_files)) {
-                        MediaclassUploader.uploadableContainer(uploadable).html('');
-                    }
-
-                    MediaclassUploader.modalCrop();
+                    MediaclassUploader.appendUploadedMedia(uploadable, data, hideDescription);
                 });
             },
             error: (xhr, ajaxOptions, thrownError) => {
@@ -497,6 +643,54 @@ const MediaclassUploader = {
                 });
             });
         });
+    },
+
+    appendUploadedMedia(uploadable, data, hideDescription) {
+        const html = this.buildUploadedFileHTML(data, hideDescription, uploadable);
+
+        let lightGalleryContainer = uploadable.find('.lightgallery-container');
+        if (lightGalleryContainer.length === 0) {
+            uploadable.find('.uploaded').wrapInner(`<div id="lightgallery-${uploadable.data('group')}-${uploadable.data('model-id')}" class="lightgallery-container"></div>`);
+            lightGalleryContainer = uploadable.find('.lightgallery-container');
+        }
+
+        lightGalleryContainer.append(html);
+        this.unlinkable();
+
+        setTimeout(() => {
+            const imageItems = lightGalleryContainer.find('.lightgallery-item');
+
+            if (imageItems.length > 0) {
+                const lgInstance = lightGalleryContainer.data('lightGallery');
+                if (lgInstance) {
+                    lgInstance.destroy();
+                }
+
+                lightGallery(lightGalleryContainer[0], {
+                    selector: '.lightgallery-item',
+                    speed: 500,
+                    download: true,
+                    counter: true,
+                    zoom: true,
+                    thumbnail: imageItems.length > 1,
+                    plugins: [lgZoom, lgThumbnail],
+                    mobileSettings: {
+                        controls: true,
+                        showCloseIcon: true,
+                        download: true
+                    }
+                });
+            }
+        }, 100);
+
+        if (this.isLimitReached(uploadable)) {
+            uploadable.find('span.mediaclass-uploader').addClass('disabled');
+            this.uploadableContainer(uploadable).html('');
+        } else if (uploadable.find('.uploaded div.mediaclass.unlinkable').length === Number(data.count_files)) {
+            this.uploadableContainer(uploadable).html('');
+        }
+
+        this.modalCrop();
     },
 
     buildUploadedFileHTML(data, hideDescription, uploadable) {
@@ -937,6 +1131,24 @@ const MediaclassUploader = {
         });
     },
 
+    bindMediaTypeOptions() {
+        $(document)
+            .off('change.mediaclassMediaType', '.mediaclass-media-type')
+            .on('change.mediaclassMediaType', '.mediaclass-media-type', function () {
+                const uploadable = $(this).closest('.mediaclass-uploadable');
+
+                MediaclassUploader.uploadableContainer(uploadable).html('');
+            })
+            .off('click.mediaclassVideoUrlSubmit', '.mediaclass-video-url-submit')
+            .on('click.mediaclassVideoUrlSubmit', '.mediaclass-video-url-submit', function () {
+                MediaclassUploader.submitVideoUrl($(this));
+            })
+            .off('click.mediaclassVideoUrlCancel', '.mediaclass-video-url-cancel')
+            .on('click.mediaclassVideoUrlCancel', '.mediaclass-video-url-cancel', function () {
+                MediaclassUploader.uploadableContainer($(this)).html('');
+            });
+    },
+
     init() {
         // Fix modal locations first
         this.fixModalLocation();
@@ -956,6 +1168,7 @@ const MediaclassUploader = {
         // Setup event handlers
         this.uploaderCall();
         this.unlinkable();
+        this.bindMediaTypeOptions();
         this.modalCrop();
         this.initCropActions();
     },
