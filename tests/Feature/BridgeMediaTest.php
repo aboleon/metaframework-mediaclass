@@ -6,6 +6,7 @@ namespace MetaFramework\Mediaclass\Tests\Feature;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use MetaFramework\Mediaclass\Components\Stored;
+use MetaFramework\Mediaclass\Components\Uploadable;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Support\BridgeMedia;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithBridgeMedia;
@@ -52,6 +53,28 @@ class BridgeMediaTest extends TestCase
         $this->assertCount(2, $component->medias);
         $this->assertInstanceOf(Media::class, $component->medias->first());
         $this->assertInstanceOf(BridgeMedia::class, $component->medias->last());
+    }
+
+    public function test_uploadable_component_accepts_grid_layout(): void
+    {
+        $post = PostWithBridgeMedia::create(['title' => 'Bridge']);
+
+        $uploadable = new Uploadable(model: $post, group: 'cover', grid: 3);
+        $stored = new Stored(model: $post, group: 'cover', grid: 3);
+
+        $this->assertSame(3, $uploadable->grid);
+        $this->assertSame(3, $stored->grid);
+    }
+
+    public function test_uploadable_component_clamps_grid_layout(): void
+    {
+        $post = PostWithBridgeMedia::create(['title' => 'Bridge']);
+
+        $uploadable = new Uploadable(model: $post, group: 'cover', grid: 8);
+        $stored = new Stored(model: $post, group: 'cover', grid: 0);
+
+        $this->assertSame(4, $uploadable->grid);
+        $this->assertSame(1, $stored->grid);
     }
 
     public function test_process_media_forwards_bridge_payload_to_model(): void

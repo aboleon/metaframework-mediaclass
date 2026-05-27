@@ -55,14 +55,16 @@ class Uploadable extends Component
          */
         public ?string $callback = null,
         public array|string $mediaTypes = ['image'],
+        public int $grid = 1,
     ) {
         $this->group = $this->settings['group'] ?? $this->group;
         $this->label = $this->settings['label'] ?? $this->label;
         $this->label = $this->label ?: __('mfw-mediaclass.labels.media');
         $this->mediaTypes = $this->settings['media_types'] ?? $this->settings['mediaTypes'] ?? $this->mediaTypes;
         $this->mediaTypeOptions = $this->normalizeMediaTypes($this->mediaTypes);
+        $this->grid = $this->normalizeGrid($this->settings['grid'] ?? $this->grid);
         $this->mediaTypeInputName = 'mediaclass_media_type_' . Str::random(10);
-        $this->mediaLocales = \MetaFramework\Accessors\Locale::projectLocales();
+        $this->mediaLocales = $this->resolveMediaLocales();
         $this->description = $this->description ? 1 : 0;
         $this->nomedia = $this->nomedia ?: __('mfw-mediaclass.no_media');
 
@@ -185,6 +187,30 @@ class Uploadable extends Component
         }
 
         return $options ?: ['image' => $this->mediaTypeLabel('image')];
+    }
+
+    private function normalizeGrid(mixed $grid): int
+    {
+        $grid = (int) $grid;
+
+        if ($grid < 1) {
+            return 1;
+        }
+
+        if ($grid > 4) {
+            return 4;
+        }
+
+        return $grid;
+    }
+
+    private function resolveMediaLocales(): array
+    {
+        if (class_exists(\MetaFramework\Accessors\Locale::class)) {
+            return \MetaFramework\Accessors\Locale::projectLocales();
+        }
+
+        return config('mfw.locales', config('app.locales', [app()->getLocale()]));
     }
 
     private function mediaTypeLabel(string $type): string

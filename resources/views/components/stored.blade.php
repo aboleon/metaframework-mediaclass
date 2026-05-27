@@ -1,6 +1,8 @@
 @if ($medias->isNotEmpty())
     {{-- LightGallery container --}}
-    <div id="lightgallery-{{ $group }}-{{ $model->id }}" class="lightgallery-container">
+    <div id="lightgallery-{{ $group }}-{{ $model->id }}"
+        class="lightgallery-container mediaclass-stored-grid mediaclass-stored-grid--{{ $grid }}"
+        data-grid="{{ $grid }}">
         @foreach ($medias as $media)
             @php
                 $is_bridge = $media instanceof \MetaFramework\Mediaclass\Support\BridgeMedia;
@@ -55,9 +57,9 @@
                             <div class="col-12">
                                 <p class="name">
                                     <span
-                                        class="rounded-1 text-bg-secondary px-2 py-1">{{ $media->original_filename }}</span>
+                                        class="filename rounded-1 text-bg-secondary px-2 py-1">{{ $media->original_filename }}</span>
                                     @if ($uploadedAt)
-                                        <span class="rounded-1 bg-light-subtle text-dark px-2 py-1 opacity-75">
+                                        <span class="uploaded-at bg-light-subtle text-dark opacity-75">
                                             {{ $uploadedAt }}
                                         </span>
                                     @endif
@@ -83,7 +85,7 @@
                                 </div>
                             </div>
 
-                            @foreach (\MetaFramework\Accessors\Locale::projectLocales() as $locale)
+                            @foreach ($mediaLocales as $locale)
                                 @php
                                     $descriptionName = $is_bridge
                                         ? 'mediaclass_bridge[' .
@@ -95,7 +97,7 @@
                                             ']'
                                         : 'mediaclass[' . $media->id . '][description][' . $locale . ']';
                                 @endphp
-                                <div class="col-lg-6 col-12 description {{ !$description ? 'd-none' : '' }}">
+                                <div class="col-12 description {{ !$description ? 'd-none' : '' }}">
                                     <x-mfw-inputable::textarea name="{{ $descriptionName }}" :height="100"
                                         class="description mt-2" :value="$media->description[$locale] ?? ''"
                                         label="{{ __('mfw-mediaclass.labels.description') }} ({{ $locale }})" />

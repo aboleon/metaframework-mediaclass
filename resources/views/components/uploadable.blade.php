@@ -23,7 +23,7 @@
     data-limit="{{ $limit }}" data-model="{{ get_class($model) }}" data-model-id="{{ $model->id ?? '' }}"
     data-positions="{{ $positions }}" data-group="{{ $group }}"
     data-subgroup="{{ $settings['subgroup'] ?? false }}" data-has-description="{{ $description }}"
-    data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
+    data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-grid="{{ $grid }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
     data-media-types='@json($mediaTypeOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)' data-media-locales='@json($mediaLocales, JSON_UNESCAPED_UNICODE)'
     @if ($callback) data-callback="{{ $callback }}" @endif
     @if ($requiredWidth && $requiredHeight) data-required-width="{{ $requiredWidth }}"
@@ -58,7 +58,7 @@
     <div class="mediaclass-upload-container"></div>
     <div class="uploaded">
         <x-mediaclass::stored :cropable="$cropable" :positions="$positions" :model="$model" :nomedia="$nomedia" :group="$group"
-            :subgroup="$settings['subgroup'] ?? null" :description="$description" :ghost="$ghost" :storables="$storables" />
+            :subgroup="$settings['subgroup'] ?? null" :description="$description" :ghost="$ghost" :storables="$storables" :grid="$grid" />
     </div>
 </div>
 

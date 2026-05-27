@@ -336,7 +336,7 @@ const MediaclassUploader = {
         }
 
         const descriptions = this.mediaLocales(uploadable).map((locale) => `
-            <div class="col-lg-6 col-12 description ${hideDescription ? 'd-none' : ''}">
+            <div class="col-12 description ${hideDescription ? 'd-none' : ''}">
                 <label class="form-label">${descriptionLabel} (${locale})</label>
                 <textarea name="description[${locale}]" class="form-control description" rows="3"></textarea>
             </div>`).join('');
@@ -650,7 +650,8 @@ const MediaclassUploader = {
 
         let lightGalleryContainer = uploadable.find('.lightgallery-container');
         if (lightGalleryContainer.length === 0) {
-            uploadable.find('.uploaded').wrapInner(`<div id="lightgallery-${uploadable.data('group')}-${uploadable.data('model-id')}" class="lightgallery-container"></div>`);
+            const grid = Math.min(Math.max(Number(uploadable.data('grid')) || 1, 1), 4);
+            uploadable.find('.uploaded').wrapInner(`<div id="lightgallery-${uploadable.data('group')}-${uploadable.data('model-id')}" class="lightgallery-container mediaclass-stored-grid mediaclass-stored-grid--${grid}" data-grid="${grid}"></div>`);
             lightGalleryContainer = uploadable.find('.lightgallery-container');
         }
 
@@ -746,8 +747,8 @@ const MediaclassUploader = {
             <div class="row infos">
                 <div class="col-sm-12">
                     <p class="name">
-                        <span class="rounded-1 py-1 px-2 text-bg-secondary">${uploaded.original_filename}</span>
-                        <span class="rounded-1 py-1 px-2 bg-light-subtle text-dark opacity-75">
+                        <span class="filename rounded-1 py-1 px-2 text-bg-secondary">${uploaded.original_filename}</span>
+                        <span class="uploaded-at bg-light-subtle text-dark opacity-75">
                             ${uploadedAtText}
                         </span>
                     </p>
@@ -774,8 +775,8 @@ const MediaclassUploader = {
         const descriptions = uploaded.description || {};
         for (const [key, value] of Object.entries(descriptions)) {
             html += `
-                <div class="col-lg-6 col-12 description ${hideDescription ? ' d-none' : ''}">
-                    <div class="mt-2">
+                <div class="col-12 description ${hideDescription ? ' d-none' : ''}">
+                    <div class="mt-1">
                         <label class="form-label">${descriptionLabel} (${key})</label>
                         <textarea name="mediaclass[${uploaded.id}][description][${key}]"
                                 class="form-control description"

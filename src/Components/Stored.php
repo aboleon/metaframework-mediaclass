@@ -19,6 +19,8 @@ class Stored extends Component
 
     public Collection $medias;
 
+    public array $mediaLocales = [];
+
     public function __construct(
         public MediaclassInterface $model,
         public string $group,
@@ -28,10 +30,13 @@ class Stored extends Component
         public array|string|null $cropable = null,
         public string $nomedia = '',
         public bool $ghost = false,
-        public array $storables = []
+        public array $storables = [],
+        public int $grid = 1,
     ) {
         $this->description = $this->description ? 1 : 0;
         $this->storables = $this->sanitizeStorables($this->storables);
+        $this->grid = $this->normalizeGrid($this->grid);
+        $this->mediaLocales = $this->resolveMediaLocales();
 
         if ($this->ghost) {
             // For ghost models, don't query the relationship
@@ -154,6 +159,30 @@ class Stored extends Component
             })
             ->filter(static fn ($value) => $value !== null && $value !== '')
             ->all();
+    }
+
+    private function normalizeGrid(mixed $grid): int
+    {
+        $grid = (int) $grid;
+
+        if ($grid < 1) {
+            return 1;
+        }
+
+        if ($grid > 4) {
+            return 4;
+        }
+
+        return $grid;
+    }
+
+    private function resolveMediaLocales(): array
+    {
+        if (class_exists(\MetaFramework\Accessors\Locale::class)) {
+            return \MetaFramework\Accessors\Locale::projectLocales();
+        }
+
+        return config('mfw.locales', config('app.locales', [app()->getLocale()]));
     }
 
     private function mediaMatchesStorables(Media $media): bool
