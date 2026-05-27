@@ -53,6 +53,35 @@ const MediaclassUploader = {
     csrfToken() {
         return $('meta[name="csrf-token"]').attr('content');
     },
+    lightGalleryOptions(enableThumbnails) {
+        return {
+            selector: '.lightgallery-item',
+            speed: 500,
+            download: true,
+            counter: true,
+            zoom: true,
+            thumbnail: enableThumbnails,
+            exThumbImage: 'data-thumb',
+            plugins: [lgZoom, lgThumbnail],
+            mobileSettings: {
+                controls: true,
+                showCloseIcon: true,
+                download: true
+            }
+        };
+    },
+    actionsWithoutLinks(actions) {
+        actions.find('a').each(function () {
+            $(this).replaceWith($(this).contents());
+        });
+
+        return actions;
+    },
+    backgroundImageUrl(style) {
+        const match = (style || '').match(/background-image:\s*url\((['"]?)(.*?)\1\)/i);
+
+        return match ? match[2] : '';
+    },
     calculateMaxFileSize(size) {
         if (!size || (!size.includes('KB') && !size.includes('MB'))) {
             return this.defaultFileSize;
@@ -667,20 +696,7 @@ const MediaclassUploader = {
                     lgInstance.destroy();
                 }
 
-                lightGallery(lightGalleryContainer[0], {
-                    selector: '.lightgallery-item',
-                    speed: 500,
-                    download: true,
-                    counter: true,
-                    zoom: true,
-                    thumbnail: imageItems.length > 1,
-                    plugins: [lgZoom, lgThumbnail],
-                    mobileSettings: {
-                        controls: true,
-                        showCloseIcon: true,
-                        download: true
-                    }
-                });
+                lightGallery(lightGalleryContainer[0], this.lightGalleryOptions(imageItems.length > 1));
             }
         }, 100);
 
@@ -722,6 +738,7 @@ const MediaclassUploader = {
             html += `
             <a href="${fullSizeUrl}"
                class="lightgallery-item d-block w-100 h-100"
+               data-thumb="${preview}"
                data-sub-html="<h4>${uploaded.original_filename}</h4><p>${uploaded.description ? (uploaded.description[document.documentElement.lang] || '') : ''}</p>"
                style="background-image: url(${preview}); background-size: contain; background-repeat: no-repeat; background-position: center;">
                 <div class="actions">
@@ -1034,6 +1051,8 @@ const MediaclassUploader = {
     },
 
     fixExistingFileLinks() {
+        const uploader = this;
+
         // Find all non-image preview areas (files like PDFs)
         $('.mediaclass .preview.file').each(function () {
             const $preview = $(this);
@@ -1048,7 +1067,7 @@ const MediaclassUploader = {
                 const bgStyle = $previewDiv.attr('style');
 
                 // Clone the actions div to preserve it
-                const $actions = $previewDiv.find('.actions').clone();
+                const $actions = uploader.actionsWithoutLinks($previewDiv.find('.actions').clone());
 
                 // Create a new link that will replace the div
                 const $newLink = $('<a>')
@@ -1077,6 +1096,7 @@ const MediaclassUploader = {
 
                 // Get the background image style from the div
                 const bgStyle = $previewDiv.attr('style');
+                const thumbUrl = $existingLink.attr('data-thumb') || uploader.backgroundImageUrl(bgStyle);
 
                 // Get the description for lightgallery
                 const $mediaElement = $preview.closest('.mediaclass');
@@ -1084,12 +1104,13 @@ const MediaclassUploader = {
                 const description = $mediaElement.find('textarea.description').first().val() || '';
 
                 // Clone the actions div
-                const $actions = $previewDiv.find('.actions').clone();
+                const $actions = uploader.actionsWithoutLinks($previewDiv.find('.actions').clone());
 
                 // Create new lightgallery link
                 const $newLink = $('<a>')
                     .attr('href', href)
                     .addClass('lightgallery-item d-block w-100 h-100')
+                    .attr('data-thumb', thumbUrl)
                     .attr('data-sub-html', `<h4>${filename}</h4><p>${description}</p>`)
                     .attr('style', bgStyle);
 
@@ -1114,20 +1135,7 @@ const MediaclassUploader = {
 
             // Only init if there are image items
             if (imageItems.length > 0) {
-                lightGallery(this, {
-                    selector: '.lightgallery-item',
-                    speed: 500,
-                    download: true,
-                    counter: true,
-                    zoom: true,
-                    thumbnail: imageItems.length > 1,
-                    plugins: [lgZoom, lgThumbnail],
-                    mobileSettings: {
-                        controls: true,
-                        showCloseIcon: true,
-                        download: true
-                    }
-                });
+                lightGallery(this, uploader.lightGalleryOptions(imageItems.length > 1));
             }
         });
     },

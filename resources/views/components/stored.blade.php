@@ -35,22 +35,26 @@
                 <span class="unlink"><i class="bi bi-x-circle-fill"></i></span>
                 <div class="row m-0">
                     <div class="col-xl-3 pe-xl-4 col-12 impImg position-relative preview {{ $previewType }}">
-                        <div class="w-100 h-100"
-                            style="background-image: url({{ $preview }});background-size: contain;background-repeat: no-repeat;background-position: center;">
-                            <div class="actions">
-                                @if ($is_image)
-                                    {{-- LightGallery trigger --}}
-                                    <a href="{{ $fullSizeUrl }}" class="lightgallery-item zoom"
-                                        data-sub-html="<h4>{{ $media->original_filename }}</h4><p>{{ $media->description[app()->getLocale()] ?? '' }}</p>">
-                                        <i class="bi bi-zoom-in"></i>
-                                    </a>
-                                @else
+                        @if ($is_image)
+                            {{-- LightGallery trigger --}}
+                            <a href="{{ $fullSizeUrl }}" class="lightgallery-item d-block w-100 h-100"
+                                data-thumb="{{ $preview }}"
+                                data-sub-html="<h4>{{ $media->original_filename }}</h4><p>{{ $media->description[app()->getLocale()] ?? '' }}</p>"
+                                style="background-image: url({{ $preview }});background-size: contain;background-repeat: no-repeat;background-position: center;">
+                                <div class="actions">
+                                    <i class="bi bi-zoom-in"></i>
+                                </div>
+                            </a>
+                        @else
+                            <div class="w-100 h-100"
+                                style="background-image: url({{ $preview }});background-size: contain;background-repeat: no-repeat;background-position: center;">
+                                <div class="actions">
                                     <a target="_blank" href="{{ $media->url() }}" class="zoom">
                                         <i class="bi bi-zoom-in"></i>
                                     </a>
-                                @endif
+                                </div>
                             </div>
-                        </div>
+                        @endif
                     </div>
                     <div class="col-xl-9 col-12 impFileName">
                         <div class="row infos">
@@ -162,6 +166,7 @@
                         counter: true,
                         zoom: true,
                         thumbnail: imageLinks.length > 1,
+                        exThumbImage: 'data-thumb',
                         plugins: [lgZoom, lgThumbnail],
                         mobileSettings: {
                             controls: true,

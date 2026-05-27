@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace MetaFramework\Mediaclass\Tests\Feature;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ViewErrorBag;
 use MetaFramework\Mediaclass\Components\Stored;
 use MetaFramework\Mediaclass\Components\Uploadable;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Support\BridgeMedia;
+use MetaFramework\Mediaclass\Tests\Fixtures\Post;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithBridgeMedia;
 use MetaFramework\Mediaclass\Tests\TestCase;
 
@@ -53,6 +57,32 @@ class BridgeMediaTest extends TestCase
         $this->assertCount(2, $component->medias);
         $this->assertInstanceOf(Media::class, $component->medias->first());
         $this->assertInstanceOf(BridgeMedia::class, $component->medias->last());
+    }
+
+    public function test_stored_component_renders_one_lightgallery_item_with_thumbnail_source_per_image(): void
+    {
+        $post = Post::create(['title' => 'Gallery']);
+
+        Media::query()->create([
+            'model_type' => Post::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'native.jpg',
+            'filename' => 'native',
+            'position' => 'left',
+        ]);
+
+        View::share('errors', new ViewErrorBag);
+
+        $html = Blade::render(
+            '<x-mediaclass::stored :model="$post" group="cover" :description="false" />',
+            ['post' => $post->load('media')],
+        );
+
+        $this->assertSame(1, substr_count($html, 'class="lightgallery-item d-block w-100 h-100"'));
+        $this->assertStringContainsString('data-thumb=', $html);
+        $this->assertStringNotContainsString('class="lightgallery-item zoom"', $html);
     }
 
     public function test_uploadable_component_accepts_grid_layout(): void

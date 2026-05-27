@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Tests;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use MetaFramework\Inputable\InputableServiceProvider;
 use MetaFramework\Mediaclass\MediaclassServiceProvider;
+use MetaFramework\Support\SupportServiceProvider;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
 abstract class TestCase extends OrchestraTestCase
@@ -20,7 +23,9 @@ abstract class TestCase extends OrchestraTestCase
     protected function getPackageProviders($app): array
     {
         return [
+            InputableServiceProvider::class,
             MediaclassServiceProvider::class,
+            SupportServiceProvider::class,
         ];
     }
 
