@@ -17,6 +17,7 @@
         'video_url_placeholder' => __('mfw-mediaclass.labels.video_url_placeholder'),
         'add' => __('mfw-mediaclass.buttons.add'),
         'cancel' => __('mfw-mediaclass.buttons.cancel'),
+        'save_descriptions' => __('mfw-mediaclass.buttons.save_descriptions'),
     ];
 @endphp
 <div class="mediaclass-uploadable {{ $size }}" data-maxfilesize="{{ $maxfilesize }}"
@@ -25,6 +26,7 @@
     data-subgroup="{{ $settings['subgroup'] ?? false }}" data-has-description="{{ $description }}"
     data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-grid="{{ $grid }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
     data-media-types='@json($mediaTypeOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)' data-media-locales='@json($mediaLocales, JSON_UNESCAPED_UNICODE)'
+    data-ajax="{{ route('mediaclass.ajax') }}"
     @if ($callback) data-callback="{{ $callback }}" @endif
     @if ($requiredWidth && $requiredHeight) data-required-width="{{ $requiredWidth }}"
      data-required-height="{{ $requiredHeight }}" @endif>
@@ -40,6 +42,14 @@
         </span>
         @if ($dimensionsInline)
             <span class="subcontrol dimensions-inline me-3">{{ $dimensionsInline }}</span>
+        @endif
+        @if ($description)
+            <button type="button" class="btn btn-sm btn-secondary mediaclass-save-descriptions ms-auto">
+                <i class="bi bi-save"></i>
+                {{ __('mfw-mediaclass.buttons.save_descriptions') }}
+                <span class="ajax-spinner spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"
+                    style="display: none;"></span>
+            </button>
         @endif
     </div>
     @if (count($mediaTypeOptions) > 1)

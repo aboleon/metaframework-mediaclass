@@ -27,6 +27,11 @@ class AjaxController
         return $this->uploader->setModel(request('model'))->uploadUrl()->fetchResponse();
     }
 
+    public function saveDescriptions(): array
+    {
+        return $this->uploader->setModel(request('model'))->saveDescriptions()->fetchResponse();
+    }
+
     public function crop(): array
     {
         return Cropper::crop();

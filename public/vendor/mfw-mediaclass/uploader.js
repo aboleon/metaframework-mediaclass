@@ -271,6 +271,49 @@ const MediaclassUploader = {
         });
     },
 
+    saveDescriptionsFormData(uploadable) {
+        const payload = uploadable
+            .find('.uploaded')
+            .find([
+                'input[name^="mediaclass["]',
+                'textarea[name^="mediaclass["]',
+                'input[name^="mediaclass_bridge["]',
+                'textarea[name^="mediaclass_bridge["]'
+            ].join(','))
+            .serializeArray();
+
+        payload.push(
+            {name: 'action', value: 'saveDescriptions'},
+            {name: 'model', value: uploadable.attr('data-model') || ''},
+            {name: 'model_id', value: uploadable.attr('data-model-id') || ''},
+            {name: 'group', value: uploadable.attr('data-group') || ''},
+            {name: 'ghost', value: uploadable.attr('data-ghost') || '0'}
+        );
+
+        const subgroup = uploadable.attr('data-subgroup') || '';
+        if (subgroup && subgroup !== 'false') {
+            payload.push({name: 'subgroup', value: subgroup});
+        }
+
+        return $.param(payload);
+    },
+
+    bindDescriptionSave() {
+        $(document)
+            .off('click.mediaclassDescriptions', '.mediaclass-save-descriptions')
+            .on('click.mediaclassDescriptions', '.mediaclass-save-descriptions', function (event) {
+                event.preventDefault();
+
+                const uploadable = $(this).closest('.mediaclass-uploadable');
+                const formData = MediaclassUploader.saveDescriptionsFormData(uploadable);
+
+                mfwAjax(formData, uploadable, {
+                    spinner: true,
+                    lockForm: true
+                });
+            });
+    },
+
     uploaderCall() {
         $('span.mediaclass-uploader').off().on('click', function () {
             const instantiator = $(this).closest('.mediaclass-uploadable');
@@ -1177,6 +1220,7 @@ const MediaclassUploader = {
         // Setup event handlers
         this.uploaderCall();
         this.unlinkable();
+        this.bindDescriptionSave();
         this.bindMediaTypeOptions();
         this.modalCrop();
         this.initCropActions();

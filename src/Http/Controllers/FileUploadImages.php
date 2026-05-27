@@ -6,6 +6,7 @@ namespace MetaFramework\Mediaclass\Http\Controllers;
 
 use Exception;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
@@ -181,6 +182,31 @@ class FileUploadImages
             $this->responseSuccess(__('mfw-mediaclass.notices.bridge_deleted'));
         } catch (Throwable $e) {
             $this->responseException($e);
+        }
+
+        return $this;
+    }
+
+    public function saveDescriptions(): static
+    {
+        if ($this->responseHasErrors()) {
+            return $this;
+        }
+
+        if (!$this->is_ghost && !$this->model_id) {
+            $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+
+            return $this;
+        }
+
+        try {
+            $nativeCount = $this->saveNativeDescriptions((array) request('mediaclass'));
+            $bridgeCount = $this->saveBridgeDescriptions((array) request('mediaclass_bridge'));
+
+            $this->responseSuccess(__('mfw-mediaclass.notices.descriptions_saved'));
+            $this->responseElement('updated_count', $nativeCount + $bridgeCount);
+        } catch (Throwable $e) {
+            $this->responseException($e, __('mfw-mediaclass.errors.descriptionSaveFailed'));
         }
 
         return $this;
@@ -596,6 +622,112 @@ class FileUploadImages
         $this->responseElement('count_files', request('count_files'));
 
         return $this;
+    }
+
+    private function saveNativeDescriptions(array $medias): int
+    {
+        if ($medias === []) {
+            return 0;
+        }
+
+        $updated = 0;
+        $query = $this->mediaDescriptionQuery();
+
+        foreach ($medias as $mediaId => $mediaInput) {
+            if (!is_numeric($mediaId) || !is_array($mediaInput) || !array_key_exists('description', $mediaInput)) {
+                continue;
+            }
+
+            $media = (clone $query)
+                ->whereKey((int) $mediaId)
+                ->first();
+
+            if (!$media instanceof Media) {
+                continue;
+            }
+
+            $media->description = $this->normalizeDescriptions((array) $mediaInput['description']);
+            $media->save();
+
+            $updated++;
+        }
+
+        return $updated;
+    }
+
+    private function saveBridgeDescriptions(array $bridgeMedia): int
+    {
+        $groupPayload = (array) ($bridgeMedia[$this->media_group] ?? []);
+
+        if ($groupPayload === [] || !method_exists($this->model, 'syncMediaclassBridgeMedia')) {
+            return 0;
+        }
+
+        $payload = [];
+
+        foreach ($groupPayload as $key => $bridgeInput) {
+            if (!is_array($bridgeInput)) {
+                continue;
+            }
+
+            $bridgeId = trim((string) ($bridgeInput['id'] ?? ''));
+
+            if ($bridgeId === '') {
+                continue;
+            }
+
+            if (!array_key_exists('description', $bridgeInput)) {
+                continue;
+            }
+
+            $payload[(string) $key] = [
+                'id' => $bridgeId,
+                'description' => $this->normalizeDescriptions((array) $bridgeInput['description']),
+            ];
+        }
+
+        if ($payload === []) {
+            return 0;
+        }
+
+        $this->model->syncMediaclassBridgeMedia([
+            $this->media_group => $payload,
+        ]);
+
+        return count($payload);
+    }
+
+    private function mediaDescriptionQuery(): Builder
+    {
+        $morphable = Relation::morphMap()
+            ? array_search(get_class($this->model), Relation::morphMap(), true) ?: get_class($this->model)
+            : get_class($this->model);
+        $subgroup = request('subgroup') ?: null;
+
+        return Media::query()
+            ->where('model_type', $morphable)
+            ->where('group', $this->media_group)
+            ->when(
+                $this->is_ghost,
+                fn ($query) => $query->whereNull('model_id'),
+                fn ($query) => $query->where('model_id', $this->model_id),
+            )
+            ->when(
+                $subgroup,
+                fn ($query) => $query->where('subgroup', $subgroup),
+                fn ($query) => $query->whereNull('subgroup'),
+            );
+    }
+
+    private function normalizeDescriptions(array $descriptions): array
+    {
+        return collect($descriptions)
+            ->mapWithKeys(static function (mixed $description, int|string $locale): array {
+                return [
+                    (string) $locale => is_string($description) ? trim($description) : (string) $description,
+                ];
+            })
+            ->all();
     }
 
     /**

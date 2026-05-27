@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'buttons' => [
         'send' => 'Send',
@@ -13,6 +15,7 @@ return [
         'delete_crop' => 'Delete crop',
         'close' => 'Close',
         'add' => 'Add',
+        'save_descriptions' => 'Save descriptions',
     ],
     'labels' => [
         'media' => 'Media',
@@ -36,16 +39,17 @@ return [
         'limit_reached' => 'Limit of :count file(s) reached',
         'dimension_requirements' => 'Required dimensions: :width × :height px minimum',
         'bridge_deleted' => 'Media deleted successfully',
+        'descriptions_saved' => 'Descriptions saved successfully',
     ],
     'errors' => [
-        'missing_model' => "Media must belong to an object",
-        'mustBeImage' => "The file is not an image",
-        'maxNumberOfFiles' => "Maximum number of files you can upload is ",
-        'maxFileSize' => "File is too large. Maximum size: ",
-        'dimensions' => "Image must have a minimum size of :width x :height pixels. Uploaded image: :uploaded_width x :uploaded_height pixels.",
-        'scale_for_crop' => "Image scale is not correct for cropping.",
-        'upload_failed' => "Upload failed",
-        'acceptFileTypes' => "File type not allowed",
+        'missing_model' => 'Media must belong to an object',
+        'mustBeImage' => 'The file is not an image',
+        'maxNumberOfFiles' => 'Maximum number of files you can upload is ',
+        'maxFileSize' => 'File is too large. Maximum size: ',
+        'dimensions' => 'Image must have a minimum size of :width x :height pixels. Uploaded image: :uploaded_width x :uploaded_height pixels.',
+        'scale_for_crop' => 'Image scale is not correct for cropping.',
+        'upload_failed' => 'Upload failed',
+        'acceptFileTypes' => 'File type not allowed',
         'minImageWidth' => 'Minimum required width: :width px',
         'minImageHeight' => 'Minimum required height: :height px',
         'imageDimensions' => 'Minimum required dimensions: :width × :height px',
@@ -54,9 +58,10 @@ return [
         'invalidUrl' => 'The video URL is invalid',
         'bridgeDeleteUnsupported' => 'This media cannot be deleted by this component',
         'bridgeDeleteFailed' => 'The media could not be deleted',
+        'descriptionSaveFailed' => 'The descriptions could not be saved',
     ],
-    'uploaded_at' => "Uploaded on :date at :time",
-    'crop_success' => "Image cropped successfully",
-    'crop_deleted' => "Crop deleted successfully",
-    'no_media' => "No media has been added",
+    'uploaded_at' => 'Uploaded on :date at :time',
+    'crop_success' => 'Image cropped successfully',
+    'crop_deleted' => 'Crop deleted successfully',
+    'no_media' => 'No media has been added',
 ];

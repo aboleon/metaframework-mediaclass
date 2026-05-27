@@ -15,6 +15,7 @@ return [
         'delete_crop' => 'Изтрий изрязването',
         'close' => 'Затвори',
         'add' => 'Добави',
+        'save_descriptions' => 'Запази описанията',
     ],
     'labels' => [
         'media' => 'Медии',
@@ -38,6 +39,7 @@ return [
         'limit_reached' => 'Достигнат е лимитът от :count файл(а)',
         'dimension_requirements' => 'Изисквани размери: минимум :width × :height px',
         'bridge_deleted' => 'Медията е изтрита успешно',
+        'descriptions_saved' => 'Описанията са запазени успешно',
     ],
     'file' => 'файл|файлове',
     'uploaded_at' => 'Качено на :date в :time',
@@ -58,6 +60,7 @@ return [
         'invalidUrl' => 'Видео URL адресът е невалиден',
         'bridgeDeleteUnsupported' => 'Тази медия не може да бъде изтрита от този компонент',
         'bridgeDeleteFailed' => 'Медията не можа да бъде изтрита',
+        'descriptionSaveFailed' => 'Описанията не можаха да бъдат запазени',
     ],
     'no_media' => 'Няма добавени медии',
     'no_documents' => 'Няма добавени документи',

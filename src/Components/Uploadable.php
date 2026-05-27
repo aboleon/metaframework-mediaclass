@@ -207,7 +207,15 @@ class Uploadable extends Component
     private function resolveMediaLocales(): array
     {
         if (class_exists(\MetaFramework\Accessors\Locale::class)) {
-            return \MetaFramework\Accessors\Locale::projectLocales();
+            try {
+                $locales = \MetaFramework\Accessors\Locale::projectLocales();
+            } catch (\Throwable) {
+                $locales = null;
+            }
+
+            if (is_array($locales) && $locales !== []) {
+                return $locales;
+            }
         }
 
         return config('mfw.locales', config('app.locales', [app()->getLocale()]));
