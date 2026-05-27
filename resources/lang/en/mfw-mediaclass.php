@@ -38,6 +38,8 @@ return [
     'notices' => [
         'limit_reached' => 'Limit of :count file(s) reached',
         'dimension_requirements' => 'Required dimensions: :width × :height px minimum',
+        'dimension_recommendations' => 'Recommended dimensions: :width × :height px minimum',
+        'dimension_warning' => 'This image is below the recommended :width x :height pixels. Uploaded image: :uploaded_width x :uploaded_height pixels.',
         'bridge_deleted' => 'Media deleted successfully',
         'descriptions_saved' => 'Descriptions saved successfully',
     ],

@@ -56,10 +56,15 @@ class Uploadable extends Component
         public ?string $callback = null,
         public array|string $mediaTypes = ['image'],
         public int $grid = 1,
+        public bool $enforceDimensions = true,
     ) {
         $this->group = $this->settings['group'] ?? $this->group;
         $this->label = $this->settings['label'] ?? $this->label;
         $this->label = $this->label ?: __('mfw-mediaclass.labels.media');
+        $this->enforceDimensions = filter_var(
+            $this->settings['enforce_dimensions'] ?? $this->settings['enforceDimensions'] ?? $this->enforceDimensions,
+            FILTER_VALIDATE_BOOL,
+        );
         $this->mediaTypes = $this->settings['media_types'] ?? $this->settings['mediaTypes'] ?? $this->mediaTypes;
         $this->mediaTypeOptions = $this->normalizeMediaTypes($this->mediaTypes);
         $this->grid = $this->normalizeGrid($this->settings['grid'] ?? $this->grid);

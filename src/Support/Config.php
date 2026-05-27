@@ -114,6 +114,14 @@ class Config
         return null;
     }
 
+    public static function shouldEnforceDimensions(MediaclassInterface $model, string $group): bool
+    {
+        $settings = self::getGroupSettings($model, $group);
+        $enforce = $settings['enforce_dimensions'] ?? $settings['enforceDimensions'] ?? true;
+
+        return filter_var($enforce, FILTER_VALIDATE_BOOL);
+    }
+
     public static function getSizesInReverseOrder(): array
     {
         $sizes = Config::getSizes();

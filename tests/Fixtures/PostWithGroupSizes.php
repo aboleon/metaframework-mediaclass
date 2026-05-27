@@ -24,6 +24,14 @@ class PostWithGroupSizes extends Model implements MediaclassInterface
                 ],
                 'cropable' => true,
             ],
+            'advisory_cover' => [
+                'label' => 'Advisory Cover',
+                'sizes' => [
+                    'xl' => ['width' => 1600, 'height' => 900],
+                    'sm' => ['width' => 1200, 'height' => 500],
+                ],
+                'enforce_dimensions' => false,
+            ],
         ];
     }
 }

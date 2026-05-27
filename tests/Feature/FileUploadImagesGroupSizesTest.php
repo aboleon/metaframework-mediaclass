@@ -157,6 +157,33 @@ class FileUploadImagesGroupSizesTest extends TestCase
         $response->assertJsonPath('error', true);
     }
 
+    public function test_upload_warns_when_smaller_than_largest_group_size_and_dimensions_are_not_enforced(): void
+    {
+        $post = PostWithGroupSizes::create(['title' => 'Advisory Sized Upload']);
+
+        $file = UploadedFile::fake()->image('cover.jpg', 800, 400);
+
+        $response = $this->post('mediaclass-ajax', [
+            'action' => 'upload',
+            'model' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'advisory_cover',
+            'files' => [$file],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('error', null);
+        $response->assertJsonPath('mfw_ajax_messages.0.warning', function ($value) {
+            return is_string($value) && str_contains($value, '1600 x 900');
+        });
+
+        $this->assertDatabaseHas('mediaclass', [
+            'model_type' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'advisory_cover',
+        ]);
+    }
+
     public function test_upload_supports_models_with_model_method_returning_self_without_instance_property(): void
     {
         $post = PostWithoutInstanceModelMethod::create(['title' => 'Self Model Upload']);

@@ -118,6 +118,20 @@ const MediaclassUploader = {
         });
         return output;
     },
+    responseMessages(data) {
+        const messages = data.mfw_ajax_messages || data.messages || [];
+
+        return Array.isArray(messages) ? messages : [];
+    },
+    printResponseMessages(uploadable, data) {
+        const messages = this.responseMessages(data);
+
+        if (messages.length < 1) {
+            return;
+        }
+
+        notificator(200, messages, this.alerts(uploadable));
+    },
     locale() {
         return document.documentElement.lang || navigator.language || 'en';
     },
@@ -345,7 +359,10 @@ const MediaclassUploader = {
 
                 if (requiredWidth && requiredHeight) {
                     const fileuploadBar = uploadContainer.find('.fileupload-buttonbar');
-                    const dimensionTemplate = MediaclassUploader.i18nText(instantiator, 'dimension_requirements');
+                    const dimensionsAreEnforced = Number(instantiator.data('enforce-dimensions')) !== 0;
+                    const dimensionTemplate = dimensionsAreEnforced
+                        ? MediaclassUploader.i18nText(instantiator, 'dimension_requirements')
+                        : MediaclassUploader.i18nText(instantiator, 'dimension_recommendations');
                     const dimensionText = MediaclassUploader.interpolate(dimensionTemplate, {width: requiredWidth, height: requiredHeight});
                     const dimensionHint = `<div class="dimension-requirements text-center mb-3">
             <i class="bi bi-info-circle"></i>
@@ -497,6 +514,7 @@ const MediaclassUploader = {
                     return;
                 }
 
+                this.printResponseMessages(uploadable, data);
                 this.executeCallback(uploadable, data);
                 this.appendUploadedMedia(uploadable, data, Number(uploadable.attr('data-has-description')) !== 1);
                 this.uploadableContainer(uploadable).html('');
@@ -619,6 +637,7 @@ const MediaclassUploader = {
                 }
 
                 // Execute callback if defined (before UI updates)
+                MediaclassUploader.printResponseMessages(uploadable, data);
                 MediaclassUploader.executeCallback(uploadable, data);
 
                 // Hide the upload queue first, then add the new content after it's hidden

@@ -38,6 +38,8 @@ return [
     'notices' => [
         'limit_reached' => 'Достигнат е лимитът от :count файл(а)',
         'dimension_requirements' => 'Изисквани размери: минимум :width × :height px',
+        'dimension_recommendations' => 'Препоръчителни размери: минимум :width × :height px',
+        'dimension_warning' => 'Изображението е под препоръчителния размер :width x :height пиксела. Качено изображение: :uploaded_width x :uploaded_height пиксела.',
         'bridge_deleted' => 'Медията е изтрита успешно',
         'descriptions_saved' => 'Описанията са запазени успешно',
     ],

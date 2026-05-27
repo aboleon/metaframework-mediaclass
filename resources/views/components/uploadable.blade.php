@@ -3,6 +3,7 @@
     $i18n = [
         'limit_reached' => __('mfw-mediaclass.notices.limit_reached'),
         'dimension_requirements' => __('mfw-mediaclass.notices.dimension_requirements'),
+        'dimension_recommendations' => __('mfw-mediaclass.notices.dimension_recommendations'),
         'uploaded_at' => __('mfw-mediaclass.uploaded_at'),
         'positions_label' => __('mfw-mediaclass.labels.positions'),
         'description_label' => __('mfw-mediaclass.labels.description'),
@@ -24,7 +25,7 @@
     data-limit="{{ $limit }}" data-model="{{ get_class($model) }}" data-model-id="{{ $model->id ?? '' }}"
     data-positions="{{ $positions }}" data-group="{{ $group }}"
     data-subgroup="{{ $settings['subgroup'] ?? false }}" data-has-description="{{ $description }}"
-    data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-grid="{{ $grid }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
+    data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-grid="{{ $grid }}" data-enforce-dimensions="{{ $enforceDimensions ? '1' : '0' }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
     data-media-types='@json($mediaTypeOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)' data-media-locales='@json($mediaLocales, JSON_UNESCAPED_UNICODE)'
     data-ajax="{{ route('mediaclass.ajax') }}"
     @if ($callback) data-callback="{{ $callback }}" @endif

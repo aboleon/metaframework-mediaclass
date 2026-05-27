@@ -63,6 +63,8 @@ class FileUploadImages
 
     private ImageManager $imageManager;
 
+    private bool $dimensionWarningAdded = false;
+
     public function __construct()
     {
         $this->enableAjaxMode();
@@ -243,16 +245,9 @@ class FileUploadImages
                     $imageHeight = $imageInfo[1];
 
                     if ($imageWidth < $requiredWidth || $imageHeight < $requiredHeight) {
-                        $this->responseError(
-                            __('mfw-mediaclass.errors.dimensions', [
-                                'width'           => $requiredWidth,
-                                'height'          => $requiredHeight,
-                                'uploaded_width'  => $imageWidth,
-                                'uploaded_height' => $imageHeight,
-                            ]),
-                        );
-
-                        return $this;
+                        if ($this->handleDimensionMismatch($requiredWidth, $requiredHeight, $imageWidth, $imageHeight)) {
+                            return $this;
+                        }
                     }
                 }
             }
@@ -386,19 +381,12 @@ class FileUploadImages
             // Validate dimensions
             if ($requiredWidth && $requiredHeight) {
                 if ($imageWidth < $requiredWidth || $imageHeight < $requiredHeight) {
-                    $this->responseError(
-                        __('mfw-mediaclass.errors.dimensions', [
-                            'width'           => $requiredWidth,
-                            'height'          => $requiredHeight,
-                            'uploaded_width'  => $imageWidth,
-                            'uploaded_height' => $imageHeight,
-                        ]),
-                    );
+                    if ($this->handleDimensionMismatch($requiredWidth, $requiredHeight, $imageWidth, $imageHeight)) {
+                        // Clean up the image resource
+                        unset($this->image);
 
-                    // Clean up the image resource
-                    unset($this->image);
-
-                    return $this;
+                        return $this;
+                    }
                 }
 
                 // NEW: Check if cropable is enabled and validate scale
@@ -425,21 +413,26 @@ class FileUploadImages
                             $minOriginalWidth  = (int) ceil($requiredWidth / $minScale);
                             $minOriginalHeight = (int) ceil($requiredHeight / $minScale);
 
-                            $this->responseError(
-                                __('mfw-mediaclass.errors.scale_for_crop', [
+                            if ($this->handleDimensionMismatch(
+                                $requiredWidth,
+                                $requiredHeight,
+                                $imageWidth,
+                                $imageHeight,
+                                'scale_for_crop',
+                                [
                                     'width'           => $requiredWidth,
                                     'height'          => $requiredHeight,
                                     'min_width'       => $minOriginalWidth,
                                     'min_height'      => $minOriginalHeight,
                                     'uploaded_width'  => $imageWidth,
                                     'uploaded_height' => $imageHeight,
-                                ]),
-                            );
+                                ],
+                            )) {
+                                // Clean up the image resource
+                                unset($this->image);
 
-                            // Clean up the image resource
-                            unset($this->image);
-
-                            return $this;
+                                return $this;
+                            }
                         }
                     }
                 }
@@ -717,6 +710,35 @@ class FileUploadImages
                 fn ($query) => $query->where('subgroup', $subgroup),
                 fn ($query) => $query->whereNull('subgroup'),
             );
+    }
+
+    private function handleDimensionMismatch(
+        int $requiredWidth,
+        int $requiredHeight,
+        int $imageWidth,
+        int $imageHeight,
+        string $errorKey = 'dimensions',
+        array $parameters = [],
+    ): bool {
+        $parameters = array_merge([
+            'width'           => $requiredWidth,
+            'height'          => $requiredHeight,
+            'uploaded_width'  => $imageWidth,
+            'uploaded_height' => $imageHeight,
+        ], $parameters);
+
+        if (MediaclassConfig::shouldEnforceDimensions($this->model, $this->media_group)) {
+            $this->responseError(__('mfw-mediaclass.errors.' . $errorKey, $parameters));
+
+            return true;
+        }
+
+        if (!$this->dimensionWarningAdded) {
+            $this->responseWarning(__('mfw-mediaclass.notices.dimension_warning', $parameters), false);
+            $this->dimensionWarningAdded = true;
+        }
+
+        return false;
     }
 
     private function normalizeDescriptions(array $descriptions): array

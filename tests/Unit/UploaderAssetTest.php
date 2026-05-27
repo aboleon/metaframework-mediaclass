@@ -24,4 +24,13 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString('actionsWithoutLinks(actions)', $uploaderScript);
         $this->assertStringContainsString('$(this).replaceWith($(this).contents());', $uploaderScript);
     }
+
+    public function test_uploader_prints_success_response_messages(): void
+    {
+        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+
+        $this->assertStringContainsString('printResponseMessages(uploadable, data)', $uploaderScript);
+        $this->assertStringContainsString("instantiator.data('enforce-dimensions')", $uploaderScript);
+        $this->assertStringContainsString("'dimension_recommendations'", $uploaderScript);
+    }
 }
