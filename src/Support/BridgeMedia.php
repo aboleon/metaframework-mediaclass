@@ -59,6 +59,11 @@ class BridgeMedia
         return preg_replace('/[^A-Za-z0-9_-]/', '_', $this->id) ?: md5($this->id);
     }
 
+    public function getKey(): string
+    {
+        return $this->id;
+    }
+
     public function domId(): string
     {
         return 'bridge_' . $this->key();

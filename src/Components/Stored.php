@@ -68,7 +68,7 @@ class Stored extends Component
                 ->values();
         }
 
-        $this->medias = $this->medias
+        $this->medias = collect($this->medias->values()->all())
             ->concat($this->bridgeMedia())
             ->values();
 

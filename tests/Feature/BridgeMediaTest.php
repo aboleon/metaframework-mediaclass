@@ -6,6 +6,7 @@ namespace MetaFramework\Mediaclass\Tests\Feature;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use MetaFramework\Mediaclass\Components\Stored;
+use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Support\BridgeMedia;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithBridgeMedia;
 use MetaFramework\Mediaclass\Tests\TestCase;
@@ -30,6 +31,27 @@ class BridgeMediaTest extends TestCase
         $this->assertCount(1, $component->medias);
         $this->assertInstanceOf(BridgeMedia::class, $component->medias->first());
         $this->assertSame('legacy:1', $component->medias->first()->id);
+    }
+
+    public function test_stored_component_can_mix_native_and_bridge_media(): void
+    {
+        $post = PostWithBridgeMedia::create(['title' => 'Bridge']);
+
+        Media::query()->create([
+            'model_type' => PostWithBridgeMedia::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'native.jpg',
+            'filename' => 'native',
+            'position' => 'left',
+        ]);
+
+        $component = new Stored(model: $post->load('media'), group: 'cover');
+
+        $this->assertCount(2, $component->medias);
+        $this->assertInstanceOf(Media::class, $component->medias->first());
+        $this->assertInstanceOf(BridgeMedia::class, $component->medias->last());
     }
 
     public function test_process_media_forwards_bridge_payload_to_model(): void
