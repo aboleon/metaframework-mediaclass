@@ -233,12 +233,7 @@ class Parser
      */
     protected function getFilePath(Media $media, string $size): string
     {
-        $folder = Path::mediaFolderName($media->model);
-        $prefix = $media->dimensionPrefix($size);
-        $filename = $media->filename;
-        $extension = $media->extension();
-
-        return "{$folder}/{$prefix}{$filename}.{$extension}";
+        return Path::ensureMediaFilePathForMedia($media, $size);
     }
 
     /**

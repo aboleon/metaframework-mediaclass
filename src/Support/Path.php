@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Support;
 
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Str;
 use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 use MetaFramework\Mediaclass\Models\Media;
 use ReflectionClass;
@@ -11,6 +13,19 @@ use ReflectionClass;
 class Path
 {
     public static function mediaFolderName(MediaclassInterface $model): string
+    {
+        if (method_exists($model, 'mediaclassFolderName')) {
+            $folder = trim((string) $model->mediaclassFolderName(), '/\\');
+
+            if ($folder !== '') {
+                return $folder;
+            }
+        }
+
+        return Str::snake((new ReflectionClass($model))->getShortName()) . '/' . ($model->id ?? 'temp');
+    }
+
+    public static function defaultMediaFolderName(MediaclassInterface $model): string
     {
         return Str::snake((new ReflectionClass($model))->getShortName()) . '/' . ($model->id ?? 'temp');
     }
@@ -43,6 +58,89 @@ class Path
 
         // For regular models, use the standard path with ID
         return self::mediaFolderName($media->model);
+    }
+
+    public static function mediaFileName(
+        MediaclassInterface $model,
+        string $filename,
+        string $extension,
+        ?string $sizeKey = null,
+        ?int $width = null,
+        ?Media $media = null,
+        bool $allowCustomName = true,
+    ): string {
+        if ($allowCustomName && method_exists($model, 'mediaclassFileName')) {
+            $customFilename = trim((string) $model->mediaclassFileName($filename, $extension, $sizeKey, $media));
+
+            if ($customFilename !== '') {
+                return $customFilename;
+            }
+        }
+
+        if ($media && $media->sizeable()) {
+            return $media->dimensionPrefix($sizeKey ?? '') . $filename . '.' . $extension;
+        }
+
+        if ($width) {
+            return $width . '_' . $filename . '.' . $extension;
+        }
+
+        return $filename . '.' . $extension;
+    }
+
+    public static function mediaFilePath(
+        MediaclassInterface $model,
+        string $filename,
+        string $extension,
+        ?string $sizeKey = null,
+        ?int $width = null,
+        ?Media $media = null,
+    ): string {
+        return self::mediaFolderName($model) . '/' . self::mediaFileName($model, $filename, $extension, $sizeKey, $width, $media);
+    }
+
+    public static function mediaFilePathForMedia(Media $media, string $sizeKey): string
+    {
+        return self::mediaFilePath(
+            $media->model,
+            $media->filename,
+            $media->extension() ?? '',
+            $sizeKey,
+            null,
+            $media,
+        );
+    }
+
+    public static function defaultMediaFilePathForMedia(Media $media, string $sizeKey): string
+    {
+        return self::defaultMediaFolderName($media->model) . '/' . self::mediaFileName(
+            $media->model,
+            $media->filename,
+            $media->extension() ?? '',
+            $sizeKey,
+            null,
+            $media,
+            false,
+        );
+    }
+
+    public static function ensureMediaFilePathForMedia(Media $media, string $sizeKey): string
+    {
+        $path = self::mediaFilePathForMedia($media, $sizeKey);
+        $defaultPath = self::defaultMediaFilePathForMedia($media, $sizeKey);
+
+        if ($path === $defaultPath) {
+            return $path;
+        }
+
+        $disk = Config::getDisk();
+
+        if (!$disk->exists($path) && $disk->exists($defaultPath)) {
+            $disk->makeDirectory(dirname($path));
+            $disk->copy($defaultPath, $path);
+        }
+
+        return $path;
     }
 
     public static function checkMakeDir(string $directory, int $permissions=0755): void

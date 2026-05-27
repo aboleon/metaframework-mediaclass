@@ -435,7 +435,13 @@ class FileUploadImages
             && isset($groupSettings['width'], $groupSettings['height']);
 
         foreach ($this->dimensions as $key => $dimensions) {
-            $file = $this->folder_name . '/' . $dimensions['width'] . '_' . $this->filename . '.' . $this->mime_type;
+            $file = Path::mediaFilePath(
+                $this->model,
+                $this->filename,
+                $this->mime_type,
+                (string) $key,
+                (int) $dimensions['width'],
+            );
 
             $targetWidth  = $dimensions['width'];
             $targetHeight = $dimensions['height'];
@@ -464,10 +470,9 @@ class FileUploadImages
                     $resizedImage = $sourceImage->resize($newWidth, $newHeight);
                 }
             } else {
-                // For default dimensions, use standard scaling (don't upsize)
+                // For configured size sets, width is authoritative; keep aspect ratio and don't upsize.
                 $widthRatio  = $targetWidth / $imageWidth;
-                $heightRatio = $targetHeight / $imageHeight;
-                $scaleRatio  = min($widthRatio, $heightRatio, 1);
+                $scaleRatio  = min($widthRatio, 1);
 
                 $newWidth     = (int) ($imageWidth * $scaleRatio);
                 $newHeight    = (int) ($imageHeight * $scaleRatio);

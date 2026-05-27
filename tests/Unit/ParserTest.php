@@ -9,6 +9,7 @@ use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Parser;
 use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Mediaclass\Tests\Fixtures\Post;
+use MetaFramework\Mediaclass\Tests\Fixtures\PostWithCustomMediaPath;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
 use MetaFramework\Mediaclass\Tests\TestCase;
 
@@ -269,5 +270,32 @@ class ParserTest extends TestCase
         $this->assertArrayHasKey('xl', $parser->urls);
         $this->assertArrayHasKey('sm', $parser->urls);
         $this->assertArrayNotHasKey('md', $parser->urls);
+    }
+
+    public function test_parser_bridges_default_size_paths_to_custom_media_paths(): void
+    {
+        $post = PostWithCustomMediaPath::create(['title' => 'Custom Path Post']);
+        $media = Media::create([
+            'model_type' => PostWithCustomMediaPath::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'test.jpg',
+            'filename' => 'custom123',
+            'position' => 'right',
+        ]);
+        $media->setRelation('model', $post);
+
+        $defaultPath = Path::defaultMediaFilePathForMedia($media, 'xl');
+        $customPath = Path::mediaFilePathForMedia($media, 'xl');
+
+        Storage::disk('testing')->put($defaultPath, 'test');
+
+        $this->assertFalse(Storage::disk('testing')->exists($customPath));
+
+        $parser = new Parser($media);
+
+        $this->assertSame(Storage::disk('testing')->url($customPath), $parser->urls['xl']);
+        $this->assertTrue(Storage::disk('testing')->exists($customPath));
     }
 }

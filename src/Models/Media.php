@@ -79,13 +79,13 @@ class Media extends Model
         }
 
         return Config::getDisk()->url(
-            Path::mediaFolderForMedia($this) . '/' . $this->dimensionPrefix(prefix: $size) . $this->filename . '.' . $this->extension(),
+            Path::ensureMediaFilePathForMedia($this, $size),
         );
     }
 
     public function file(string $size = 'sm'): string
     {
-        return Config::getDisk()->get(Path::mediaFolderForMedia($this) . '/' . $this->dimensionPrefix(prefix: $size) . $this->filename . '.' . $this->extension());
+        return Config::getDisk()->get(Path::ensureMediaFilePathForMedia($this, $size));
     }
 
     public function isCropped(?string $key = null): bool
