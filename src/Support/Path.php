@@ -101,11 +101,13 @@ class Path
 
     public static function mediaFilePathForMedia(Media $media, string $sizeKey): string
     {
+        $resolvedSizeKey = $media->resolveSizeKey($sizeKey);
+
         return self::mediaFilePath(
             $media->model,
             $media->filename,
             $media->extension() ?? '',
-            $sizeKey,
+            $resolvedSizeKey,
             null,
             $media,
         );
@@ -113,11 +115,13 @@ class Path
 
     public static function defaultMediaFilePathForMedia(Media $media, string $sizeKey): string
     {
+        $resolvedSizeKey = $media->resolveSizeKey($sizeKey);
+
         return self::defaultMediaFolderName($media->model) . '/' . self::mediaFileName(
             $media->model,
             $media->filename,
             $media->extension() ?? '',
-            $sizeKey,
+            $resolvedSizeKey,
             null,
             $media,
             false,

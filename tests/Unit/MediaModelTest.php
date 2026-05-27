@@ -7,6 +7,7 @@ namespace MetaFramework\Mediaclass\Tests\Unit;
 use MetaFramework\Mediaclass\MediaBuilder;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Tests\Fixtures\Post;
+use MetaFramework\Mediaclass\Tests\Fixtures\PostWithCustomMediaPath;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithoutInstanceModelMethod;
 use MetaFramework\Mediaclass\Tests\TestCase;
@@ -134,6 +135,24 @@ class MediaModelTest extends TestCase
         $media->setRelation('model', $post);
 
         $this->assertSame('1600_', $media->dimensionPrefix('md'));
+    }
+
+    public function test_resolve_size_key_uses_existing_group_size_when_requested_size_is_missing(): void
+    {
+        $post = PostWithCustomMediaPath::create(['title' => 'Custom Sized Post']);
+        $media = Media::create([
+            'model_type' => PostWithCustomMediaPath::class,
+            'model_id' => $post->id,
+            'group' => 'banner',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'test.jpg',
+            'filename' => 'custom123',
+            'position' => 'left',
+        ]);
+        $media->setRelation('model', $post);
+
+        $this->assertSame('main', $media->resolveSizeKey('sm'));
+        $this->assertSame('xl', $media->resolveSizeKey('xl'));
     }
 
     public function test_bound_model_uses_model_method_return_value_when_instance_property_is_missing(): void

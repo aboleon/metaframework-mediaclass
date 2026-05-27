@@ -8,6 +8,19 @@ use MetaFramework\Mediaclass\Models\Media;
 
 class PostWithCustomMediaPath extends PostWithGroupSizes
 {
+    public function mediaclassSettings(): array
+    {
+        return array_merge(parent::mediaclassSettings(), [
+            'banner' => [
+                'label' => 'Banner',
+                'sizes' => [
+                    'xl' => ['width' => 1920, 'height' => 1080],
+                    'main' => ['width' => 1200, 'height' => 675],
+                ],
+            ],
+        ]);
+    }
+
     public function mediaclassFolderName(): string
     {
         return 'custom-key';

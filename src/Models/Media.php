@@ -151,6 +151,73 @@ class Media extends Model
         return $prefix ? Config::getSizes()[$prefix]['width'] . '_' : '';
     }
 
+    public function resolveSizeKey(string $sizeKey = 'sm'): string
+    {
+        if (!$this->sizeable() || $sizeKey === 'cropped' || str_starts_with($sizeKey, 'cropped_')) {
+            return $sizeKey;
+        }
+
+        $groupSizes = Config::getGroupSizes($this->model, $this->group);
+
+        if ($groupSizes === []) {
+            return $sizeKey;
+        }
+
+        if (array_key_exists($sizeKey, $groupSizes)) {
+            return $sizeKey;
+        }
+
+        return $this->closestGroupSizeKey($groupSizes, $sizeKey) ?? (string) array_key_last($groupSizes);
+    }
+
+    /**
+     * @param  array<string, array{width: int, height: int}>  $groupSizes
+     */
+    private function closestGroupSizeKey(array $groupSizes, string $sizeKey): ?string
+    {
+        $defaultSizes = Config::getSizes();
+        $targetWidth = $defaultSizes[$sizeKey]['width'] ?? null;
+
+        if (!$targetWidth) {
+            return null;
+        }
+
+        $closestKey = null;
+        $closestWidth = null;
+
+        foreach ($groupSizes as $key => $size) {
+            $width = $size['width'] ?? null;
+
+            if (!$width || $width < $targetWidth) {
+                continue;
+            }
+
+            if ($closestWidth === null || $width < $closestWidth) {
+                $closestKey = $key;
+                $closestWidth = $width;
+            }
+        }
+
+        if ($closestKey !== null) {
+            return (string) $closestKey;
+        }
+
+        foreach ($groupSizes as $key => $size) {
+            $width = $size['width'] ?? null;
+
+            if (!$width) {
+                continue;
+            }
+
+            if ($closestWidth === null || $width > $closestWidth) {
+                $closestKey = $key;
+                $closestWidth = $width;
+            }
+        }
+
+        return $closestKey === null ? null : (string) $closestKey;
+    }
+
     /**
      * Check if a specific crop exists
      *

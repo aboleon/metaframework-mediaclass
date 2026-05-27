@@ -117,6 +117,28 @@ class FileUploadImagesGroupSizesTest extends TestCase
         $this->assertContains('custom-key/' . $media->filename . '_sm.jpg', $files);
     }
 
+    public function test_custom_media_paths_resolve_missing_preview_size_to_existing_group_size(): void
+    {
+        $post = PostWithCustomMediaPath::create(['title' => 'Custom Path Preview']);
+        $media = Media::create([
+            'model_type' => PostWithCustomMediaPath::class,
+            'model_id' => $post->id,
+            'group' => 'banner',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'banner.jpg',
+            'filename' => 'custom123',
+            'position' => 'left',
+        ]);
+        $media->setRelation('model', $post);
+
+        Storage::disk('testing')->put('custom-key/custom123_main.jpg', 'test');
+
+        $this->assertSame('main', $media->resolveSizeKey('sm'));
+        $this->assertSame('custom-key/custom123_main.jpg', Path::mediaFilePathForMedia($media, 'sm'));
+        $this->assertStringContainsString('custom-key/custom123_main.jpg', $media->url('sm'));
+        $this->assertStringNotContainsString('custom123_sm.jpg', $media->url('sm'));
+    }
+
     public function test_upload_rejects_images_smaller_than_largest_group_size(): void
     {
         $post = PostWithGroupSizes::create(['title' => 'Sized Upload']);
