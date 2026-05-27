@@ -8,6 +8,7 @@ use MetaFramework\Mediaclass\MediaBuilder;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Tests\Fixtures\Post;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
+use MetaFramework\Mediaclass\Tests\Fixtures\PostWithoutInstanceModelMethod;
 use MetaFramework\Mediaclass\Tests\TestCase;
 
 class MediaModelTest extends TestCase
@@ -133,6 +134,27 @@ class MediaModelTest extends TestCase
         $media->setRelation('model', $post);
 
         $this->assertSame('1600_', $media->dimensionPrefix('md'));
+    }
+
+    public function test_bound_model_uses_model_method_return_value_when_instance_property_is_missing(): void
+    {
+        $post = PostWithoutInstanceModelMethod::create(['title' => 'Model Method Post']);
+
+        $media = Media::create([
+            'model_type' => PostWithoutInstanceModelMethod::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'test.jpg',
+            'filename' => 'model123',
+            'position' => 'left',
+        ]);
+
+        $boundModel = $media->boundModel();
+
+        $this->assertInstanceOf(PostWithoutInstanceModelMethod::class, $boundModel);
+        $this->assertTrue($boundModel->is($post));
+        $this->assertSame('Cover', $media->settings()['label']);
     }
 
     public function test_img_returns_html_string(): void

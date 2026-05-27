@@ -218,7 +218,10 @@
           thumbnailBlob;
         if (data.exif && options.thumbnail) {
           thumbnail = data.exif.get('Thumbnail');
-          thumbnailBlob = thumbnail && thumbnail.get('Blob');
+          thumbnailBlob =
+            thumbnail && typeof thumbnail.get === 'function'
+              ? thumbnail.get('Blob')
+              : thumbnail;
           if (thumbnailBlob) {
             options.orientation = data.exif.get('Orientation');
             loadImage(thumbnailBlob, resolve, options);

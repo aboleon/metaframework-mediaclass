@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass;
 
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -37,24 +39,26 @@ class Mediaclass
     /**
      * Associates the current instance with a MediaclassInterface object.
      *
-     * @param MediaclassInterface $object The object implementing MediaclassInterface.
+     * @param  MediaclassInterface  $object  The object implementing MediaclassInterface.
      * @return static The current instance for method chaining.
      */
     public function on(MediaclassInterface $object): static
     {
         $this->object = $object;
+
         return $this;
     }
 
     /**
      * Sets the group for filtering media.
      *
-     * @param string $group The group name for filtering.
+     * @param  string  $group  The group name for filtering.
      * @return static The current instance for method chaining.
      */
     public function group(string $group): static
     {
         $this->selected_group = $group;
+
         return $this;
     }
 
@@ -66,6 +70,7 @@ class Mediaclass
     public function single(): static
     {
         $this->single = true;
+
         return $this;
     }
 
@@ -107,7 +112,7 @@ class Mediaclass
         // Handle collection of Media instances
         elseif ($this->mediaCollection instanceof EloquentCollection) {
             foreach ($this->mediaCollection as $item) {
-                $item->model = $this->object;
+                $item->setRelation('model', $this->object);
                 $this->parseMedia($item);
 
                 // Break if single mode is enabled
@@ -123,17 +128,18 @@ class Mediaclass
     /**
      * Parses a single Media instance into a Parser object.
      *
-     * @param Media $instance The Media instance to parse.
+     * @param  Media  $instance  The Media instance to parse.
      * @return static The current instance for method chaining.
      */
     protected function parseMedia(Media $instance): static
     {
         // Only set model if we have an object and the media doesn't already have a model relation
         if (isset($this->object) && !$instance->relationLoaded('model')) {
-            $instance->model = $this->object;
+            $instance->setRelation('model', $this->object);
         }
 
         $this->media[] = new Parser($instance);
+
         return $this;
     }
 
@@ -148,6 +154,7 @@ class Mediaclass
         $this->mediaCollection = null;
         $this->selected_group = null;
         $this->single = false;
+
         return $this;
     }
 
@@ -161,8 +168,8 @@ class Mediaclass
      * Retrieves and parses media for a given model and optional group.
      * This is a convenience method that combines on(), group(), fetch(), and parse().
      *
-     * @param MediaclassInterface|null $object The model to get media for.
-     * @param string|null $group Optional group filter.
+     * @param  MediaclassInterface|null  $object  The model to get media for.
+     * @param  string|null  $group  Optional group filter.
      * @return static The current instance for method chaining.
      */
     public function forModel(?MediaclassInterface $object = null, ?string $group = null): static
@@ -239,47 +246,49 @@ class Mediaclass
     /**
      * Filters the media collection by subgroup.
      *
-     * @param string $identifier The subgroup identifier.
+     * @param  string  $identifier  The subgroup identifier.
      * @return EloquentCollection Filtered collection.
      */
     public function forSubGroup(string $identifier): EloquentCollection
     {
         $collection = $this->get();
-        return $collection->filter(fn($item) => $item->subgroup == $identifier);
+
+        return $collection->filter(fn ($item) => $item->subgroup == $identifier);
     }
 
     /**
      * Gets parsed media for a specific subgroup.
      *
-     * @param string $identifier The subgroup identifier.
+     * @param  string  $identifier  The subgroup identifier.
      * @return Collection Collection of Parser instances.
      */
     public function parsedForSubGroup(string $identifier): Collection
     {
-        return $this->forSubGroup($identifier)->map(fn($item) => new Parser($item));
+        return $this->forSubGroup($identifier)->map(fn ($item) => new Parser($item));
     }
 
     /**
      * Filters the media collection by group.
      *
-     * @param string $identifier The group identifier.
+     * @param  string  $identifier  The group identifier.
      * @return EloquentCollection Filtered collection.
      */
     public function forGroup(string $identifier): EloquentCollection
     {
         $collection = $this->get();
-        return $collection->filter(fn($item) => $item->group == $identifier);
+
+        return $collection->filter(fn ($item) => $item->group == $identifier);
     }
 
     /**
      * Gets parsed media for a specific group.
      *
-     * @param string $identifier The group identifier.
+     * @param  string  $identifier  The group identifier.
      * @return Collection Collection of Parser instances.
      */
     public function parsedForGroup(string $identifier): Collection
     {
-        return $this->forGroup($identifier)->map(fn($item) => new Parser($item));
+        return $this->forGroup($identifier)->map(fn ($item) => new Parser($item));
     }
 
     /**
@@ -331,7 +340,7 @@ class Mediaclass
     /**
      * Maps over the parsed media items.
      *
-     * @param callable $callback The callback to apply to each item.
+     * @param  callable  $callback  The callback to apply to each item.
      * @return array The mapped results.
      */
     public function map(callable $callback): array
@@ -342,7 +351,7 @@ class Mediaclass
     /**
      * Filters the parsed media items.
      *
-     * @param callable $callback The filter callback.
+     * @param  callable  $callback  The filter callback.
      * @return array The filtered items.
      */
     public function filter(callable $callback): array
@@ -354,10 +363,10 @@ class Mediaclass
      * Get a single URL for a ghost model's media
      * Automatically returns cropped version if available, otherwise returns requested size
      *
-     * @param string $modelClass The fully qualified class name of the model
-     * @param string|null $group Optional group filter
-     * @param string $size The size to retrieve (sm, md, lg, xl) - ignored if cropped exists
-     * @param string|null $default Default URL if no media found (null returns empty string)
+     * @param  string  $modelClass  The fully qualified class name of the model
+     * @param  string|null  $group  Optional group filter
+     * @param  string  $size  The size to retrieve (sm, md, lg, xl) - ignored if cropped exists
+     * @param  string|null  $default  Default URL if no media found (null returns empty string)
      * @return string The URL (cropped if available, otherwise requested size)
      */
     public static function ghostUrl(string $modelClass, ?string $group = null, string $size = 'sm', ?string $default = null): string
@@ -385,7 +394,7 @@ class Mediaclass
 
         // Create ghost model instance and inject it
         if (class_exists($modelClass)) {
-            $ghostModel = new $modelClass();
+            $ghostModel = new $modelClass;
             $media->setRelation('model', $ghostModel);
         }
 
@@ -429,6 +438,4 @@ class Mediaclass
 
         return $url ?: ($default ?: '');
     }
-
-
 }

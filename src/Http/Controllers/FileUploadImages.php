@@ -497,12 +497,8 @@ class FileUploadImages
             return $this;
         }
 
-        // For ghost models, inject the model instance
-        if ($this->is_ghost) {
-            $this->media->setRelation('model', $this->model);
-        } else {
-            $this->media->model = $this->model;
-        }
+        // Inject the current model instance for response rendering and path resolution.
+        $this->media->setRelation('model', $this->model);
 
         $cropable = new Cropable($this->media);
 

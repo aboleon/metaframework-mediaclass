@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Concerns;
 
 use MetaFramework\Mediaclass\Support\Config;
 
 trait Accessors
 {
-
     /**
      * Returns the bound model instance.
      */
@@ -29,8 +30,9 @@ trait Accessors
             }
 
             if (class_exists($modelClass)) {
-                $instance = new $modelClass();
+                $instance = new $modelClass;
                 $this->setRelation('model', $instance);
+
                 return $instance;
             }
         }
@@ -42,7 +44,15 @@ trait Accessors
 
         // Check if model relation exists and has the model() method
         if ($this->model && method_exists($this->model, 'model')) {
-            return $this->model->model()->instance;
+            $model = $this->model->model();
+
+            if (isset($model->instance) && is_object($model->instance)) {
+                return $model->instance;
+            }
+
+            if (is_object($model)) {
+                return $model;
+            }
         }
 
         // If model is already the instance (not a relationship), return it directly
@@ -70,10 +80,9 @@ trait Accessors
             return [];
         }
 
-        $mediaFillables = array_filter($fillables, fn($key) => $key === 'media', ARRAY_FILTER_USE_KEY);
-        $matchingGroup = array_filter($mediaFillables, fn($item) => ($item['group'] ?? Config::defaultGroup()) === $this->group);
+        $mediaFillables = array_filter($fillables, fn ($key) => $key === 'media', ARRAY_FILTER_USE_KEY);
+        $matchingGroup = array_filter($mediaFillables, fn ($item) => ($item['group'] ?? Config::defaultGroup()) === $this->group);
 
-        return (array)current($matchingGroup);
+        return (array) current($matchingGroup);
     }
-
 }

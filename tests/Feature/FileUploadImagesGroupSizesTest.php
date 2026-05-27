@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
+use MetaFramework\Mediaclass\Tests\Fixtures\PostWithoutInstanceModelMethod;
 use MetaFramework\Mediaclass\Tests\TestCase;
 
 class FileUploadImagesGroupSizesTest extends TestCase
@@ -72,6 +73,31 @@ class FileUploadImagesGroupSizesTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('error', true);
+    }
+
+    public function test_upload_supports_models_with_model_method_returning_self_without_instance_property(): void
+    {
+        $post = PostWithoutInstanceModelMethod::create(['title' => 'Self Model Upload']);
+
+        $file = UploadedFile::fake()->image('cover.jpg', 1600, 900);
+
+        $response = $this->post('mediaclass-ajax', [
+            'action' => 'upload',
+            'model' => PostWithoutInstanceModelMethod::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'files' => [$file],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('error', null);
+        $response->assertJsonPath('cropable_settings', '{"cover":[1600,900,"Cover"]}');
+
+        $media = Media::query()->where('model_type', PostWithoutInstanceModelMethod::class)->firstOrFail();
+
+        $this->assertSame($post->id, $media->model_id);
+        $this->assertSame('cover', $media->group);
+        $this->assertSame('image/jpeg', $media->mime);
     }
 
     public function test_upload_url_stores_external_video_url(): void
