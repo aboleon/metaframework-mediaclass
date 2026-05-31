@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace MetaFramework\Mediaclass\Tests\Unit;
 
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use MetaFramework\Mediaclass\Cropable;
 use MetaFramework\Mediaclass\MediaBuilder;
 use MetaFramework\Mediaclass\Models\Media;
+use MetaFramework\Mediaclass\Support\Path;
 use MetaFramework\Mediaclass\Tests\Fixtures\Post;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithCustomMediaPath;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
@@ -216,6 +220,27 @@ class MediaModelTest extends TestCase
         // Note: When model has mediaclassSettings(), it uses fixed width from those settings
         // so sm and lg may return same URL for groups with specific dimensions configured
         $this->assertStringContainsString($this->media->filename, $urlSm);
+    }
+
+    public function test_cropper_view_reads_dimensions_from_storage_instead_of_public_url(): void
+    {
+        $file = UploadedFile::fake()->image('cover.jpg', 1600, 900);
+
+        Storage::disk('testing')->put(
+            Path::mediaFilePathForMedia($this->media, 'xl'),
+            file_get_contents($file->getPathname()),
+        );
+
+        $cropable = (new Cropable($this->media))->setCurrentCropKey('cover');
+
+        $html = view('mediaclass::cropper')->with([
+            'media' => $this->media,
+            'cropable' => $cropable,
+            'crop_key' => 'cover',
+        ])->render();
+
+        $this->assertStringContainsString('name=resized_temp_w value="1600"', $html);
+        $this->assertStringContainsString('name=resized_temp_h value="900"', $html);
     }
 
     public function test_extension_returns_correct_value(): void
