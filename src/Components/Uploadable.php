@@ -8,6 +8,7 @@ use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
 use MetaFramework\Mediaclass\Support\Config as MediaclassConfig;
+use MetaFramework\Mediaclass\Support\Subgroups;
 
 class Uploadable extends Component
 {
@@ -24,6 +25,8 @@ class Uploadable extends Component
     public string $mediaTypeInputName;
 
     public array $mediaLocales = [];
+
+    public array $subgroupValues = [];
 
     public function __construct(
         public object $model,
@@ -57,6 +60,9 @@ class Uploadable extends Component
         public array|string $mediaTypes = ['image'],
         public int $grid = 1,
         public bool $enforceDimensions = true,
+        public array $subgroupOptions = [],
+        public string $subgroupLabel = '',
+        public string $subgroupEmptyLabel = '',
     ) {
         $this->group = $this->settings['group'] ?? $this->group;
         $this->label = $this->settings['label'] ?? $this->label;
@@ -68,6 +74,22 @@ class Uploadable extends Component
         $this->mediaTypes = $this->settings['media_types'] ?? $this->settings['mediaTypes'] ?? $this->mediaTypes;
         $this->mediaTypeOptions = $this->normalizeMediaTypes($this->mediaTypes);
         $this->grid = $this->normalizeGrid($this->settings['grid'] ?? $this->grid);
+        if ($this->model instanceof \MetaFramework\Mediaclass\Contracts\MediaclassInterface) {
+            $subgroupDefinition = Subgroups::definition(
+                $this->model,
+                $this->group,
+                $this->settings,
+                $this->subgroupOptions,
+            );
+            $this->subgroupOptions = ($this->settings['subgroup'] ?? null)
+                ? []
+                : $subgroupDefinition['options'];
+            $this->subgroupLabel = $this->subgroupLabel ?: $subgroupDefinition['label'];
+            $this->subgroupEmptyLabel = $this->subgroupEmptyLabel ?: $subgroupDefinition['empty_label'];
+            $this->subgroupValues = $this->subgroupOptions !== []
+                ? Subgroups::values($this->model, $this->group, $this->ghost)
+                : [];
+        }
         $this->mediaTypeInputName = 'mediaclass_media_type_' . Str::random(10);
         $this->mediaLocales = $this->resolveMediaLocales();
         $this->description = $this->description ? 1 : 0;
@@ -84,8 +106,8 @@ class Uploadable extends Component
                     foreach ($groupSettings['sizes'] as $value) {
                         if (is_array($value) && isset($value['width'], $value['height'])) {
                             $groupSizes[] = [
-                                (int) $value['width'],
-                                (int) $value['height'],
+                                (int)$value['width'],
+                                (int)$value['height'],
                             ];
                         }
                     }
@@ -127,8 +149,8 @@ class Uploadable extends Component
 
         // Extract dimensions from settings array if available
         if (!$this->requiredWidth && !$this->requiredHeight && isset($this->settings['sizes']) && is_array($this->settings['sizes'])) {
-            $this->requiredWidth = (int) $this->settings['sizes'][0];
-            $this->requiredHeight = (int) $this->settings['sizes'][1];
+            $this->requiredWidth = (int)$this->settings['sizes'][0];
+            $this->requiredHeight = (int)$this->settings['sizes'][1];
         }
 
         $dimensions = [];
@@ -137,14 +159,14 @@ class Uploadable extends Component
             if (isset($modelSettings[$this->group]['sizes']) && is_array($modelSettings[$this->group]['sizes'])) {
                 foreach ($modelSettings[$this->group]['sizes'] as $size) {
                     if (is_array($size) && isset($size['width'], $size['height'])) {
-                        $dimensions[] = [(int) $size['width'], (int) $size['height']];
+                        $dimensions[] = [(int)$size['width'], (int)$size['height']];
                     }
                 }
                 usort($dimensions, fn (array $a, array $b) => $b[0] <=> $a[0]);
             } elseif (isset($modelSettings[$this->group]['width'], $modelSettings[$this->group]['height'])) {
                 $dimensions[] = [
-                    (int) $modelSettings[$this->group]['width'],
-                    (int) $modelSettings[$this->group]['height'],
+                    (int)$modelSettings[$this->group]['width'],
+                    (int)$modelSettings[$this->group]['height'],
                 ];
             }
         }
@@ -155,7 +177,7 @@ class Uploadable extends Component
 
         if (empty($dimensions)) {
             foreach (MediaclassConfig::getSizesInReverseOrder() as $size) {
-                $dimensions[] = [(int) $size['width'], (int) $size['height']];
+                $dimensions[] = [(int)$size['width'], (int)$size['height']];
             }
         }
 
@@ -183,8 +205,8 @@ class Uploadable extends Component
         $options = [];
 
         foreach ($mediaTypes as $key => $value) {
-            $type = is_int($key) ? (string) $value : (string) $key;
-            $label = is_int($key) ? $this->mediaTypeLabel($type) : (string) $value;
+            $type = is_int($key) ? (string)$value : (string)$key;
+            $label = is_int($key) ? $this->mediaTypeLabel($type) : (string)$value;
 
             if ($type !== '') {
                 $options[$type] = $label !== '' ? $label : $this->mediaTypeLabel($type);
@@ -196,7 +218,7 @@ class Uploadable extends Component
 
     private function normalizeGrid(mixed $grid): int
     {
-        $grid = (int) $grid;
+        $grid = (int)$grid;
 
         if ($grid < 1) {
             return 1;

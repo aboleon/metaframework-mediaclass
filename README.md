@@ -305,6 +305,81 @@ With options:
 <x-mediaclass::stored :model="$post" group="gallery" />
 ```
 
+### Dynamic Subgroups in the Upload UI
+
+Mediaclass stores an optional `subgroup` on each media row. You can enable an
+admin-side subgroup selector for an uploadable group so editors can assign each
+uploaded image to a preset subgroup without creating separate upload slots.
+
+Configure presets globally:
+
+```php
+// config/mfw-mediaclass.php
+'subgroups' => [
+    'count' => 5,
+    'label' => 'Group',
+    'empty_label' => 'Normal flow',
+    'key_prefix' => 'group_',
+    'groups' => [
+        'gallery' => true,
+    ],
+],
+```
+
+Or define explicit labels:
+
+```php
+'subgroups' => [
+    'groups' => [
+        'gallery' => [
+            'options' => [
+                'featured' => 'Featured',
+                'flow' => 'Flow',
+            ],
+        ],
+    ],
+],
+```
+
+You can also define subgroup presets on a model group:
+
+```php
+public function mediaclassSettings(): array
+{
+    return [
+        'gallery' => [
+            'label' => 'Gallery',
+            'width' => 1200,
+            'height' => 800,
+            'subgroups' => [
+                'count' => 5,
+                'label' => 'Group',
+            ],
+        ],
+    ];
+}
+```
+
+When subgroups are enabled, `<x-mediaclass::uploadable>` injects a select into
+each native uploaded image row. The select saves through the package AJAX route:
+
+```text
+POST /mediaclass-ajax
+action=saveSubgroup
+```
+
+The response triggers a jQuery document event:
+
+```js
+$(document).on('mediaclass:subgroup-saved', function (event, result, uploadable, select) {
+    // result.group, result.media_id, result.subgroup, result.uses_subgroups
+});
+```
+
+Frontend rendering remains application-owned. A common pattern is to render
+media with `subgroup = null` in normal flow, and render media sharing the same
+subgroup as a grid.
+
 ### Processing After Save
 
 ```php

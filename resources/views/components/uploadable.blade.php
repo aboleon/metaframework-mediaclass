@@ -19,6 +19,8 @@
         'add' => __('mfw-mediaclass.buttons.add'),
         'cancel' => __('mfw-mediaclass.buttons.cancel'),
         'save_descriptions' => __('mfw-mediaclass.buttons.save_descriptions'),
+        'subgroup_label' => $subgroupLabel,
+        'subgroup_empty_label' => $subgroupEmptyLabel,
     ];
 @endphp
 <div class="mediaclass-uploadable {{ $size }}" data-maxfilesize="{{ $maxfilesize }}"
@@ -28,6 +30,10 @@
     data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-grid="{{ $grid }}" data-enforce-dimensions="{{ $enforceDimensions ? '1' : '0' }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
     data-media-types='@json($mediaTypeOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)' data-media-locales='@json($mediaLocales, JSON_UNESCAPED_UNICODE)'
     data-ajax="{{ route('mediaclass.ajax') }}"
+    @if ($subgroupOptions !== []) data-subgroup-options='@json($subgroupOptions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)'
+     data-subgroup-values='@json($subgroupValues, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)'
+     data-subgroup-label="{{ $subgroupLabel }}"
+     data-subgroup-empty-label="{{ $subgroupEmptyLabel }}" @endif
     @if ($callback) data-callback="{{ $callback }}" @endif
     @if ($requiredWidth && $requiredHeight) data-required-width="{{ $requiredWidth }}"
      data-required-height="{{ $requiredHeight }}" @endif>
@@ -153,3 +159,156 @@
     <x-mediaclass::crop-modal />
     <x-mediaclass::confirm-delete-modal />
 @endonce
+
+@pushonce('js', 'mediaclass-subgroups')
+    <script>
+        $(function() {
+            function parseMediaclassSubgroupJson(value) {
+                try {
+                    return JSON.parse(String(value || '{}'));
+                } catch (error) {
+                    return {};
+                }
+            }
+
+            function mediaclassSubgroupConfig(uploadable) {
+                const options = parseMediaclassSubgroupJson(uploadable.attr('data-subgroup-options'));
+
+                if (Object.keys(options).length < 1) {
+                    return null;
+                }
+
+                return {
+                    options: options,
+                    values: parseMediaclassSubgroupJson(uploadable.attr('data-subgroup-values')),
+                    label: String(uploadable.attr('data-subgroup-label') || 'Display group'),
+                    emptyLabel: String(uploadable.attr('data-subgroup-empty-label') || 'No subgroup')
+                };
+            }
+
+            function ensureMediaclassSubgroupSelect(uploadedImage, uploadable, config) {
+                const mediaId = String(uploadedImage.data('id') || '');
+
+                if (!mediaId || String(uploadedImage.data('bridge') || '0') === '1') {
+                    return;
+                }
+
+                if (uploadedImage.find('[data-mediaclass-subgroup-select]').length) {
+                    return;
+                }
+
+                if (!uploadedImage.find('.preview.image').length) {
+                    return;
+                }
+
+                const selectedValue = String(config.values[mediaId] || ''),
+                    control = $('<div>', {
+                        class: 'col-12 mediaclass-subgroup ps-2 mb-2'
+                    }),
+                    label = $('<label>', {
+                        class: 'form-label fw-semibold mb-1',
+                        text: config.label
+                    }),
+                    select = $('<select>', {
+                        class: 'form-control form-control-sm',
+                        'data-mediaclass-subgroup-select': '1',
+                        'data-saved-value': selectedValue
+                    });
+
+                select.append($('<option>', {
+                    value: '',
+                    text: config.emptyLabel
+                }));
+
+                Object.keys(config.options).forEach(function(value) {
+                    select.append($('<option>', {
+                        value: value,
+                        text: config.options[value]
+                    }));
+                });
+
+                select.val(selectedValue);
+                control.append(label, select);
+
+                const params = uploadedImage.find('.row.params').first();
+
+                if (params.length) {
+                    params.prepend(control);
+
+                    return;
+                }
+
+                uploadedImage.find('.impFileName').first().append(control);
+            }
+
+            function attachMediaclassSubgroupSelects(uploadable) {
+                const config = mediaclassSubgroupConfig(uploadable);
+
+                if (!config) {
+                    return;
+                }
+
+                uploadable.find('.uploaded .mediaclass.uploaded-image').each(function() {
+                    ensureMediaclassSubgroupSelect($(this), uploadable, config);
+                });
+            }
+
+            $('.mediaclass-uploadable').each(function() {
+                const uploadable = $(this),
+                    uploaded = uploadable.find('.uploaded').first();
+
+                attachMediaclassSubgroupSelects(uploadable);
+
+                if (window.MutationObserver && uploaded.length) {
+                    new MutationObserver(function() {
+                        attachMediaclassSubgroupSelects(uploadable);
+                    }).observe(uploaded[0], {
+                        childList: true,
+                        subtree: true
+                    });
+                }
+            });
+
+            $(document).on('change', '[data-mediaclass-subgroup-select]', function() {
+                const select = $(this),
+                    uploadedImage = select.closest('.mediaclass.uploaded-image'),
+                    uploadable = select.closest('.mediaclass-uploadable');
+
+                const payload = $.param({
+                    action: 'saveSubgroup',
+                    model: uploadable.data('model') || '',
+                    model_id: uploadable.data('model-id') || '',
+                    group: uploadable.data('group') || '',
+                    ghost: uploadable.data('ghost') || '0',
+                    media_id: uploadedImage.data('id'),
+                    subgroup: select.val() || ''
+                });
+
+                mfwAjax(payload, uploadable, {
+                    errorHandler: function() {
+                        select.val(select.attr('data-saved-value') || '');
+
+                        return true;
+                    },
+                    successHandler: function(result) {
+                        const values = parseMediaclassSubgroupJson(uploadable.attr('data-subgroup-values')),
+                            mediaId = String(result.media_id),
+                            subgroup = result.subgroup ? String(result.subgroup) : '';
+
+                        if (subgroup) {
+                            values[mediaId] = subgroup;
+                        } else {
+                            delete values[mediaId];
+                        }
+
+                        uploadable.attr('data-subgroup-values', JSON.stringify(values));
+                        select.val(subgroup).attr('data-saved-value', subgroup);
+                        $(document).trigger('mediaclass:subgroup-saved', [result, uploadable, select]);
+
+                        return true;
+                    }
+                });
+            });
+        });
+    </script>
+@endpushonce

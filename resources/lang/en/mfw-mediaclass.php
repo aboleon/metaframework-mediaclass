@@ -34,6 +34,8 @@ return [
         'height' => 'Height',
         'target_dimensions' => 'Target dimensions',
         'crops' => 'Crops',
+        'subgroup' => 'Display group',
+        'no_subgroup' => 'Normal flow',
     ],
     'notices' => [
         'limit_reached' => 'Limit of :count file(s) reached',
@@ -42,6 +44,7 @@ return [
         'dimension_warning' => 'This image is below the recommended :width x :height pixels. Uploaded image: :uploaded_width x :uploaded_height pixels.',
         'bridge_deleted' => 'Media deleted successfully',
         'descriptions_saved' => 'Descriptions saved successfully',
+        'subgroup_saved' => 'The image group has been saved.',
     ],
     'errors' => [
         'missing_model' => 'Media must belong to an object',
@@ -61,6 +64,9 @@ return [
         'bridgeDeleteUnsupported' => 'This media cannot be deleted by this component',
         'bridgeDeleteFailed' => 'The media could not be deleted',
         'descriptionSaveFailed' => 'The descriptions could not be saved',
+        'subgroupUnsupported' => 'This media group does not support subgroups.',
+        'subgroupInvalid' => 'This subgroup is not allowed.',
+        'subgroupSaveFailed' => 'The image group could not be saved.',
     ],
     'uploaded_at' => 'Uploaded on :date at :time',
     'crop_success' => 'Image cropped successfully',

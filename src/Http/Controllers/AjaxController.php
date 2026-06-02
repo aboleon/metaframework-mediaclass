@@ -32,6 +32,11 @@ class AjaxController
         return $this->uploader->setModel(request('model'))->saveDescriptions()->fetchResponse();
     }
 
+    public function saveSubgroup(): array
+    {
+        return $this->uploader->setModel(request('model'))->saveSubgroup()->fetchResponse();
+    }
+
     public function crop(): array
     {
         return Cropper::crop();
