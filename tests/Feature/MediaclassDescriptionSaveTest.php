@@ -34,6 +34,17 @@ class MediaclassDescriptionSaveTest extends TestCase
             'position' => 'left',
             'description' => ['en' => 'Old description'],
         ]);
+        $subgroupedMedia = Media::query()->create([
+            'model_type' => Post::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'subgroup' => 'group_1',
+            'mime' => 'image/jpeg',
+            'original_filename' => 'grouped.jpg',
+            'filename' => 'grouped',
+            'position' => 'left',
+            'description' => ['en' => 'Old grouped description'],
+        ]);
         $otherGroupMedia = Media::query()->create([
             'model_type' => Post::class,
             'model_id' => $post->id,
@@ -75,17 +86,23 @@ class MediaclassDescriptionSaveTest extends TestCase
                 $positionOnlyMedia->id => [
                     'position' => 'right',
                 ],
+                $subgroupedMedia->id => [
+                    'description' => [
+                        'en' => 'Updated grouped English',
+                    ],
+                ],
             ],
         ]);
 
         $response->assertStatus(200);
         $response->assertJsonPath('error', null);
-        $response->assertJsonPath('updated_count', 1);
+        $response->assertJsonPath('updated_count', 2);
 
         $this->assertSame([
             'en' => 'Updated English',
             'fr' => 'Description française',
         ], $media->refresh()->description);
+        $this->assertSame(['en' => 'Updated grouped English'], $subgroupedMedia->refresh()->description);
         $this->assertSame(['en' => 'Keep me'], $otherGroupMedia->refresh()->description);
         $this->assertSame(['en' => 'Do not clear'], $positionOnlyMedia->refresh()->description);
     }

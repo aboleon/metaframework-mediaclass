@@ -761,7 +761,7 @@ class FileUploadImages
         $morphable = Relation::morphMap()
             ? array_search(get_class($this->model), Relation::morphMap(), true) ?: get_class($this->model)
             : get_class($this->model);
-        $subgroup = request('subgroup') ?: null;
+        $subgroup = $this->requestedSubgroup();
 
         return Media::query()
             ->where('model_type', $morphable)
@@ -771,11 +771,14 @@ class FileUploadImages
                 fn ($query) => $query->whereNull('model_id'),
                 fn ($query) => $query->where('model_id', $this->model_id),
             )
-            ->when(
-                $subgroup,
-                fn ($query) => $query->where('subgroup', $subgroup),
-                fn ($query) => $query->whereNull('subgroup'),
-            );
+            ->when($subgroup !== null, fn ($query) => $query->where('subgroup', $subgroup));
+    }
+
+    private function requestedSubgroup(): ?string
+    {
+        $subgroup = trim((string) request('subgroup', ''));
+
+        return $subgroup !== '' && $subgroup !== 'false' ? $subgroup : null;
     }
 
     private function handleDimensionMismatch(
