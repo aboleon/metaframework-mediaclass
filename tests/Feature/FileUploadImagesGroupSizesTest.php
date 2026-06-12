@@ -107,6 +107,15 @@ class FileUploadImagesGroupSizesTest extends TestCase
         $media = Media::query()->where('model_type', PostWithCustomMediaPath::class)->firstOrFail();
         $media->setRelation('model', $post);
 
+        $this->assertDatabaseHas('mediaclass_model_keys', [
+            'model_type' => PostWithCustomMediaPath::class,
+            'model_id' => $post->id,
+            'access_key' => 'custom-key',
+        ]);
+        $this->assertSame('custom-key', Path::mediaFolderForMedia($media));
+
+        $post->mediaFolder = 'changed-key';
+
         $this->assertSame('custom-key', Path::mediaFolderForMedia($media));
         $this->assertSame('custom-key/' . $media->filename . '_xl.jpg', Path::mediaFilePathForMedia($media, 'xl'));
         $this->assertSame('custom-key/' . $media->filename . '_sm.jpg', Path::mediaFilePathForMedia($media, 'sm'));

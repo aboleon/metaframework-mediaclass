@@ -8,6 +8,8 @@ use MetaFramework\Mediaclass\Models\Media;
 
 class PostWithCustomMediaPath extends PostWithGroupSizes
 {
+    public string $mediaFolder = 'custom-key';
+
     public function mediaclassSettings(): array
     {
         return array_merge(parent::mediaclassSettings(), [
@@ -23,7 +25,7 @@ class PostWithCustomMediaPath extends PostWithGroupSizes
 
     public function mediaclassFolderName(): string
     {
-        return 'custom-key';
+        return $this->mediaFolder;
     }
 
     public function mediaclassFileName(string $filename, string $extension, ?string $sizeKey = null, ?Media $media = null): string

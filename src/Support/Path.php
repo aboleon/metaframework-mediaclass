@@ -14,15 +14,15 @@ class Path
 {
     public static function mediaFolderName(MediaclassInterface $model): string
     {
-        if (method_exists($model, 'mediaclassFolderName')) {
-            $folder = trim((string) $model->mediaclassFolderName(), '/\\');
-
-            if ($folder !== '') {
-                return $folder;
-            }
+        if ($accessKey = ModelAccessKey::forModel($model, self::customMediaFolderName($model))) {
+            return $accessKey;
         }
 
-        return Str::snake((new ReflectionClass($model))->getShortName()) . '/' . ($model->id ?? 'temp');
+        if ($folder = self::customMediaFolderName($model)) {
+            return $folder;
+        }
+
+        return self::defaultMediaFolderName($model);
     }
 
     public static function defaultMediaFolderName(MediaclassInterface $model): string
@@ -35,11 +35,28 @@ class Path
         return Str::snake((new ReflectionClass($model))->getShortName()) . '/temp';
     }
 
+    private static function customMediaFolderName(MediaclassInterface $model): ?string
+    {
+        if (method_exists($model, 'mediaclassFolderName')) {
+            $folder = trim((string) $model->mediaclassFolderName(), '/\\');
+
+            if ($folder !== '') {
+                return $folder;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Get the folder path for a media record, handling ghost models
      */
     public static function mediaFolderForMedia(Media $media): string
     {
+        if ($accessKey = ModelAccessKey::forMedia($media)) {
+            return $accessKey;
+        }
+
         // For ghost models, use just the model name folder
         if ($media->model_id === null) {
             $modelClass = $media->model_type;
@@ -103,7 +120,7 @@ class Path
     {
         $resolvedSizeKey = $media->resolveSizeKey($sizeKey);
 
-        return self::mediaFilePath(
+        return self::mediaFolderForMedia($media) . '/' . self::mediaFileName(
             $media->model,
             $media->filename,
             $media->extension() ?? '',

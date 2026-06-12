@@ -12,9 +12,9 @@ class MediaclassServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/mfw-mediaclass.php', 'mfw-mediaclass');
+        $this->mergeConfigFrom(__DIR__ . '/../config/mfw-mediaclass.php', 'mfw-mediaclass');
 
-        $this->app->singleton('mediaclass', fn() => new Mediaclass());
+        $this->app->singleton('mediaclass', fn () => new Mediaclass);
     }
 
     public function boot(): void
@@ -22,43 +22,49 @@ class MediaclassServiceProvider extends ServiceProvider
         Blade::componentNamespace('MetaFramework\\Mediaclass\\Components', 'mediaclass');
 
         // Register simplified component with mfw- prefix
-        Blade::component('mfw-media', \MetaFramework\Mediaclass\Components\Media::class);
+        Blade::component('mfw-media', Components\Media::class);
 
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'mediaclass');
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'mediaclass');
         $this->registerTranslations();
-        $this->loadRoutesFrom(__DIR__.'/../routes/public.php');
-        $this->loadRoutesFrom(__DIR__.'/../routes/panel.php');
+        $this->loadRoutesFrom(__DIR__ . '/../routes/public.php');
+        $this->loadRoutesFrom(__DIR__ . '/../routes/panel.php');
 
         if ($this->app->runningInConsole()) {
             $migrationTimestamp = date('Y_m_d_His');
+            $modelKeysMigrationTimestamp = date('Y_m_d_His', time() + 1);
 
             $this->publishes([
-                __DIR__.'/../config/mfw-mediaclass.php' => config_path('mfw-mediaclass.php'),
+                __DIR__ . '/../config/mfw-mediaclass.php' => config_path('mfw-mediaclass.php'),
             ], 'mfw-mediaclass-config');
 
             $this->publishes([
-                __DIR__.'/../resources/views' => resource_path('views/vendor/mediaclass'),
+                __DIR__ . '/../resources/views' => resource_path('views/vendor/mediaclass'),
             ], 'mfw-mediaclass-views');
 
             $this->publishes([
-                __DIR__.'/../resources/lang/en' => lang_path('en'),
-                __DIR__.'/../resources/lang/fr' => lang_path('fr'),
-                __DIR__.'/../resources/lang/bg' => lang_path('bg'),
+                __DIR__ . '/../resources/lang/en' => lang_path('en'),
+                __DIR__ . '/../resources/lang/fr' => lang_path('fr'),
+                __DIR__ . '/../resources/lang/bg' => lang_path('bg'),
             ], 'mfw-mediaclass-lang');
 
             $this->publishes([
-                __DIR__.'/../database/migrations/create_mediaclass.php' => database_path("migrations/{$migrationTimestamp}_create_mediaclass.php"),
+                __DIR__ . '/../database/migrations/create_mediaclass.php' => database_path("migrations/{$migrationTimestamp}_create_mediaclass.php"),
+                __DIR__ . '/../database/migrations/create_mediaclass_model_keys.php' => database_path("migrations/{$modelKeysMigrationTimestamp}_create_mediaclass_model_keys_table.php"),
             ], 'mfw-mediaclass-migrations');
 
             $this->publishes([
-                __DIR__.'/../public/vendor/mfw-mediaclass' => public_path('vendor/mfw-mediaclass'),
+                __DIR__ . '/../database/migrations/create_mediaclass_model_keys.php' => database_path("migrations/{$modelKeysMigrationTimestamp}_create_mediaclass_model_keys_table.php"),
+            ], 'mfw-mediaclass-model-keys-migration');
+
+            $this->publishes([
+                __DIR__ . '/../public/vendor/mfw-mediaclass' => public_path('vendor/mfw-mediaclass'),
             ], 'mfw-mediaclass-assets');
         }
     }
 
     protected function registerTranslations(): void
     {
-        $langPath = __DIR__.'/../resources/lang';
+        $langPath = __DIR__ . '/../resources/lang';
 
         foreach (['en', 'fr', 'bg'] as $locale) {
             $packageFile = "{$langPath}/{$locale}/mfw-mediaclass.php";

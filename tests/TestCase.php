@@ -77,6 +77,16 @@ abstract class TestCase extends OrchestraTestCase
             $table->index(['model_type', 'model_id']);
         });
 
+        Schema::create('mediaclass_model_keys', function (Blueprint $table) {
+            $table->id();
+            $table->string('model_type');
+            $table->unsignedBigInteger('model_id');
+            $table->string('access_key')->unique();
+            $table->timestamps();
+
+            $table->unique(['model_type', 'model_id']);
+        });
+
         Schema::create('posts', function (Blueprint $table) {
             $table->id();
             $table->string('title');
