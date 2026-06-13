@@ -16,6 +16,13 @@ class ModelAccessKey
 {
     private const KEY_LENGTH = 8;
 
+    private static ?bool $modelKeysTableExists = null;
+
+    /**
+     * @var array<string, string|null>
+     */
+    private static array $accessKeysByModel = [];
+
     public static function forModel(MediaclassInterface $model, ?string $preferredKey = null, bool $create = true): ?string
     {
         if (!$model instanceof EloquentModel || !$model->exists || !$model->getKey()) {
@@ -28,10 +35,7 @@ class ModelAccessKey
 
         $modelType = self::modelType($model);
         $modelId = (int) $model->getKey();
-        $existing = ModelKey::query()
-            ->where('model_type', $modelType)
-            ->where('model_id', $modelId)
-            ->value('access_key');
+        $existing = self::existingAccessKey($modelType, $modelId);
 
         if (is_string($existing) && $existing !== '') {
             return $existing;
@@ -49,6 +53,8 @@ class ModelAccessKey
             'access_key' => $accessKey,
         ]);
 
+        self::$accessKeysByModel[self::cacheKey($modelType, $modelId)] = $accessKey;
+
         return $accessKey;
     }
 
@@ -58,16 +64,51 @@ class ModelAccessKey
             return null;
         }
 
-        $existing = ModelKey::query()
-            ->where('model_type', $media->model_type)
-            ->where('model_id', (int) $media->model_id)
-            ->value('access_key');
+        $existing = self::existingAccessKey((string) $media->model_type, (int) $media->model_id);
 
         if (is_string($existing) && $existing !== '') {
             return $existing;
         }
 
         return null;
+    }
+
+    public static function preloadForModels(iterable $models): void
+    {
+        $modelIdsByType = [];
+
+        foreach ($models as $model) {
+            if (!$model instanceof MediaclassInterface || !$model instanceof EloquentModel || !$model->exists || !$model->getKey()) {
+                continue;
+            }
+
+            $modelType = self::modelType($model);
+            $modelIdsByType[$modelType][(int) $model->getKey()] = (int) $model->getKey();
+        }
+
+        self::preloadAccessKeys($modelIdsByType);
+    }
+
+    public static function preloadForMedia(iterable $mediaItems): void
+    {
+        $modelIdsByType = [];
+
+        foreach ($mediaItems as $media) {
+            if (!$media instanceof Media || !$media->model_id) {
+                continue;
+            }
+
+            $modelType = (string) $media->model_type;
+            $modelIdsByType[$modelType][(int) $media->model_id] = (int) $media->model_id;
+        }
+
+        self::preloadAccessKeys($modelIdsByType);
+    }
+
+    public static function flushCache(): void
+    {
+        self::$modelKeysTableExists = null;
+        self::$accessKeysByModel = [];
     }
 
     public static function modelType(EloquentModel $model): string
@@ -111,8 +152,79 @@ class ModelAccessKey
         return $accessKey === '' ? null : $accessKey;
     }
 
+    private static function existingAccessKey(string $modelType, int $modelId): ?string
+    {
+        $cacheKey = self::cacheKey($modelType, $modelId);
+
+        if (array_key_exists($cacheKey, self::$accessKeysByModel)) {
+            return self::$accessKeysByModel[$cacheKey];
+        }
+
+        $existing = ModelKey::query()
+            ->where('model_type', $modelType)
+            ->where('model_id', $modelId)
+            ->value('access_key');
+
+        self::$accessKeysByModel[$cacheKey] = is_string($existing) && $existing !== '' ? $existing : null;
+
+        return self::$accessKeysByModel[$cacheKey];
+    }
+
+    /**
+     * @param  array<string, array<int, int>>  $modelIdsByType
+     */
+    private static function preloadAccessKeys(array $modelIdsByType): void
+    {
+        if ($modelIdsByType === [] || !self::tableExists()) {
+            return;
+        }
+
+        $pendingModelIdsByType = [];
+
+        foreach ($modelIdsByType as $modelType => $modelIds) {
+            foreach (array_filter(array_unique($modelIds)) as $modelId) {
+                $modelId = (int) $modelId;
+                $cacheKey = self::cacheKey($modelType, $modelId);
+
+                if (!array_key_exists($cacheKey, self::$accessKeysByModel)) {
+                    $pendingModelIdsByType[$modelType][$modelId] = $modelId;
+                    self::$accessKeysByModel[$cacheKey] = null;
+                }
+            }
+        }
+
+        if ($pendingModelIdsByType === []) {
+            return;
+        }
+
+        $keys = ModelKey::query()
+            ->where(function ($query) use ($pendingModelIdsByType): void {
+                foreach ($pendingModelIdsByType as $modelType => $modelIds) {
+                    $query->orWhere(function ($query) use ($modelType, $modelIds): void {
+                        $query
+                            ->where('model_type', $modelType)
+                            ->whereIn('model_id', array_values($modelIds));
+                    });
+                }
+            })
+            ->get(['model_type', 'model_id', 'access_key']);
+
+        foreach ($keys as $key) {
+            $accessKey = (string) $key->access_key;
+
+            if ($accessKey !== '') {
+                self::$accessKeysByModel[self::cacheKey((string) $key->model_type, (int) $key->model_id)] = $accessKey;
+            }
+        }
+    }
+
+    private static function cacheKey(string $modelType, int $modelId): string
+    {
+        return $modelType . ':' . $modelId;
+    }
+
     private static function tableExists(): bool
     {
-        return Schema::hasTable((new ModelKey)->getTable());
+        return self::$modelKeysTableExists ??= Schema::hasTable((new ModelKey)->getTable());
     }
 }

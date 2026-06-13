@@ -8,6 +8,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use MetaFramework\Inputable\InputableServiceProvider;
 use MetaFramework\Mediaclass\MediaclassServiceProvider;
+use MetaFramework\Mediaclass\Support\ModelAccessKey;
 use MetaFramework\Support\SupportServiceProvider;
 use Orchestra\Testbench\TestCase as OrchestraTestCase;
 
@@ -18,6 +19,7 @@ abstract class TestCase extends OrchestraTestCase
         parent::setUp();
 
         $this->setUpDatabase();
+        ModelAccessKey::flushCache();
     }
 
     protected function getPackageProviders($app): array
@@ -101,6 +103,8 @@ abstract class TestCase extends OrchestraTestCase
         if (is_dir($path)) {
             $this->deleteDirectory($path);
         }
+
+        ModelAccessKey::flushCache();
 
         parent::tearDown();
     }
