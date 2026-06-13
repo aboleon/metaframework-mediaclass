@@ -138,7 +138,21 @@ const MediaclassUploader = {
     selectedMediaType(uploadable) {
         const selected = uploadable.find('.mediaclass-media-type:checked').first();
 
-        return selected.length > 0 ? selected.val() : 'image';
+        if (selected.length > 0) {
+            return selected.val();
+        }
+
+        const mediaTypes = uploadable.data('media-types');
+
+        if (mediaTypes && typeof mediaTypes === 'object') {
+            const configuredTypes = Object.keys(mediaTypes);
+
+            if (configuredTypes.length > 0) {
+                return configuredTypes[0];
+            }
+        }
+
+        return 'image';
     },
     mediaLocales(uploadable) {
         const locales = uploadable.data('media-locales');
@@ -232,6 +246,7 @@ const MediaclassUploader = {
                     }
 
                     deleteData.selector.remove();
+                    MediaclassUploader.syncDetailsSaveButton(deleteData.uploadable);
 
                     if (deleteData.container.find('.unlinkable').length < 1) {
                         // Find the alerts container specific to this uploadable
@@ -290,8 +305,10 @@ const MediaclassUploader = {
             .find('.uploaded')
             .find([
                 'input[name^="mediaclass["]',
+                'select[name^="mediaclass["]',
                 'textarea[name^="mediaclass["]',
                 'input[name^="mediaclass_bridge["]',
+                'select[name^="mediaclass_bridge["]',
                 'textarea[name^="mediaclass_bridge["]'
             ].join(','))
             .serializeArray();
@@ -325,6 +342,69 @@ const MediaclassUploader = {
                     spinner: true,
                     lockForm: true
                 });
+            });
+    },
+
+    syncDetailsSaveButton(uploadable) {
+        const hasDescriptions = Number(uploadable.attr('data-has-description')) === 1;
+        const hasVideos = uploadable.find('.uploaded .preview.video').length > 0;
+
+        uploadable
+            .find('.mediaclass-save-descriptions')
+            .toggleClass('d-none', !hasDescriptions && !hasVideos);
+    },
+
+    syncVideoWidthMode(select) {
+        const widthInput = select.closest('.input-group').find('.mediaclass-video-width').first();
+
+        widthInput.prop('disabled', select.val() === 'full');
+    },
+
+    videoDimensionsFields(uploadable, namePrefix = '', storable = {}) {
+        const widthLabel = this.i18nText(uploadable, 'video_width_label', 'Video width');
+        const heightLabel = this.i18nText(uploadable, 'video_height_label', 'Video height');
+        const pixelsLabel = this.i18nText(uploadable, 'video_width_pixels', 'Pixels');
+        const fullWidthLabel = this.i18nText(uploadable, 'video_width_full', '100% width');
+        const storedWidth = String(storable.embed_width ?? '560').trim();
+        const isFullWidth = storedWidth === '100%';
+        const pixelWidth = /^\d+$/.test(storedWidth) ? storedWidth : '560';
+        const height = /^\d+$/.test(String(storable.embed_height ?? '315'))
+            ? String(storable.embed_height ?? '315')
+            : '315';
+        const fieldName = (name) => namePrefix ? `${namePrefix}[${name}]` : name;
+
+        return `
+            <div class="col-12 mediaclass-video-dimensions">
+                <div class="row">
+                    <div class="col-md-6 col-12">
+                        <label class="form-label">${widthLabel}</label>
+                        <div class="input-group">
+                            <select name="${fieldName('embed_width_mode')}" class="form-select mediaclass-video-width-mode">
+                                <option value="pixels"${isFullWidth ? '' : ' selected'}>${pixelsLabel}</option>
+                                <option value="full"${isFullWidth ? ' selected' : ''}>${fullWidthLabel}</option>
+                            </select>
+                            <input type="number" min="1" max="7680"
+                                   name="${fieldName('embed_width')}"
+                                   class="form-control mediaclass-video-width"
+                                   value="${pixelWidth}"${isFullWidth ? ' disabled' : ''}>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <label class="form-label">${heightLabel}</label>
+                        <input type="number" min="1" max="4320"
+                               name="${fieldName('embed_height')}"
+                               class="form-control"
+                               value="${height}">
+                    </div>
+                </div>
+            </div>`;
+    },
+
+    bindVideoDimensions() {
+        $(document)
+            .off('change.mediaclassVideoWidth', '.mediaclass-video-width-mode')
+            .on('change.mediaclassVideoWidth', '.mediaclass-video-width-mode', function () {
+                MediaclassUploader.syncVideoWidthMode($(this));
             });
     },
 
@@ -437,6 +517,7 @@ const MediaclassUploader = {
                     <input type="url" name="url" class="form-control" placeholder="${videoUrlPlaceholder}">
                 </div>
                 <div class="row params mt-3">
+                    ${this.videoDimensionsFields(uploadable)}
                     ${positions}
                     ${descriptions}
                 </div>
@@ -487,12 +568,16 @@ const MediaclassUploader = {
                 });
             });
 
-        form.find('textarea, input[type="hidden"]').each(function () {
-            formData.push({
-                name: $(this).attr('name'),
-                value: $(this).val()
+        form
+            .find(':input[name]')
+            .not('[name="url"]')
+            .serializeArray()
+            .forEach((field) => {
+                formData.push({
+                    name: field.name,
+                    value: field.value
+                });
             });
-        });
 
         $.ajax({
             url: this.template().data('ajax'),
@@ -748,6 +833,7 @@ const MediaclassUploader = {
 
         lightGalleryContainer.append(html);
         this.unlinkable();
+        this.syncDetailsSaveButton(uploadable);
 
         setTimeout(() => {
             const imageItems = lightGalleryContainer.find('.lightgallery-item');
@@ -849,6 +935,10 @@ const MediaclassUploader = {
                         <input type="hidden" name="mediaclass[${uploaded.id}][position]" value="${uploaded.position || 'left'}">
                     </div>
                 </div>`;
+
+        if (filetype === 'video') {
+            html += this.videoDimensionsFields(uploadable, `mediaclass[${uploaded.id}]`, uploaded.storable || {});
+        }
 
         // Add descriptions
         const descriptions = uploaded.description || {};
@@ -1207,8 +1297,13 @@ const MediaclassUploader = {
             .off('change.mediaclassMediaType', '.mediaclass-media-type')
             .on('change.mediaclassMediaType', '.mediaclass-media-type', function () {
                 const uploadable = $(this).closest('.mediaclass-uploadable');
+                const uploadContainer = MediaclassUploader.uploadableContainer(uploadable);
 
-                MediaclassUploader.uploadableContainer(uploadable).html('');
+                uploadContainer.html('');
+
+                if (MediaclassUploader.selectedMediaType(uploadable) === 'video') {
+                    MediaclassUploader.toggleVideoUrlForm(uploadContainer);
+                }
             })
             .off('click.mediaclassVideoUrlSubmit', '.mediaclass-video-url-submit')
             .on('click.mediaclassVideoUrlSubmit', '.mediaclass-video-url-submit', function () {
@@ -1234,12 +1329,18 @@ const MediaclassUploader = {
         // Initialize positions for all uploadable elements
         $('.mediaclass-uploadable').each(function () {
             MediaclassUploader.positions($(this));
+            MediaclassUploader.syncDetailsSaveButton($(this));
+
+            $(this).find('.mediaclass-video-width-mode').each(function () {
+                MediaclassUploader.syncVideoWidthMode($(this));
+            });
         });
 
         // Setup event handlers
         this.uploaderCall();
         this.unlinkable();
         this.bindDescriptionSave();
+        this.bindVideoDimensions();
         this.bindMediaTypeOptions();
         this.modalCrop();
         this.initCropActions();

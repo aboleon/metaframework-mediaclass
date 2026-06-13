@@ -16,9 +16,13 @@
         'invalid_url' => __('mfw-mediaclass.errors.invalidUrl'),
         'video_url_label' => __('mfw-mediaclass.labels.video_url'),
         'video_url_placeholder' => __('mfw-mediaclass.labels.video_url_placeholder'),
+        'video_width_label' => __('mfw-mediaclass.labels.video_width'),
+        'video_height_label' => __('mfw-mediaclass.labels.video_height'),
+        'video_width_pixels' => __('mfw-mediaclass.labels.video_width_pixels'),
+        'video_width_full' => __('mfw-mediaclass.labels.video_width_full'),
         'add' => __('mfw-mediaclass.buttons.add'),
         'cancel' => __('mfw-mediaclass.buttons.cancel'),
-        'save_descriptions' => __('mfw-mediaclass.buttons.save_descriptions'),
+        'save_media_details' => __('mfw-mediaclass.buttons.save_media_details'),
         'subgroup_label' => $subgroupLabel,
         'subgroup_empty_label' => $subgroupEmptyLabel,
     ];
@@ -27,7 +31,8 @@
     data-limit="{{ $limit }}" data-model="{{ get_class($model) }}" data-model-id="{{ $model->id ?? '' }}"
     data-positions="{{ $positions }}" data-group="{{ $group }}"
     data-subgroup="{{ $settings['subgroup'] ?? false }}" data-has-description="{{ $description }}"
-    data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-grid="{{ $grid }}" data-enforce-dimensions="{{ $enforceDimensions ? '1' : '0' }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
+    data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-grid="{{ $grid }}"
+    data-enforce-dimensions="{{ $enforceDimensions ? '1' : '0' }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
     data-media-types='@json($mediaTypeOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)' data-media-locales='@json($mediaLocales, JSON_UNESCAPED_UNICODE)'
     data-ajax="{{ route('mediaclass.ajax') }}"
     @if ($subgroupOptions !== []) data-subgroup-options='@json($subgroupOptions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)'
@@ -50,14 +55,13 @@
         @if ($dimensionsInline)
             <span class="subcontrol dimensions-inline me-3">{{ $dimensionsInline }}</span>
         @endif
-        @if ($description)
-            <button type="button" class="btn btn-sm btn-secondary mediaclass-save-descriptions ms-auto">
-                <i class="bi bi-save"></i>
-                {{ __('mfw-mediaclass.buttons.save_descriptions') }}
-                <span class="ajax-spinner spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"
-                    style="display: none;"></span>
-            </button>
-        @endif
+        <button type="button"
+            class="btn btn-sm btn-secondary mediaclass-save-descriptions ms-auto{{ $description ? '' : ' d-none' }}">
+            <i class="bi bi-save"></i>
+            {{ __('mfw-mediaclass.buttons.save_media_details') }}
+            <span class="ajax-spinner spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"
+                style="display: none;"></span>
+        </button>
     </div>
     @if (count($mediaTypeOptions) > 1)
         <div class="mediaclass-media-type-options media_choice_holder">
@@ -291,7 +295,8 @@
                         return true;
                     },
                     successHandler: function(result) {
-                        const values = parseMediaclassSubgroupJson(uploadable.attr('data-subgroup-values')),
+                        const values = parseMediaclassSubgroupJson(uploadable.attr(
+                                'data-subgroup-values')),
                             mediaId = String(result.media_id),
                             subgroup = result.subgroup ? String(result.subgroup) : '';
 
@@ -303,7 +308,9 @@
 
                         uploadable.attr('data-subgroup-values', JSON.stringify(values));
                         select.val(subgroup).attr('data-saved-value', subgroup);
-                        $(document).trigger('mediaclass:subgroup-saved', [result, uploadable, select]);
+                        $(document).trigger('mediaclass:subgroup-saved', [result, uploadable,
+                            select
+                        ]);
 
                         return true;
                     }

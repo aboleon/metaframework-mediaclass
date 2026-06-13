@@ -203,13 +203,13 @@ class FileUploadImages
         }
 
         try {
-            $nativeCount = $this->saveNativeDescriptions((array) request('mediaclass'));
+            $nativeCount = $this->saveNativeMediaDetails((array) request('mediaclass'));
             $bridgeCount = $this->saveBridgeDescriptions((array) request('mediaclass_bridge'));
 
-            $this->responseSuccess(__('mfw-mediaclass.notices.descriptions_saved'));
+            $this->responseSuccess(__('mfw-mediaclass.notices.media_details_saved'));
             $this->responseElement('updated_count', $nativeCount + $bridgeCount);
         } catch (Throwable $e) {
-            $this->responseException($e, __('mfw-mediaclass.errors.descriptionSaveFailed'));
+            $this->responseException($e, __('mfw-mediaclass.errors.mediaDetailsSaveFailed'));
         }
 
         return $this;
@@ -350,6 +350,9 @@ class FileUploadImages
 
         $validator = Validator::make(request()->all(), [
             'url' => ['required', 'url', 'starts_with:http://,https://'],
+            'embed_width_mode' => ['nullable', 'in:pixels,full'],
+            'embed_width' => ['nullable', 'integer', 'min:1', 'max:7680'],
+            'embed_height' => ['nullable', 'integer', 'min:1', 'max:4320'],
         ]);
 
         if ($validator->fails()) {
@@ -364,6 +367,10 @@ class FileUploadImages
         $this->storedMime = 'video/url';
         $this->storedOriginalFilename = $url;
         $this->storables['url'] = $url;
+        $this->storables['embed_width'] = request('embed_width_mode') === 'full'
+            ? '100%'
+            : Media::normalizeEmbedWidth(request('embed_width'));
+        $this->storables['embed_height'] = Media::normalizeEmbedHeight(request('embed_height'));
         $this->response['filetype'] = 'video';
         $this->response['filename'] = $this->filename;
         $this->response['link'] = $url;
@@ -683,7 +690,7 @@ class FileUploadImages
         return $this;
     }
 
-    private function saveNativeDescriptions(array $medias): int
+    private function saveNativeMediaDetails(array $medias): int
     {
         if ($medias === []) {
             return 0;
@@ -693,7 +700,7 @@ class FileUploadImages
         $query = $this->mediaDescriptionQuery();
 
         foreach ($medias as $mediaId => $mediaInput) {
-            if (!is_numeric($mediaId) || !is_array($mediaInput) || !array_key_exists('description', $mediaInput)) {
+            if (!is_numeric($mediaId) || !is_array($mediaInput)) {
                 continue;
             }
 
@@ -705,7 +712,32 @@ class FileUploadImages
                 continue;
             }
 
-            $media->description = $this->normalizeDescriptions((array) $mediaInput['description']);
+            $hasDescription = array_key_exists('description', $mediaInput);
+            $hasEmbedDimensions = $media->isVideo() && (
+                array_key_exists('embed_width_mode', $mediaInput)
+                || array_key_exists('embed_width', $mediaInput)
+                || array_key_exists('embed_height', $mediaInput)
+            );
+
+            if (!$hasDescription && !$hasEmbedDimensions) {
+                continue;
+            }
+
+            if ($hasDescription) {
+                $media->description = $this->normalizeDescriptions((array) $mediaInput['description']);
+            }
+
+            if ($hasEmbedDimensions) {
+                $storable = (array) ($media->storable ?? []);
+                $storable['embed_width'] = ($mediaInput['embed_width_mode'] ?? null) === 'full'
+                    ? '100%'
+                    : Media::normalizeEmbedWidth($mediaInput['embed_width'] ?? $media->embedWidth());
+                $storable['embed_height'] = Media::normalizeEmbedHeight(
+                    $mediaInput['embed_height'] ?? $media->embedHeight(),
+                );
+                $media->storable = $storable;
+            }
+
             $media->save();
 
             $updated++;

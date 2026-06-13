@@ -33,4 +33,25 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString("instantiator.data('enforce-dimensions')", $uploaderScript);
         $this->assertStringContainsString("'dimension_recommendations'", $uploaderScript);
     }
+
+    public function test_video_media_type_selection_opens_url_form(): void
+    {
+        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+
+        $this->assertStringContainsString("const mediaTypes = uploadable.data('media-types');", $uploaderScript);
+        $this->assertStringContainsString('return configuredTypes[0];', $uploaderScript);
+        $this->assertStringContainsString("if (MediaclassUploader.selectedMediaType(uploadable) === 'video')", $uploaderScript);
+        $this->assertStringContainsString('MediaclassUploader.toggleVideoUrlForm(uploadContainer);', $uploaderScript);
+    }
+
+    public function test_video_forms_include_editable_embed_dimensions(): void
+    {
+        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
+
+        $this->assertStringContainsString("videoDimensionsFields(uploadable, namePrefix = '', storable = {})", $uploaderScript);
+        $this->assertStringContainsString('value="full"', $storedView);
+        $this->assertStringContainsString('mediaclass-video-width-mode', $storedView);
+        $this->assertStringContainsString('[embed_height]', $storedView);
+    }
 }

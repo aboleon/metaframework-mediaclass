@@ -359,6 +359,38 @@ class MediaModelTest extends TestCase
         $this->assertEquals('featured', $media->storable['category']);
     }
 
+    public function test_external_videos_have_default_embed_dimensions(): void
+    {
+        $media = new Media([
+            'mime' => 'video/url',
+            'storable' => ['url' => 'https://youtu.be/abc123'],
+        ]);
+
+        $this->assertSame(560, $media->embedWidth());
+        $this->assertSame(315, $media->embedHeight());
+        $this->assertSame([
+            'width' => 560,
+            'height' => 315,
+        ], $media->embedOptions());
+    }
+
+    public function test_external_video_embed_dimensions_are_normalized(): void
+    {
+        $media = new Media([
+            'mime' => 'video/url',
+            'storable' => [
+                'url' => 'https://youtu.be/abc123',
+                'embed_width' => '100%',
+                'embed_height' => '420',
+            ],
+        ]);
+
+        $this->assertSame('100%', $media->embedWidth());
+        $this->assertSame(420, $media->embedHeight());
+        $this->assertSame(560, Media::normalizeEmbedWidth('invalid'));
+        $this->assertSame(315, Media::normalizeEmbedHeight(0));
+    }
+
     public function test_has_crop_alias_works(): void
     {
         // hasCrop is an alias for isCroppedForKey

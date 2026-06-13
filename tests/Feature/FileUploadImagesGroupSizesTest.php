@@ -231,6 +231,8 @@ class FileUploadImagesGroupSizesTest extends TestCase
             'url' => $url,
             'description' => ['en' => 'Video description'],
             'positions' => true,
+            'embed_width_mode' => 'full',
+            'embed_height' => 420,
         ]);
 
         $response->assertStatus(200);
@@ -243,6 +245,26 @@ class FileUploadImagesGroupSizesTest extends TestCase
         $this->assertSame('video/url', $media->mime);
         $this->assertSame($url, $media->original_filename);
         $this->assertSame($url, $media->storable['url']);
+        $this->assertSame('100%', $media->storable['embed_width']);
+        $this->assertSame(420, $media->storable['embed_height']);
         $this->assertSame($url, $media->url());
+    }
+
+    public function test_upload_url_uses_default_video_dimensions(): void
+    {
+        $post = PostWithGroupSizes::create(['title' => 'Default Video Dimensions']);
+
+        $this->post('mediaclass-ajax', [
+            'action' => 'uploadUrl',
+            'model' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'gallery',
+            'url' => 'https://www.youtube.com/watch?v=default123',
+        ])->assertJsonPath('error', null);
+
+        $media = Media::query()->where('group', 'gallery')->firstOrFail();
+
+        $this->assertSame(560, $media->storable['embed_width']);
+        $this->assertSame(315, $media->storable['embed_height']);
     }
 }

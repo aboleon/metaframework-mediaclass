@@ -468,6 +468,36 @@ $url = Mediaclass::ghostUrl(Post::class, 'cover', 'sm', '/fallback.png');
 
 ---
 
+## External Video Embeds
+
+External video media and supported oEmbed URLs can be rendered through the
+Mediaclass facade or helper:
+
+```php
+use MetaFramework\Mediaclass\Facades\MediaclassFacade;
+
+$html = MediaclassFacade::embed($media, ['loading' => 'lazy']);
+$html = mediaclass_embed('https://www.youtube.com/watch?v=...');
+```
+
+Embeds default to `560 × 315`. External video media store their display
+dimensions in the media `storable` data. The uploader UI supports a pixel width
+or a responsive `100%` width:
+
+```php
+$media->storable = [
+    'url' => 'https://www.youtube.com/watch?v=...',
+    'embed_width' => '100%',
+    'embed_height' => 315,
+];
+```
+
+Explicit helper options override the stored dimensions.
+
+Unsupported URLs and provider failures return an empty `HtmlString`.
+
+---
+
 ## Legacy API
 
 The original Parser/Printer classes are still available for backward compatibility:

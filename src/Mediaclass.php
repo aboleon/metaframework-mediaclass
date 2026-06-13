@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace MetaFramework\Mediaclass;
 
+use Cohensive\OEmbed\Factory;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 use MetaFramework\Mediaclass\Models\Media;
+use Throwable;
 
 class Mediaclass
 {
+    public function __construct(protected ?Factory $oEmbedFactory = null) {}
+
     /**
      * Selected group for querying Mediaclass database
      */
@@ -357,6 +362,100 @@ class Mediaclass
     public function filter(callable $callback): array
     {
         return array_filter($this->media, $callback);
+    }
+
+    /**
+     * Render an external media URL through its configured oEmbed provider.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    public function embed(Media|string|null $source, array $options = []): HtmlString
+    {
+        $url = $this->embedUrl($source);
+
+        if ($url === null) {
+            return new HtmlString('');
+        }
+
+        $options = array_merge(
+            $source instanceof Media
+                ? $source->embedOptions()
+                : [
+                    'width' => Media::DEFAULT_EMBED_WIDTH,
+                    'height' => Media::DEFAULT_EMBED_HEIGHT,
+                ],
+            $options,
+        );
+
+        try {
+            $embed = $this->oEmbedFactory()->get($url);
+            $html = $embed?->html($this->sanitizeEmbedOptions($options)) ?? '';
+        } catch (Throwable) {
+            $html = '';
+        }
+
+        return new HtmlString($html);
+    }
+
+    protected function embedUrl(Media|string|null $source): ?string
+    {
+        if ($source instanceof Media) {
+            if (!$source->isVideo() || !$source->isExternalUrl()) {
+                return null;
+            }
+
+            $source = $source->externalUrl();
+        }
+
+        if (!is_string($source)) {
+            return null;
+        }
+
+        $url = trim($source);
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+
+        if (
+            filter_var($url, FILTER_VALIDATE_URL) === false
+            || !is_string($scheme)
+            || !in_array(strtolower($scheme), ['http', 'https'], true)
+        ) {
+            return null;
+        }
+
+        return $url;
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array<string, bool|float|int|string>
+     */
+    protected function sanitizeEmbedOptions(array $options): array
+    {
+        $allowed = [
+            'allow',
+            'allowfullscreen',
+            'autoplay',
+            'class',
+            'controls',
+            'height',
+            'loading',
+            'referrerpolicy',
+            'title',
+            'width',
+        ];
+
+        return collect($options)
+            ->only($allowed)
+            ->filter(fn (mixed $value): bool => is_bool($value) || is_float($value) || is_int($value) || is_string($value))
+            ->map(fn (mixed $value): mixed => is_string($value)
+                ? htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+                : $value)
+            ->all();
+    }
+
+    protected function oEmbedFactory(): Factory
+    {
+        return $this->oEmbedFactory ??= new Factory;
     }
 
     /**

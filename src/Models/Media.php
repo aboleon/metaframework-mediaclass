@@ -25,6 +25,10 @@ class Media extends Model
 {
     use Accessors;
 
+    public const DEFAULT_EMBED_WIDTH = 560;
+
+    public const DEFAULT_EMBED_HEIGHT = 315;
+
     protected $table = 'mediaclass';
 
     protected $guarded = [];
@@ -341,6 +345,55 @@ class Media extends Model
         $url = $url['url'] ?? null;
 
         return is_string($url) && $url !== '' ? $url : null;
+    }
+
+    public function embedWidth(): int|string
+    {
+        return self::normalizeEmbedWidth(((array) ($this->storable ?? []))['embed_width'] ?? null);
+    }
+
+    public function embedHeight(): int
+    {
+        return self::normalizeEmbedHeight(((array) ($this->storable ?? []))['embed_height'] ?? null);
+    }
+
+    /**
+     * @return array{width: int|string, height: int}
+     */
+    public function embedOptions(): array
+    {
+        return [
+            'width' => $this->embedWidth(),
+            'height' => $this->embedHeight(),
+        ];
+    }
+
+    public static function normalizeEmbedWidth(mixed $width): int|string
+    {
+        if (is_string($width) && trim($width) === '100%') {
+            return '100%';
+        }
+
+        $width = filter_var($width, FILTER_VALIDATE_INT, [
+            'options' => [
+                'min_range' => 1,
+                'max_range' => 7680,
+            ],
+        ]);
+
+        return $width === false ? self::DEFAULT_EMBED_WIDTH : $width;
+    }
+
+    public static function normalizeEmbedHeight(mixed $height): int
+    {
+        $height = filter_var($height, FILTER_VALIDATE_INT, [
+            'options' => [
+                'min_range' => 1,
+                'max_range' => 4320,
+            ],
+        ]);
+
+        return $height === false ? self::DEFAULT_EMBED_HEIGHT : $height;
     }
 
     /**

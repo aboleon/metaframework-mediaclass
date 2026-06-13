@@ -10,6 +10,9 @@
                 $media_key = $is_bridge ? $media->key() : $media->id;
                 $is_image = $media->isImage();
                 $is_video = $media->isVideo();
+                $embed_width = $is_video && !$is_bridge ? $media->embedWidth() : null;
+                $embed_height = $is_video && !$is_bridge ? $media->embedHeight() : null;
+                $embed_width_mode = $embed_width === '100%' ? 'full' : 'pixels';
                 $cropableImg = $is_bridge || !$is_image ? null : new \MetaFramework\Mediaclass\Cropable($media);
                 $cropableImg?->setCropableFromComponent($cropable);
                 $preview = match (true) {
@@ -88,6 +91,40 @@
                                         value="{{ $media->position }}">
                                 </div>
                             </div>
+
+                            @if ($is_video && !$is_bridge)
+                                <div class="col-12 mediaclass-video-dimensions">
+                                    <div class="row">
+                                        <div class="col-md-6 col-12">
+                                            <label
+                                                class="form-label">{{ __('mfw-mediaclass.labels.video_width') }}</label>
+                                            <div class="input-group">
+                                                <select name="mediaclass[{{ $media->id }}][embed_width_mode]"
+                                                    class="form-select mediaclass-video-width-mode">
+                                                    <option value="pixels" @selected($embed_width_mode === 'pixels')>
+                                                        {{ __('mfw-mediaclass.labels.video_width_pixels') }}
+                                                    </option>
+                                                    <option value="full" @selected($embed_width_mode === 'full')>
+                                                        {{ __('mfw-mediaclass.labels.video_width_full') }}
+                                                    </option>
+                                                </select>
+                                                <input type="number" min="1" max="7680"
+                                                    name="mediaclass[{{ $media->id }}][embed_width]"
+                                                    class="form-control mediaclass-video-width"
+                                                    value="{{ $embed_width === '100%' ? \MetaFramework\Mediaclass\Models\Media::DEFAULT_EMBED_WIDTH : $embed_width }}"
+                                                    @disabled($embed_width_mode === 'full')>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-12">
+                                            <label
+                                                class="form-label">{{ __('mfw-mediaclass.labels.video_height') }}</label>
+                                            <input type="number" min="1" max="4320"
+                                                name="mediaclass[{{ $media->id }}][embed_height]"
+                                                class="form-control" value="{{ $embed_height }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
 
                             @foreach ($mediaLocales as $locale)
                                 @php

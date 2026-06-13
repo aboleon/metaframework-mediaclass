@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace MetaFramework\Mediaclass\Tests\Feature;
 
 use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ViewErrorBag;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Tests\Fixtures\Post;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithBridgeMedia;
@@ -136,15 +139,88 @@ class MediaclassDescriptionSaveTest extends TestCase
         $this->assertSame('Updated legacy image', PostWithBridgeMedia::$syncedBridgeMedia['cover']['legacy_1']['description']['en']);
     }
 
-    public function test_uploadable_component_renders_translated_description_save_button(): void
+    public function test_ajax_can_save_native_video_dimensions(): void
+    {
+        $post = Post::create(['title' => 'Video dimensions']);
+        $media = Media::query()->create([
+            'model_type' => Post::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'video/url',
+            'original_filename' => 'https://youtu.be/abc123',
+            'filename' => 'video',
+            'position' => 'left',
+            'storable' => [
+                'url' => 'https://youtu.be/abc123',
+                'embed_width' => 560,
+                'embed_height' => 315,
+            ],
+        ]);
+
+        $response = $this->post('mediaclass-ajax', [
+            'action' => 'saveDescriptions',
+            'model' => Post::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mediaclass' => [
+                $media->id => [
+                    'embed_width_mode' => 'full',
+                    'embed_height' => 420,
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('error', null);
+        $response->assertJsonPath('updated_count', 1);
+
+        $this->assertSame([
+            'url' => 'https://youtu.be/abc123',
+            'embed_width' => '100%',
+            'embed_height' => 420,
+        ], $media->refresh()->storable);
+    }
+
+    public function test_uploadable_component_renders_translated_media_details_save_button(): void
     {
         $view = file_get_contents(__DIR__ . '/../../resources/views/components/uploadable.blade.php');
         $script = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
 
         $this->assertStringContainsString("data-ajax=\"{{ route('mediaclass.ajax') }}\"", $view);
         $this->assertStringContainsString('mediaclass-save-descriptions', $view);
-        $this->assertStringContainsString("__('mfw-mediaclass.buttons.save_descriptions')", $view);
+        $this->assertStringContainsString("__('mfw-mediaclass.buttons.save_media_details')", $view);
         $this->assertStringContainsString("{name: 'action', value: 'saveDescriptions'}", $script);
         $this->assertStringContainsString('mfwAjax(formData, uploadable', $script);
+    }
+
+    public function test_stored_video_renders_editable_default_embed_dimensions(): void
+    {
+        $post = Post::create(['title' => 'Video controls']);
+        $media = Media::query()->create([
+            'model_type' => Post::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'mime' => 'video/url',
+            'original_filename' => 'https://youtu.be/abc123',
+            'filename' => 'video',
+            'position' => 'left',
+            'storable' => ['url' => 'https://youtu.be/abc123'],
+        ]);
+
+        View::share('errors', new ViewErrorBag);
+
+        $html = Blade::render(
+            '<x-mediaclass::stored :model="$post" group="cover" :description="false" />',
+            ['post' => $post->load('media')],
+        );
+
+        $this->assertStringContainsString(
+            'name="mediaclass[' . $media->id . '][embed_width_mode]"',
+            $html,
+        );
+        $this->assertMatchesRegularExpression('/<option value="pixels"[^>]*selected/', $html);
+        $this->assertMatchesRegularExpression('/name="mediaclass\[' . $media->id . '\]\[embed_width\]"[^>]*value="560"/', $html);
+        $this->assertMatchesRegularExpression('/name="mediaclass\[' . $media->id . '\]\[embed_height\]"[^>]*value="315"/', $html);
+        $this->assertStringContainsString('value="full"', $html);
     }
 }

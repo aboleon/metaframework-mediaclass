@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MetaFramework\Mediaclass;
 
+use Cohensive\OEmbed\Factory;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\ServiceProvider;
@@ -14,7 +15,7 @@ class MediaclassServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/mfw-mediaclass.php', 'mfw-mediaclass');
 
-        $this->app->singleton('mediaclass', fn () => new Mediaclass);
+        $this->app->singleton('mediaclass', fn () => new Mediaclass(new Factory));
     }
 
     public function boot(): void

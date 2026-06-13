@@ -108,10 +108,32 @@ trait Mediaclass
     {
         if (request()->has('mediaclass')) {
             foreach (request('mediaclass') as $key => $value) {
-                Media::where('id', $key)->update([
-                    'description' => $value['description'],
-                    'position' => $value['position'],
-                ]);
+                $media = $this->media()->whereKey($key)->first();
+
+                if (!$media instanceof Media || !is_array($value)) {
+                    continue;
+                }
+
+                if (array_key_exists('description', $value)) {
+                    $media->description = $value['description'];
+                }
+
+                if (array_key_exists('position', $value)) {
+                    $media->position = $value['position'];
+                }
+
+                if ($media->isVideo()) {
+                    $storable = (array) ($media->storable ?? []);
+                    $storable['embed_width'] = ($value['embed_width_mode'] ?? null) === 'full'
+                        ? '100%'
+                        : Media::normalizeEmbedWidth($value['embed_width'] ?? $media->embedWidth());
+                    $storable['embed_height'] = Media::normalizeEmbedHeight(
+                        $value['embed_height'] ?? $media->embedHeight(),
+                    );
+                    $media->storable = $storable;
+                }
+
+                $media->save();
             }
         }
 
