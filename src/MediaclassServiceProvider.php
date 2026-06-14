@@ -8,6 +8,7 @@ use Cohensive\OEmbed\Factory;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\ServiceProvider;
+use MetaFramework\Mediaclass\Console\UpdateMediaclassCommand;
 
 class MediaclassServiceProvider extends ServiceProvider
 {
@@ -32,6 +33,10 @@ class MediaclassServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/panel.php');
 
         if ($this->app->runningInConsole()) {
+            $this->commands([
+                UpdateMediaclassCommand::class,
+            ]);
+
             $migrationTimestamp = date('Y_m_d_His');
             $modelKeysMigrationTimestamp = date('Y_m_d_His', time() + 1);
             $sortOrderMigrationTimestamp = date('Y_m_d_His', time() + 2);

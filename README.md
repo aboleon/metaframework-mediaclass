@@ -30,23 +30,80 @@ $url = $post->img('cover')->url();
 composer require aboleon/metaframework-mediaclass
 ```
 
-Publish assets and run migrations:
+Publish package resources after install or update:
 
 ```bash
-php artisan vendor:publish --tag=mfw-mediaclass-config
-php artisan vendor:publish --tag=mfw-mediaclass-assets
-php artisan vendor:publish --tag=mfw-mediaclass-migrations
-php artisan vendor:publish --tag=mfw-mediaclass-lang
-// Views for customization, if needed
-php artisan vendor:publish --tag=mfw-mediaclass-views
-php artisan migrate
+php artisan mediaclass:update --force
 ```
+
+For a first install, or when a release adds migrations, publish and run them
+explicitly:
+
+```bash
+php artisan mediaclass:update --force --migrate
+```
+
+Use `--views` only when the application needs to customize the package Blade
+views. Views are not published by default so package updates can keep improving
+the upstream UI.
 
 The stored-media component loads LightGallery `2.8.3` from
 `https://cdnjs.cloudflare.com`, including its bundled CSS and the core, zoom,
 thumbnail, and video scripts. The package does not publish a local LightGallery
 distribution. Applications with a Content Security Policy must allow this host
 in `script-src` and `style-src`.
+
+## Version Tracks
+
+Mediaclass `0.x` is the jQuery uploader line. Applications that want the
+existing jQuery UI and do not want the v1 Svelte UI should require the `0.x`
+track explicitly:
+
+```bash
+composer require aboleon/metaframework-mediaclass:"0.*"
+```
+
+For the current stable jQuery release line only:
+
+```bash
+composer require aboleon/metaframework-mediaclass:"^0.16"
+```
+
+Mediaclass `1.x` is the Svelte UI line. The Svelte assets are built and shipped
+inside the Composer package, so consuming Laravel applications should not need
+Node, npm, or a Svelte build step just to use the package. After updating the
+Composer dependency, run:
+
+```bash
+php artisan mediaclass:update --force
+```
+
+During v1 development, applications can test the branch with Composer's dev
+constraint:
+
+```bash
+composer require aboleon/metaframework-mediaclass:"1.x-dev"
+```
+
+## Laravel Compatibility
+
+The package supports Laravel majors through explicit Illuminate constraints in
+`composer.json`, currently `^11.0|^12.0|^13.0`. A future Laravel major does not
+automatically require a Mediaclass major release. The package should widen its
+Laravel constraints and tag a minor or patch release when the public API and
+published assets remain compatible.
+
+Use a new Mediaclass major only when the package drops an older Laravel major,
+changes the public PHP or Blade contract, changes installation behavior in a
+breaking way, or replaces an implementation detail that applications can
+reasonably depend on.
+
+The current v1 direction keeps Mediaclass Laravel-bound with a shipped Svelte
+bundle. If Mediaclass later needs to live as a framework-neutral uploader, the
+better split is a Lit + TypeScript web-component package with a Laravel bridge
+package around routes, persistence, configuration, and Blade helpers. That split
+is larger than the v1 Svelte migration and should be treated as a separate
+product boundary.
 
 ## Model Setup
 
