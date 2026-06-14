@@ -50,35 +50,10 @@
         <input type="hidden" name="mediaclass_storable[{{ $key }}]" value="{{ $value }}" />
     @endforeach
 
-    <div class="controls d-flex justify-content-between align-items-center" style="background: #EFEFEF">
-        <span class="subcontrol mediaclass-uploader">
-            <i class="{{ $icon }}"></i> {!! $displayLabel !!}
-        </span>
-        @if ($dimensionsInline)
-            <span class="subcontrol dimensions-inline me-3">{{ $dimensionsInline }}</span>
-        @endif
-        <button type="button"
-            class="btn btn-sm btn-secondary mediaclass-save-descriptions ms-auto{{ $description ? '' : ' d-none' }}">
-            <i class="bi bi-save"></i>
-            {{ __('mfw-mediaclass.buttons.save_media_details') }}
-            <span class="ajax-spinner spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"
-                style="display: none;"></span>
-        </button>
+    <div class="mediaclass-svelte-uploader" data-icon="{{ $icon }}" data-label="{{ strip_tags($displayLabel) }}"
+        data-dimensions-inline="{{ $dimensionsInline }}">
     </div>
-    @if (count($mediaTypeOptions) > 1)
-        <div class="mediaclass-media-type-options media_choice_holder">
-            @foreach ($mediaTypeOptions as $mediaType => $mediaTypeLabel)
-                <div class="radio">
-                    <label>
-                        <input type="radio" name="{{ $mediaTypeInputName }}" class="mediaclass-media-type"
-                            value="{{ $mediaType }}" @checked($loop->first) />
-                        <span class="lbl">{{ $mediaTypeLabel }}</span>
-                    </label>
-                </div>
-            @endforeach
-        </div>
-    @endif
-    <div class="mediaclass-upload-container"></div>
+    <div class="mediaclass-upload-container d-none"></div>
     <div class="uploaded">
         <x-mediaclass::stored :cropable="$cropable" :positions="$positions" :model="$model" :nomedia="$nomedia" :group="$group"
             :subgroup="$settings['subgroup'] ?? null" :description="$description" :ghost="$ghost" :storables="$storables" :grid="$grid" />
@@ -132,20 +107,6 @@
                 color: #666;
                 margin-bottom: 10px;
             }
-
-            .mediaclass-uploadable .mediaclass-media-type-options {
-                margin: 10px 0 12px;
-                padding: 8px 12px;
-            }
-
-            .mediaclass-uploadable .mediaclass-media-type-options .radio {
-                display: inline-block;
-                margin: 0 16px 0 0;
-            }
-
-            .mediaclass-uploadable .mediaclass-video-url-form {
-                margin-top: 12px;
-            }
         </style>
     @endpush
 @endonce
@@ -157,7 +118,6 @@
 
 
     @include('mediaclass::fileupload_scripts')
-    <x-mediaclass::template />
     <x-mediaclass::crop-template />
 @endonce
 

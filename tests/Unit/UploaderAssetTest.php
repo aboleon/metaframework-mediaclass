@@ -34,14 +34,61 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString("'dimension_recommendations'", $uploaderScript);
     }
 
-    public function test_video_media_type_selection_opens_url_form(): void
+    public function test_uploadable_component_mounts_svelte_uploader(): void
+    {
+        $uploadableView = file_get_contents(__DIR__ . '/../../resources/views/components/uploadable.blade.php');
+
+        $this->assertStringContainsString('mediaclass-svelte-uploader', $uploadableView);
+        $this->assertStringContainsString('data-media-types', $uploadableView);
+        $this->assertStringContainsString('data-ajax="{{ route(\'mediaclass.ajax\') }}"', $uploadableView);
+        $this->assertStringNotContainsString('<x-mediaclass::template', $uploadableView);
+        $this->assertStringContainsString('mediaclass-upload-container d-none', $uploadableView);
+    }
+
+    public function test_svelte_uploader_assets_are_loaded_without_blueimp_runtime(): void
+    {
+        $scriptsView = file_get_contents(__DIR__ . '/../../resources/views/scripts/js.blade.php');
+        $stylesView = file_get_contents(__DIR__ . '/../../resources/views/scripts/css.blade.php');
+
+        $this->assertStringContainsString('sortablejs@1.15.7/Sortable.min.js', $scriptsView);
+        $this->assertStringContainsString("asset('vendor/mfw-mediaclass/uploader.js')", $scriptsView);
+        $this->assertStringContainsString("asset('vendor/mfw-mediaclass/mediaclass-uploader.js')", $scriptsView);
+        $this->assertStringNotContainsString('jQuery-File-Upload/js/jquery.fileupload.js', $scriptsView);
+        $this->assertStringNotContainsString('jQuery-File-Upload/css/jquery.fileupload.css', $stylesView);
+        $this->assertStringNotContainsString('mediaclass-uploader.css', $stylesView);
+    }
+
+    public function test_svelte_source_uploads_files_and_video_urls(): void
+    {
+        $svelteSource = file_get_contents(__DIR__ . '/../../resources/svelte/Uploadable.svelte');
+
+        $this->assertStringContainsString('new XMLHttpRequest', $svelteSource);
+        $this->assertStringContainsString("formData.set('action', 'upload')", $svelteSource);
+        $this->assertStringContainsString("formData.append('files[]', item.file)", $svelteSource);
+        $this->assertStringContainsString("formData.set('action', 'uploadUrl')", $svelteSource);
+        $this->assertStringContainsString("embedWidth: '560'", $svelteSource);
+        $this->assertStringContainsString("embedHeight: '315'", $svelteSource);
+        $this->assertStringContainsString('<option value="full">', $svelteSource);
+    }
+
+    public function test_compiled_svelte_uploader_is_shipped(): void
+    {
+        $compiledScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/mediaclass-uploader.js');
+
+        $this->assertFileExists(__DIR__ . '/../../public/vendor/mfw-mediaclass/mediaclass-uploader.js');
+        $this->assertStringContainsString('MediaclassSvelteUploader', $compiledScript);
+        $this->assertStringContainsString('window.MediaclassSvelteUploader', $compiledScript);
+        $this->assertStringContainsString('mediaclass-svelte-toolbar', $compiledScript);
+        $this->assertStringContainsString('XMLHttpRequest', $compiledScript);
+    }
+
+    public function test_legacy_uploader_bridge_is_exposed_for_svelte(): void
     {
         $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
 
-        $this->assertStringContainsString("const mediaTypes = uploadable.data('media-types');", $uploaderScript);
-        $this->assertStringContainsString('return configuredTypes[0];', $uploaderScript);
-        $this->assertStringContainsString("if (MediaclassUploader.selectedMediaType(uploadable) === 'video')", $uploaderScript);
-        $this->assertStringContainsString('MediaclassUploader.toggleVideoUrlForm(uploadContainer);', $uploaderScript);
+        $this->assertStringContainsString('window.MediaclassUploader = MediaclassUploader;', $uploaderScript);
+        $this->assertStringContainsString('appendUploadedMedia(uploadable, data, hideDescription)', $uploaderScript);
+        $this->assertStringContainsString('printResponseMessages(uploadable, data)', $uploaderScript);
     }
 
     public function test_video_forms_include_editable_embed_dimensions(): void

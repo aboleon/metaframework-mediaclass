@@ -85,6 +85,29 @@ constraint:
 composer require aboleon/metaframework-mediaclass:"1.x-dev"
 ```
 
+### Frontend Asset Development
+
+The v1 uploader source lives in `resources/svelte` and compiles to
+`public/vendor/mfw-mediaclass/mediaclass-uploader.js`. Package maintainers must
+run the frontend checks and rebuild the shipped bundle before tagging a release:
+
+```bash
+npm install
+npm run check
+npm run build
+```
+
+The Vite build disables `publicDir` intentionally because the bundle output is
+inside the package `public` tree. Do not re-enable public copying for this build.
+
+Applications installing the package through Composer do not run these npm
+commands. They receive the precompiled bundle and only need:
+
+```bash
+composer update aboleon/metaframework-mediaclass
+php artisan mediaclass:update --force
+```
+
 ## Laravel Compatibility
 
 The package supports Laravel majors through explicit Illuminate constraints in

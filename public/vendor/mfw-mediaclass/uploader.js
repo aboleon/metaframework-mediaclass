@@ -1545,6 +1545,8 @@ const MediaclassUploader = {
     },
 };
 
+window.MediaclassUploader = MediaclassUploader;
+
 // Initialize the module
 MediaclassUploader.init();
 

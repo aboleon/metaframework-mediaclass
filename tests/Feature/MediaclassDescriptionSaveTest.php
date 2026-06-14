@@ -185,9 +185,12 @@ class MediaclassDescriptionSaveTest extends TestCase
     {
         $view = file_get_contents(__DIR__ . '/../../resources/views/components/uploadable.blade.php');
         $script = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $svelteSource = file_get_contents(__DIR__ . '/../../resources/svelte/Uploadable.svelte');
 
         $this->assertStringContainsString("data-ajax=\"{{ route('mediaclass.ajax') }}\"", $view);
-        $this->assertStringContainsString('mediaclass-save-descriptions', $view);
+        $this->assertStringContainsString("'save_media_details' => __('mfw-mediaclass.buttons.save_media_details')", $view);
+        $this->assertStringContainsString('mediaclass-save-descriptions', $svelteSource);
+        $this->assertStringContainsString("text('save_media_details', 'Save media details')", $svelteSource);
         $this->assertStringContainsString("__('mfw-mediaclass.buttons.save_media_details')", $view);
         $this->assertStringContainsString("{name: 'action', value: 'saveDescriptions'}", $script);
         $this->assertStringContainsString('mfwAjax(formData, uploadable', $script);
