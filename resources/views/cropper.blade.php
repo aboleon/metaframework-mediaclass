@@ -4,7 +4,7 @@
 <script>
     function cropped(result) {
         if (!result.hasOwnProperty('error')) {
-            MediaclassUploader.cropped(result);
+            MediaclassManager.cropped(result);
         } else {
             $('#mediaclas-loader').addClass('d-none');
             $('#mediaclass-crop-btn').removeClass('d-none');

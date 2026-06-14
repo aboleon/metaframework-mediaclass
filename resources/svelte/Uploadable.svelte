@@ -9,12 +9,10 @@
     ajaxUrl: string;
     buttonIcon: string;
     buttonLabel: string;
-    callback: string;
     cropable: string;
     dimensionsInline: string;
     enforceDimensions: boolean;
     ghost: string;
-    grid: number;
     group: string;
     hasDescription: boolean;
     i18n: I18nMap;
@@ -114,12 +112,10 @@
       ajaxUrl: '',
       buttonIcon: 'bi bi-plus-circle',
       buttonLabel: '',
-      callback: '',
       cropable: '',
       dimensionsInline: '',
       enforceDimensions: false,
       ghost: '0',
-      grid: 1,
       group: '',
       hasDescription: false,
       i18n: {},
@@ -156,12 +152,10 @@
       ajaxUrl: element.dataset.ajax ?? '',
       buttonIcon: mount.dataset.icon ?? 'bi bi-plus-circle',
       buttonLabel: mount.dataset.label ?? '',
-      callback: element.dataset.callback ?? '',
       cropable: element.dataset.cropable ?? '',
       dimensionsInline: mount.dataset.dimensionsInline ?? '',
       enforceDimensions: element.dataset.enforceDimensions === '1',
       ghost: element.dataset.ghost ?? '0',
-      grid: Number(element.dataset.grid ?? '1') || 1,
       group: element.dataset.group ?? '',
       hasDescription: element.dataset.hasDescription === '1',
       i18n: parseJson<I18nMap>(element.dataset.i18n, {}),
@@ -214,8 +208,8 @@
   }
 
   function text(key: string, fallback = ''): string {
-    if (uploadable && window.MediaclassUploader?.i18nText && typeof window.jQuery !== 'undefined') {
-      return window.MediaclassUploader.i18nText(window.jQuery(uploadable), key, fallback);
+    if (uploadable && window.MediaclassManager?.i18nText && typeof window.jQuery !== 'undefined') {
+      return window.MediaclassManager.i18nText(window.jQuery(uploadable), key, fallback);
     }
 
     const value = config.i18n[key];
@@ -257,10 +251,6 @@
     }
 
     return Math.max(config.limit - currentCount(), 0);
-  }
-
-  function hasUploadedVideos(): boolean {
-    return Boolean(uploadable?.querySelector('.uploaded .preview.video'));
   }
 
   function selectType(type: string): void {
@@ -314,7 +304,7 @@
 
   function notifyError(message: string): void {
     if (typeof window.notificator === 'function' && typeof window.jQuery !== 'undefined' && uploadable) {
-      window.notificator(200, { danger: [message] }, window.jQuery(uploadable).find('.mediaclass-messages'), false, {
+      window.notificator(200, { danger: [message] }, window.jQuery(uploadable).find('.mediaclass-alerts'), false, {
         isDismissable: true
       });
 
@@ -599,12 +589,12 @@
       return;
     }
 
-    const bridge = window.MediaclassUploader;
+    const manager = window.MediaclassManager;
     const wrapped = window.jQuery(uploadable);
 
-    bridge?.printResponseMessages(wrapped, data);
-    bridge?.executeCallback(wrapped, data);
-    bridge?.appendUploadedMedia(wrapped, data, !config.hasDescription);
+    manager?.printResponseMessages(wrapped, data);
+    manager?.executeCallback(wrapped, data);
+    manager?.appendUploadedMedia(wrapped, data, !config.hasDescription);
     syncStoredMediaState();
   }
 </script>

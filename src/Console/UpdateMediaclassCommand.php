@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace MetaFramework\Mediaclass\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Filesystem\Filesystem;
+use LogicException;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 
 class UpdateMediaclassCommand extends Command
@@ -22,12 +24,16 @@ class UpdateMediaclassCommand extends Command
     {
         $force = (bool) $this->option('force');
 
-        foreach (['assets', 'lang'] as $resource) {
-            $exitCode = $this->publishTag("mfw-mediaclass-{$resource}", $force);
+        $exitCode = $this->publishAssets($force);
 
-            if ($exitCode !== SymfonyCommand::SUCCESS) {
-                return $exitCode;
-            }
+        if ($exitCode !== SymfonyCommand::SUCCESS) {
+            return $exitCode;
+        }
+
+        $exitCode = $this->publishTag('mfw-mediaclass-lang', $force);
+
+        if ($exitCode !== SymfonyCommand::SUCCESS) {
+            return $exitCode;
         }
 
         if ((bool) $this->option('config')) {
@@ -69,6 +75,54 @@ class UpdateMediaclassCommand extends Command
         $this->info('Mediaclass resources are up to date.');
 
         return SymfonyCommand::SUCCESS;
+    }
+
+    protected function publishAssets(bool $force): int
+    {
+        $source = dirname(__DIR__, 2) . '/public/vendor/mfw-mediaclass';
+        $destination = public_path('vendor/mfw-mediaclass');
+
+        try {
+            $this->cleanPublishedAssets($source, $destination);
+        } catch (LogicException $exception) {
+            $this->error($exception->getMessage());
+
+            return SymfonyCommand::FAILURE;
+        }
+
+        return $this->publishTag('mfw-mediaclass-assets', $force);
+    }
+
+    protected function cleanPublishedAssets(string $source, string $destination): void
+    {
+        $sourcePath = $this->normalizePath($source);
+        $destinationPath = $this->normalizePath($destination);
+        $files = new Filesystem;
+
+        if (!$files->isDirectory($source)) {
+            throw new LogicException("Mediaclass asset source [{$source}] does not exist.");
+        }
+
+        if (
+            $sourcePath === $destinationPath
+            || str_starts_with($sourcePath, $destinationPath . '/')
+            || str_starts_with($destinationPath, $sourcePath . '/')
+        ) {
+            throw new LogicException(
+                'Refusing to replace Mediaclass assets because the package source and publish destination overlap.',
+            );
+        }
+
+        if ($files->isDirectory($destination) && !$files->deleteDirectory($destination)) {
+            throw new LogicException("Unable to remove stale Mediaclass assets from [{$destination}].");
+        }
+    }
+
+    protected function normalizePath(string $path): string
+    {
+        $resolvedPath = realpath($path) ?: $path;
+
+        return mb_strtolower(rtrim(str_replace('\\', '/', $resolvedPath), '/'));
     }
 
     protected function publishTag(string $tag, bool $force): int

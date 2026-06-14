@@ -36,6 +36,11 @@ Publish package resources after install or update:
 php artisan mediaclass:update --force
 ```
 
+The update command replaces the package-owned
+`public/vendor/mfw-mediaclass` directory before publishing. This removes assets
+deleted by newer package versions instead of leaving stale files from older
+releases. Do not customize files inside that published asset directory.
+
 On first install, publish the config without `--force`, then set its `disk` to
 the application filesystem disk that owns the media paths:
 
@@ -89,6 +94,11 @@ Composer dependency, run:
 php artisan mediaclass:update --force
 ```
 
+The `1.x` package does not ship or load Blueimp jQuery File Upload. Its uploader,
+video URL form, queue, progress state, and validation UI are Svelte. jQuery is
+still required by the current media-management bridge for stored-media sorting,
+deletion, descriptions, cropping, subgroups, and LightGallery integration.
+
 During v1 development, applications can test the branch with Composer's dev
 constraint:
 
@@ -98,9 +108,12 @@ composer require aboleon/metaframework-mediaclass:"1.x-dev"
 
 ### Frontend Asset Development
 
-The v1 uploader source lives in `resources/svelte` and compiles to
-`public/vendor/mfw-mediaclass/mediaclass-uploader.js`. Package maintainers must
-run the frontend checks and rebuild the shipped bundle before tagging a release:
+The v1 frontend source lives in `resources/svelte`. `Uploadable.svelte` owns the
+upload UI and `media-manager.js` owns stored-media interactions. Vite compiles
+both into the single shipped
+`public/vendor/mfw-mediaclass/mediaclass-uploader.js` bundle. Package
+maintainers must run the frontend checks and rebuild the shipped bundle before
+tagging a release:
 
 ```bash
 npm install
@@ -115,6 +128,21 @@ blocks or inject CSS into the compiled JavaScript bundle.
 
 The Vite build disables `publicDir` intentionally because the bundle output is
 inside the package `public` tree. Do not re-enable public copying for this build.
+
+### Blade Components
+
+The active v1 Blade surface is:
+
+- `<x-mediaclass::uploadable>` for the Svelte mount point and media context.
+- `<x-mediaclass::stored>` for server-rendered existing media.
+- `<x-mediaclass::printer>` and `<x-mfw-media>` for frontend rendering.
+- Internal crop and confirmation modal components used by `uploadable`.
+
+The old Blueimp upload-template component was removed in `1.x`; it is not a
+supported Blade API.
+
+The small published `jcrop` directory remains because the active crop editor
+still loads Jcrop. It is independent from the removed Blueimp uploader.
 
 Applications installing the package through Composer do not run these npm
 commands. They receive the precompiled bundle and only need:

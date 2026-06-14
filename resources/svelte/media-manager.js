@@ -1,24 +1,8 @@
-/*jshint esversion: 11 */
+// @ts-nocheck
 
-const MediaclassUploader = {
-    // Cache common jQuery selectors
-    template() {
-        return $('#mediaclass-file-upload');
-    },
+const MediaclassManager = {
     uploadable(selector) {
         return selector.closest('.mediaclass-uploadable');
-    },
-    uploadableContainer(selector) {
-        return this.uploadable(selector).find('.mediaclass-upload-container').first();
-    },
-    fileupload(uploadContainer) {
-        return uploadContainer.find('.mediaclass-fileupload').first();
-    },
-    messages(uploadable = null) {
-        return uploadable ? uploadable.find('.mediaclass-messages').first() : $('.mediaclass-messages');
-    },
-    progress(uploadable = null) {
-        return uploadable ? uploadable.find('.mediaclass-progress').first() : $('.mediaclass-progress');
     },
     deleteCropForm() {
         return $('#mediaclass-delete-crop-form');
@@ -45,11 +29,8 @@ const MediaclassUploader = {
         }
         $('.veil').remove();
     },
-    // Constants
-    defaultFileSize: 16000000,
-    positions_tags: ['left', 'up', 'down', 'right'],
+    positionNames: ['left', 'up', 'down', 'right'],
 
-    // Helper methods
     csrfToken() {
         return $('meta[name="csrf-token"]').attr('content');
     },
@@ -174,7 +155,7 @@ const MediaclassUploader = {
                     'reorder_failed',
                     'The media order could not be saved.'
                 );
-                notificator(200, {danger: [message]}, this.messages(uploadable), false, {isDismissable: true});
+                notificator(200, {danger: [message]}, this.alerts(uploadable), false, {isDismissable: true});
             },
             complete: () => {
                 this.removeVeil(uploadable);
@@ -274,22 +255,6 @@ const MediaclassUploader = {
 
         return match ? match[2] : '';
     },
-    calculateMaxFileSize(size) {
-        if (!size || (!size.includes('KB') && !size.includes('MB'))) {
-            return this.defaultFileSize;
-        }
-
-        const value = Number(size.replace(/\D+/g, ''));
-
-        if (size.includes('KB')) {
-            return value * 1024;
-        }
-        if (size.includes('MB')) {
-            return value * 1024 * 1024;
-        }
-
-        return this.defaultFileSize;
-    },
     getI18n(uploadable) {
         if (!uploadable || uploadable.length < 1) {
             return {};
@@ -327,47 +292,11 @@ const MediaclassUploader = {
     locale() {
         return document.documentElement.lang || navigator.language || 'en';
     },
-    selectedMediaType(uploadable) {
-        const selected = uploadable.find('.mediaclass-media-type:checked').first();
-
-        if (selected.length > 0) {
-            return selected.val();
-        }
-
-        const mediaTypes = uploadable.data('media-types');
-
-        if (mediaTypes && typeof mediaTypes === 'object') {
-            const configuredTypes = Object.keys(mediaTypes);
-
-            if (configuredTypes.length > 0) {
-                return configuredTypes[0];
-            }
-        }
-
-        return 'image';
-    },
-    mediaLocales(uploadable) {
-        const locales = uploadable.data('media-locales');
-
-        return Array.isArray(locales) && locales.length > 0 ? locales : [this.locale()];
-    },
-    isValidUrl(value) {
-        try {
-            const url = new URL(value);
-
-            return ['http:', 'https:'].includes(url.protocol);
-        } catch (error) {
-            return false;
-        }
-    },
-
-    // Execute callback if it exists
     executeCallback(uploadable, data) {
         const callbackName = uploadable.data('callback');
 
         if (callbackName && typeof window[callbackName] === 'function') {
             try {
-                // Call the callback with the upload data
                 window[callbackName](data);
             } catch (error) {
                 console.error(`Error executing upload callback '${callbackName}':`, error);
@@ -375,110 +304,91 @@ const MediaclassUploader = {
         }
     },
 
-    // Check if uploader limit has been reached
     isLimitReached(uploadable) {
         const limit = Number(uploadable.data('limit'));
         if (limit <= 0) {
-            return false; // No limit defined
+            return false;
         }
 
         const currentCount = uploadable.find('.uploaded div.mediaclass.unlinkable').length;
         return currentCount >= limit;
     },
 
-    // Delete media
     unlinkable() {
-        // Use event delegation to avoid re-binding issues
         $(document).off('click.unlink').on('click.unlink', '.unlink', function (e) {
             e.preventDefault();
             e.stopPropagation();
 
             const $unlinkBtn = $(this);
             const selector = $unlinkBtn.closest('.unlinkable');
-            const uploadable = MediaclassUploader.uploadable($unlinkBtn);
+            const uploadable = MediaclassManager.uploadable($unlinkBtn);
             const container = selector.closest('.uploaded');
 
-            // Store the delete data for use in the modal
             const deleteData = {
                 selector: selector,
                 container: container,
                 uploadable: uploadable,
-                formData: MediaclassUploader.deleteFormData(selector, uploadable)
+                formData: MediaclassManager.deleteFormData(selector, uploadable)
             };
 
-            const $modal = MediaclassUploader.confirmDeleteModal();
+            const $modal = MediaclassManager.confirmDeleteModal();
 
-            // Clean up any existing modal states
             $('.modal-backdrop').remove();
             $('body').removeClass('modal-open');
 
             try {
-                // Show the confirmation modal
                 $modal.modal('show');
             } catch (error) {
                 console.error('Error showing modal:', error);
             }
 
-            // Handle confirm button click
-            MediaclassUploader.confirmDeleteBtn().off('click').on('click', function () {
-                // Hide the modal first
-                MediaclassUploader.confirmDeleteModal().modal('hide');
+            MediaclassManager.confirmDeleteBtn()
+                .off('click.mediaclassDelete')
+                .on('click.mediaclassDelete', function () {
+                    MediaclassManager.confirmDeleteModal().modal('hide');
 
-                const ajaxUrl = String(deleteData.uploadable.attr('data-ajax') || '');
+                    const ajaxUrl = String(deleteData.uploadable.attr('data-ajax') || '');
 
-                if (!ajaxUrl) {
-                    console.error('Mediaclass delete aborted: missing uploader data-ajax URL.');
-                    return;
-                }
-
-                // Perform the deletion
-                MediaclassUploader.setVeil(deleteData.selector);
-                $.ajax({
-                    url: ajaxUrl,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: deleteData.formData,
-                    headers: {
-                        'X-CSRF-TOKEN': MediaclassUploader.csrfToken(),
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                }).done(function (response) {
-                    MediaclassUploader.printResponseMessages(deleteData.uploadable, response);
-
-                    if (
-                        !response
-                        || response.error
-                        || response.abort
-                        || String(response.deleted_id ?? '') !== String(deleteData.selector.attr('data-id') ?? '')
-                    ) {
+                    if (!ajaxUrl) {
+                        console.error('Mediaclass delete aborted: missing data-ajax URL.');
                         return;
                     }
 
-                    deleteData.selector.remove();
-                    MediaclassUploader.syncDetailsSaveButton(deleteData.uploadable);
-                    MediaclassUploader.syncSortable(deleteData.uploadable);
+                    MediaclassManager.setVeil(deleteData.selector);
+                    $.ajax({
+                        url: ajaxUrl,
+                        type: 'POST',
+                        dataType: 'json',
+                        data: deleteData.formData,
+                        headers: {
+                            'X-CSRF-TOKEN': MediaclassManager.csrfToken(),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    }).done(function (response) {
+                        MediaclassManager.printResponseMessages(deleteData.uploadable, response);
 
-                    if (deleteData.container.find('.unlinkable').length < 1) {
-                        const alertsContainer = deleteData.uploadable.find('.mediaclass-alerts').first();
-                        alertsContainer.html(`<div class="alert alert-info">${alertsContainer.data('msg')}</div>`);
-                    }
+                        if (
+                            !response
+                            || response.error
+                            || response.abort
+                            || String(response.deleted_id ?? '') !== String(deleteData.selector.attr('data-id') ?? '')
+                        ) {
+                            return;
+                        }
 
-                    if (!MediaclassUploader.isLimitReached(deleteData.uploadable)) {
-                        deleteData.uploadable.find('span.mediaclass-uploader').removeClass('disabled');
-                    }
-                }).always(function () {
-                    MediaclassUploader.removeVeil(deleteData.selector);
+                        deleteData.selector.remove();
+                        MediaclassManager.syncDetailsSaveButton(deleteData.uploadable);
+                        MediaclassManager.syncSortable(deleteData.uploadable);
+
+                        if (deleteData.container.find('.unlinkable').length < 1) {
+                            const alertsContainer = deleteData.uploadable.find('.mediaclass-alerts').first();
+                            alertsContainer.html(`<div class="alert alert-info">${alertsContainer.data('msg')}</div>`);
+                        }
+                    }).always(function () {
+                        MediaclassManager.removeVeil(deleteData.selector);
+                    });
                 });
-            });
         });
-    },
-
-    parseJsonResponse(responseText) {
-        try {
-            return JSON.parse(responseText);
-        } catch (error) {
-            return null;
-        }
     },
 
     deleteFormData(selector, uploadable) {
@@ -543,7 +453,7 @@ const MediaclassUploader = {
                 event.preventDefault();
 
                 const uploadable = $(this).closest('.mediaclass-uploadable');
-                const formData = MediaclassUploader.saveDescriptionsFormData(uploadable);
+                const formData = MediaclassManager.saveDescriptionsFormData(uploadable);
 
                 mfwAjax(formData, uploadable, {
                     spinner: true,
@@ -611,422 +521,24 @@ const MediaclassUploader = {
         $(document)
             .off('change.mediaclassVideoWidth', '.mediaclass-video-width-mode')
             .on('change.mediaclassVideoWidth', '.mediaclass-video-width-mode', function () {
-                MediaclassUploader.syncVideoWidthMode($(this));
+                MediaclassManager.syncVideoWidthMode($(this));
             });
-    },
-
-    uploaderCall() {
-        $('span.mediaclass-uploader').off().on('click', function () {
-            const instantiator = $(this).closest('.mediaclass-uploadable');
-            const uploadContainer = MediaclassUploader.uploadableContainer($(this));
-            const mediaType = MediaclassUploader.selectedMediaType(instantiator);
-
-            // Check if we've reached the upload limit
-            if (MediaclassUploader.isLimitReached(instantiator)) {
-                // Optional: Show a message that the limit has been reached
-                const limit = Number(instantiator.data('limit'));
-                const limitTemplate = MediaclassUploader.i18nText(instantiator, 'limit_reached');
-                const limitMessage = MediaclassUploader.interpolate(limitTemplate, {count: limit});
-                MediaclassUploader.alerts(instantiator).html(`<div class="alert alert-warning">${limitMessage}</div>`);
-                return; // Don't show the uploader
-            }
-
-            if (mediaType === 'video') {
-                MediaclassUploader.toggleVideoUrlForm(uploadContainer);
-                return;
-            }
-
-            if (uploadContainer.find('.fileupload-container').length < 1) {
-                uploadContainer.html(MediaclassUploader.template().html())
-                    .attr('data-description', instantiator.data('description'));
-
-                // Add dimension hint if requirements exist
-                const requiredWidth = instantiator.data('required-width');
-                const requiredHeight = instantiator.data('required-height');
-
-                if (requiredWidth && requiredHeight) {
-                    const fileuploadBar = uploadContainer.find('.fileupload-buttonbar');
-                    const dimensionsAreEnforced = Number(instantiator.data('enforce-dimensions')) !== 0;
-                    const dimensionTemplate = dimensionsAreEnforced
-                        ? MediaclassUploader.i18nText(instantiator, 'dimension_requirements')
-                        : MediaclassUploader.i18nText(instantiator, 'dimension_recommendations');
-                    const dimensionText = MediaclassUploader.interpolate(dimensionTemplate, {width: requiredWidth, height: requiredHeight});
-                    const dimensionHint = `<div class="dimension-requirements text-center mb-3">
-            <i class="bi bi-info-circle"></i>
-            <strong>${dimensionText}</strong>
-          </div>`;
-                    fileuploadBar.prepend(dimensionHint);
-                }
-
-                MediaclassUploader.initFileupload(uploadContainer);
-                MediaclassUploader.uploaderOptions(uploadContainer);
-            } else {
-                uploadContainer.html('');
-            }
-        });
-
-        // Immediately disable uploader buttons where limit is already reached
-        $('.mediaclass-uploadable').each(function () {
-            const $this = $(this);
-            if (MediaclassUploader.isLimitReached($this)) {
-                $this.find('span.mediaclass-uploader').addClass('disabled');
-            }
-        });
-    },
-
-    toggleVideoUrlForm(uploadContainer) {
-        const uploadable = this.uploadable(uploadContainer);
-
-        if (uploadContainer.find('.mediaclass-video-url-form').length > 0) {
-            uploadContainer.html('');
-            return;
-        }
-
-        uploadContainer.html(this.videoUrlForm(uploadable));
-        this.positions(uploadable);
-    },
-
-    videoUrlForm(uploadable) {
-        const videoUrlLabel = this.i18nText(uploadable, 'video_url_label', 'Video URL');
-        const videoUrlPlaceholder = this.i18nText(uploadable, 'video_url_placeholder', 'https://...');
-        const addLabel = this.i18nText(uploadable, 'add', 'Add');
-        const cancelLabel = this.i18nText(uploadable, 'cancel', 'Cancel');
-        const descriptionLabel = this.i18nText(uploadable, 'description_label', 'Description');
-        const positionsLabel = this.i18nText(uploadable, 'positions_label', 'Positions');
-        const hideDescription = Number(uploadable.attr('data-has-description')) !== 1;
-        const showPositions = uploadable.data('positions') === 1;
-
-        let positions = '';
-        if (showPositions) {
-            positions = `
-                <div class="col-12 positions text-center ps-2">
-                    <b>${positionsLabel}</b>
-                    <div class="choices pt-2">
-                        <i class="bi bi-arrow-left-square-fill active" data-position="left"></i>
-                        <i class="bi bi-arrow-up-square-fill" data-position="up"></i>
-                        <i class="bi bi-arrow-down-square-fill" data-position="down"></i>
-                        <i class="bi bi-arrow-right-square-fill" data-position="right"></i>
-                        <input type="hidden" name="position" value="left">
-                    </div>
-                </div>`;
-        }
-
-        const descriptions = this.mediaLocales(uploadable).map((locale) => `
-            <div class="col-12 description ${hideDescription ? 'd-none' : ''}">
-                <label class="form-label">${descriptionLabel} (${locale})</label>
-                <textarea name="description[${locale}]" class="form-control description" rows="3"></textarea>
-            </div>`).join('');
-
-        return `
-            <div class="mediaclass-video-url-form">
-                <div class="mb-3">
-                    <label class="form-label">${videoUrlLabel}</label>
-                    <input type="url" name="url" class="form-control" placeholder="${videoUrlPlaceholder}">
-                </div>
-                <div class="row params mt-3">
-                    ${this.videoDimensionsFields(uploadable)}
-                    ${positions}
-                    ${descriptions}
-                </div>
-                <button type="button" class="btn btn-sm btn-warning mediaclass-video-url-submit">${addLabel}</button>
-                <button type="button" class="btn btn-sm btn-secondary mediaclass-video-url-cancel ms-2">${cancelLabel}</button>
-            </div>`;
-    },
-
-    submitVideoUrl(button) {
-        const form = button.closest('.mediaclass-video-url-form');
-        const uploadable = this.uploadable(form);
-        const urlInput = form.find('input[name="url"]').first();
-        const url = String(urlInput.val() || '').trim();
-
-        MediaclassUploader.messages(uploadable).html('');
-
-        if (!this.isValidUrl(url)) {
-            const invalidUrl = this.i18nText(uploadable, 'invalid_url', 'The video URL is invalid');
-            notificator(200, {danger: [invalidUrl]}, this.messages(uploadable), false, {isDismissable: true});
-            urlInput.addClass('is-invalid');
-            return;
-        }
-
-        urlInput.removeClass('is-invalid');
-        this.setVeil(form);
-
-        const formData = [
-            {name: '_token', value: this.csrfToken()},
-            {name: 'action', value: 'uploadUrl'},
-            {name: 'group', value: uploadable.data('group')},
-            {name: 'subgroup', value: uploadable.data('subgroup')},
-            {name: 'positions', value: uploadable.data('positions')},
-            {name: 'model', value: uploadable.data('model')},
-            {name: 'model_id', value: uploadable.data('model-id')},
-            {name: 'mediaclass_temp_id', value: $('input[name="mediaclass_temp_id"]').first().val() ?? ''},
-            {name: 'count_files', value: 1},
-            {name: 'ghost', value: uploadable.data('ghost') || '0'},
-            {name: 'url', value: url},
-        ];
-
-        uploadable
-            .find(':input[name^="mediaclass_storable"]')
-            .serializeArray()
-            .forEach((field) => {
-                formData.push({
-                    name: field.name.replace(/^mediaclass_storable/, 'storables'),
-                    value: (field.value ?? '').trim(),
-                });
-            });
-
-        form
-            .find(':input[name]')
-            .not('[name="url"]')
-            .serializeArray()
-            .forEach((field) => {
-                formData.push({
-                    name: field.name,
-                    value: field.value
-                });
-            });
-
-        $.ajax({
-            url: this.template().data('ajax'),
-            type: 'POST',
-            dataType: 'json',
-            data: formData,
-            success: (data) => {
-                this.removeVeil(form);
-
-                if (data.hasOwnProperty('errors') || data.hasOwnProperty('error')) {
-                    const errorData = data.mfw_ajax_messages ?? data.messages;
-                    notificator(200, errorData, this.messages(uploadable), false, {isDismissable: true});
-                    return;
-                }
-
-                if (!data.uploaded) {
-                    const uploadErrorTitle = this.i18nText(uploadable, 'upload_error_title');
-                    notificator(uploadErrorTitle, 'danger', this.messages(uploadable));
-                    return;
-                }
-
-                this.printResponseMessages(uploadable, data);
-                this.executeCallback(uploadable, data);
-                this.appendUploadedMedia(uploadable, data, Number(uploadable.attr('data-has-description')) !== 1);
-                this.uploadableContainer(uploadable).html('');
-            },
-            error: () => {
-                this.removeVeil(form);
-                const uploadErrorGeneric = this.i18nText(uploadable, 'upload_error_generic');
-                notificator(200, {danger: [uploadErrorGeneric]}, this.messages(uploadable), false, {isDismissable: true});
-            }
-        });
-    },
-
-    uploaderOptions(uploadContainer) {
-        const fileuploadContainer = this.fileupload(uploadContainer);
-        const uploadable = this.uploadable(uploadContainer);
-        const limit = Number(uploadable.data('limit'));
-        const inputFileSize = uploadable.data('maxfilesize');
-        const maxFileSize = this.calculateMaxFileSize(inputFileSize);
-        const messagesUI = uploadable.find('.ui-messages');
-        const acceptFileTypes = this.i18nText(uploadable, 'accept_file_types');
-
-        // Get dimensions from data attributes
-        const requiredWidth = uploadable.data('required-width');
-        const requiredHeight = uploadable.data('required-height');
-
-        const options = {
-            previewMaxWidth: 220,
-            previewMaxHeight: 220,
-            acceptFileTypes: /(\.|\/)(jpe?g|png|svg|pdf)$/i,
-            maxFileSize: maxFileSize,
-            autoUpload: false,
-            maxNumberOfFiles: limit > 0 ? limit : null,
-            messages: {
-                maxNumberOfFiles: `${messagesUI.find('.maxNumberOfFiles').first().text()} ${limit}`,
-                acceptFileTypes: acceptFileTypes,
-                maxFileSize: `${messagesUI.find('.maxFileSize').first().text()} ${inputFileSize || ((this.defaultFileSize / 1024 / 1024) + 'MB')}`,
-            },
-        };
-
-        // Add dimension validation messages if requirements exist
-        if (requiredWidth && requiredHeight) {
-            const minWidthTemplate = this.i18nText(uploadable, 'min_image_width');
-            const minHeightTemplate = this.i18nText(uploadable, 'min_image_height');
-            const imageDimensionsTemplate = this.i18nText(uploadable, 'image_dimensions');
-            options.messages.minImageWidth = this.interpolate(minWidthTemplate, {width: requiredWidth});
-            options.messages.minImageHeight = this.interpolate(minHeightTemplate, {height: requiredHeight});
-            options.messages.imageDimensions = this.interpolate(imageDimensionsTemplate, {width: requiredWidth, height: requiredHeight});
-        }
-
-        fileuploadContainer.fileupload('option', options);
     },
 
     positions(uploadable) {
-        uploadable.find('.positions i').off().on('click', function () {
-            const $this = $(this);
-            const positionsContainer = $this.closest('.positions');
+        uploadable
+            .find('.positions i[data-position]')
+            .off('click.mediaclassPosition')
+            .on('click.mediaclassPosition', function () {
+                const positionButton = $(this);
+                const positionsContainer = positionButton.closest('.positions');
 
-            positionsContainer.find('i').removeClass('active');
-            $this.addClass('active');
-            positionsContainer.find('input').val($this.data('position'));
-        });
+                positionsContainer.find('i[data-position]').removeClass('active');
+                positionButton.addClass('active');
+                positionsContainer.find('input').val(positionButton.data('position'));
+            });
     },
 
-    initFileupload(uploadContainer) {
-        const fileuploadContainer = this.fileupload(uploadContainer);
-        const uploadable = this.uploadable(fileuploadContainer);
-        const hideDescription = Number(uploadable.attr('data-has-description')) !== 1;
-
-        // Only destroy existing fileupload instance if it exists to prevent conflicts
-        if (fileuploadContainer.data('blueimp-fileupload') || fileuploadContainer.data('fileupload')) {
-            fileuploadContainer.fileupload('destroy');
-        }
-
-        // Your original event handler for fileuploadadd
-        fileuploadContainer.off('fileuploadadd fileuploadsubmit');
-
-        fileuploadContainer.on('fileuploadadd', function () {
-            fileuploadContainer.find('.uploadables').removeClass('d-none');
-
-            setTimeout(() => {
-                if (uploadable.data('positions') !== 1) {
-                    uploadable.find('.positions').addClass('d-none');
-                }
-                if (hideDescription) {
-                    uploadable.find('.description').addClass('d-none');
-                }
-                MediaclassUploader.positions(uploadable);
-            }, 1);
-        }).fileupload({
-            url: MediaclassUploader.template().data('ajax'),
-            dataType: 'json',
-            context: fileuploadContainer[0],
-            sequentialUploads: true,
-            type: 'POST',
-            done: () => {
-                MediaclassUploader.progress(uploadable).hide();
-            },
-            success: (data) => {
-                MediaclassUploader.alerts(uploadable).html('');
-
-                // Check for errors FIRST before doing anything else
-                if (data.hasOwnProperty('errors') || data.hasOwnProperty('error')) {
-                    const errorData = data.mfw_ajax_messages ?? data.messages;
-                    notificator(200, errorData, MediaclassUploader.messages(uploadable), false, {isDismissable: true});
-
-                    uploadable.find('.files .template-upload').fadeOut(function () {
-                        $(this).remove();
-                        if (uploadable.find('.files .template-upload').length === 0) {
-                            uploadable.find('.uploadables').addClass('d-none');
-                        }
-                    });
-                    return;
-                }
-
-                if (!data.uploaded) {
-                    console.error('No uploaded data in response', data);
-                    const uploadErrorTitle = MediaclassUploader.i18nText(uploadable, 'upload_error_title');
-                    notificator(uploadErrorTitle, 'danger', MediaclassUploader.messages(uploadable));
-                    return;
-                }
-
-                // Execute callback if defined (before UI updates)
-                MediaclassUploader.printResponseMessages(uploadable, data);
-                MediaclassUploader.executeCallback(uploadable, data);
-
-                // Hide the upload queue first, then add the new content after it's hidden
-                uploadable.find('.files').fadeOut(300, function () {
-                    $(this).html('').show();
-                    MediaclassUploader.appendUploadedMedia(uploadable, data, hideDescription);
-                });
-            },
-            error: (xhr, ajaxOptions, thrownError) => {
-                console.error('Upload error:', xhr, thrownError);
-
-                // Check if it's a dimension error from the response
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    // Format the error for notificator
-                    const errorData = {
-                        danger: [xhr.responseJSON.errors]
-                    };
-                    notificator(200, errorData, MediaclassUploader.messages(uploadable), false, {isDismissable: true});
-                } else {
-                    // Generic error message
-                    const uploadErrorGeneric = MediaclassUploader.i18nText(uploadable, 'upload_error_generic');
-                    const errorData = {
-                        danger: [uploadErrorGeneric]
-                    };
-                    notificator(200, errorData, MediaclassUploader.messages(uploadable), false, {isDismissable: true});
-                }
-
-                // Clean up the upload UI
-                uploadable.find('.files .template-upload').fadeOut(function () {
-                    $(this).remove();
-
-                    // If no more files in queue, hide the uploadables section
-                    if (uploadable.find('.files .template-upload').length === 0) {
-                        uploadable.find('.uploadables').addClass('d-none');
-                    }
-                });
-            },
-            start: () => {
-                MediaclassUploader.messages(uploadable).html('');
-                MediaclassUploader.progress(uploadable).show();
-            },
-        });
-
-        fileuploadContainer.on('fileuploadsubmit', (e, data) => {
-            MediaclassUploader.messages(uploadable).html('');
-
-            // Count valid files
-            let validFiles = 0;
-            uploadable.find('.files > div').each(function () {
-                if ($(this).find('.error').first().text().length < 1) {
-                    validFiles += 1;
-                }
-            });
-
-            // Get cropable data
-            let cropableData = uploadable.data('cropable');
-
-            // If it's already a string (JSON), use it as is
-            // If it's an object, stringify it
-            if (typeof cropableData === 'object' && cropableData !== null) {
-                cropableData = JSON.stringify(cropableData);
-            }
-
-            // Set form data
-            data.formData = [
-                {name: '_token', value: MediaclassUploader.csrfToken()},
-                {name: 'action', value: 'upload'},
-                {name: 'group', value: uploadable.data('group')},
-                {name: 'subgroup', value: uploadable.data('subgroup')},
-                {name: 'positions', value: uploadable.data('positions')},
-                {name: 'model', value: uploadable.data('model')},
-                {name: 'model_id', value: uploadable.data('model-id')},
-                {name: 'mediaclass_temp_id', value: $('input[name="mediaclass_temp_id"]').first().val() ?? ''},
-                {name: 'count_files', value: validFiles},
-                {name: 'ghost', value: uploadable.data('ghost') || '0'},
-                {name: 'cropable', value: cropableData || ''},
-            ];
-
-            uploadable
-                .find(':input[name^="mediaclass_storable"]')
-                .serializeArray()
-                .forEach((field) => {
-                    data.formData.push({
-                        name: field.name.replace(/^mediaclass_storable/, 'storables'),
-                        value: (field.value ?? '').trim(),
-                    });
-                });
-
-            // Add form fields
-            data.context.find('textarea, input').each(function () {
-                data.formData.push({
-                    name: $(this).attr('name'),
-                    value: $(this).val()
-                });
-            });
-        });
-    },
 
     appendUploadedMedia(uploadable, data, hideDescription) {
         const html = this.buildUploadedFileHTML(data, hideDescription, uploadable);
@@ -1040,21 +552,13 @@ const MediaclassUploader = {
 
         lightGalleryContainer.append(html);
         this.unlinkable();
+        this.positions(uploadable);
         this.syncDetailsSaveButton(uploadable);
         this.syncSortable(uploadable);
 
         setTimeout(() => {
             this.refreshLightGallery(lightGalleryContainer);
         }, 100);
-
-        if (this.isLimitReached(uploadable)) {
-            uploadable.find('span.mediaclass-uploader').addClass('disabled');
-            this.uploadableContainer(uploadable).html('');
-        } else if (uploadable.find('.uploaded div.mediaclass.unlinkable').length === Number(data.count_files)) {
-            this.uploadableContainer(uploadable).html('');
-        }
-
-        this.modalCrop();
     },
 
     buildUploadedFileHTML(data, hideDescription, uploadable) {
@@ -1148,7 +652,7 @@ const MediaclassUploader = {
                     <div class="choices pt-2">`;
 
         // Add position buttons
-        for (const position of this.positions_tags) {
+        for (const position of this.positionNames) {
             const isActive = uploaded.position === position ? ' active' : '';
             html += `<i class="bi bi-arrow-${position}-square-fill${isActive}" data-position="${position}"></i>`;
         }
@@ -1187,30 +691,25 @@ const MediaclassUploader = {
 
     modalCrop() {
         const $modal = $('#mediaclass-crop');
-        const ajaxUrl = this.template().data('ajax');
 
-        // Clean up any existing event handlers
-        $modal.off('shown.bs.modal');
-        $modal.off('hidden.bs.modal');
+        $(document).off('click.mediaclassCrop', '.crop-actions-bar .crop');
         $(document).off('ajaxSuccess.mediaclassCrop');
+        $modal.off('click.mediaclassCrop', '#mediaclass-delete-crop-btn');
+        $modal.off('hidden.bs.modal.mediaclassCrop');
 
-        // Handle crop button clicks
-        $(document).on('click', '.crop-actions-bar .crop', function (e) {
+        $(document).on('click.mediaclassCrop', '.crop-actions-bar .crop', function (e) {
             e.preventDefault();
             const $btn = $(this);
             const isView = $btn.hasClass('cropped');
+            const ajaxUrl = String(MediaclassManager.uploadable($btn).attr('data-ajax') || '');
 
-            // Clear previous modal content
             $modal.find('.modal-body').empty();
 
             if (isView) {
-                // Clone the template content
                 const template = $('#mediaclass-crop-view-template').html();
                 $modal.find('.modal-body').html(template);
 
-                // Set timeout to ensure DOM is ready
                 setTimeout(() => {
-                    // Populate modal content
                     const cropLabel = $btn.data('crop-label') || $btn.data('crop-key');
 
                     $modal.find('.crop-key-title').text(cropLabel);
@@ -1220,17 +719,14 @@ const MediaclassUploader = {
                     $modal.find('.crop-preview-image')
                         .attr('src', $btn.data('preview-url'));
 
-                    // Get filename from parent element
                     const filename = $btn.closest('.mediaclass').find('.name span:first').text();
                     $modal.find('.crop-filename').text($btn.data('crop-key') + '_' + filename);
 
-                    // Set form values
                     const $form = $modal.find('#mediaclass-delete-crop-form');
                     $form.attr('data-ajax', ajaxUrl);
                     $form.attr('data-media-id', $btn.data('media-id'));
                     $form.attr('data-crop-key', $btn.data('crop-key'));
 
-                    // Resize container to image width (cap at modal width and 1140px)
                     const $container = $modal.find('.crop-view-container');
                     const $img = $modal.find('.crop-preview-image');
                     const setContainerWidth = () => {
@@ -1256,20 +752,17 @@ const MediaclassUploader = {
 
                 $modal.modal('show');
             } else {
-                // Load crop editor
                 $modal.find('.modal-body').load($btn.attr('href'), function () {
                     $modal.modal('show');
                 });
             }
         });
 
-        // Handle delete button click
-        $modal.on('click', '#mediaclass-delete-crop-btn', function () {
-            let c = MediaclassUploader.deleteCropForm();
+        $modal.on('click.mediaclassCrop', '#mediaclass-delete-crop-btn', function () {
+            const c = MediaclassManager.deleteCropForm();
             mfwAjax('action=deleteCrop&media_id=' + c.attr('data-media-id') + '&crop_key=' + c.attr('data-crop-key'), $(c));
         });
 
-        // Handle AJAX success
         $(document).on('ajaxSuccess.mediaclassCrop', function (_e, xhr) {
             const ct = (xhr.getResponseHeader('Content-Type') || '').toLowerCase();
             if (!ct.includes('application/json')) return;
@@ -1277,15 +770,14 @@ const MediaclassUploader = {
             try {
                 const res = JSON.parse(xhr.responseText);
                 if (res.action === 'delete_crop') {
-                    MediaclassUploader.deletedCrop(res);
+                    MediaclassManager.deletedCrop(res);
                 }
             } catch (e) {
                 console.error('Error parsing JSON response', e);
             }
         });
 
-        // Clean up on modal close
-        $modal.on('hidden.bs.modal', function () {
+        $modal.on('hidden.bs.modal.mediaclassCrop', function () {
             $(this).find('.modal-body').empty();
             $(this).find('.mediaclass-crop-dialog').css('width', '');
         });
@@ -1295,17 +787,13 @@ const MediaclassUploader = {
         setTimeout(() => {
             const $modalCrop = $('#mediaclass-crop');
             $modalCrop.modal('hide');
-
-            $('body').on('hidden.bs.modal', '.modal', function () {
-                $modalCrop.find('.modal-body').html('');
-            });
         }, 1500);
     },
 
     cropped: function (result) {
         // Update the UI after cropping
         if (result.uploaded && result.uploaded.id) {
-            var $mediaElement = $('#mediaclass-' + result.uploaded.id);
+            const $mediaElement = $('#mediaclass-' + result.uploaded.id);
 
             // If we have a crop_key in the result, update that specific button
             if (result.crop_key) {
@@ -1334,11 +822,7 @@ const MediaclassUploader = {
 
             // Original code for updating other elements
             if (result.cropable_links) {
-                // Replace the entire crop actions bar with the updated one
                 $mediaElement.find('.crop-actions-bar').replaceWith(result.cropable_links);
-
-                // Re-initialize the crop actions for the new buttons
-                this.initCropActions();
             }
 
             // Update the preview image if new URL provided
@@ -1348,7 +832,7 @@ const MediaclassUploader = {
             }
         }
 
-        MediaclassUploader.hideModal();
+        MediaclassManager.hideModal();
     },
 
     // Method called after deleting a crop
@@ -1384,17 +868,7 @@ const MediaclassUploader = {
             }
         }
 
-        MediaclassUploader.hideModal();
-    },
-
-    initCropActions: function () {
-        // Modal already handles the loading via href, just ensure it's properly initialized
-        var $modalCrop = $('#mediaclass-crop');
-
-        // Ensure modal content is cleared when hidden
-        $modalCrop.off('hidden.bs.modal').on('hidden.bs.modal', function () {
-            $(this).find('.modal-body').empty();
-        });
+        MediaclassManager.hideModal();
     },
 
     fixModalLocation() {
@@ -1425,7 +899,7 @@ const MediaclassUploader = {
     },
 
     fixExistingFileLinks() {
-        const uploader = this;
+        const manager = this;
 
         // Find all non-image preview areas (files like PDFs)
         $('.mediaclass .preview.file').each(function () {
@@ -1441,7 +915,7 @@ const MediaclassUploader = {
                 const bgStyle = $previewDiv.attr('style');
 
                 // Clone the actions div to preserve it
-                const $actions = uploader.actionsWithoutLinks($previewDiv.find('.actions').clone());
+                const $actions = manager.actionsWithoutLinks($previewDiv.find('.actions').clone());
 
                 // Create a new link that will replace the div
                 const $newLink = $('<a>')
@@ -1470,7 +944,7 @@ const MediaclassUploader = {
 
                 // Get the background image style from the div
                 const bgStyle = $previewDiv.attr('style');
-                const thumbUrl = $existingLink.attr('data-thumb') || uploader.backgroundImageUrl(bgStyle);
+                const thumbUrl = $existingLink.attr('data-thumb') || manager.backgroundImageUrl(bgStyle);
 
                 // Get the description for lightgallery
                 const $mediaElement = $preview.closest('.mediaclass');
@@ -1478,7 +952,7 @@ const MediaclassUploader = {
                 const description = $mediaElement.find('textarea.description').first().val() || '';
 
                 // Clone the actions div
-                const $actions = uploader.actionsWithoutLinks($previewDiv.find('.actions').clone());
+                const $actions = manager.actionsWithoutLinks($previewDiv.find('.actions').clone());
 
                 // Create new lightgallery link
                 const $newLink = $('<a>')
@@ -1499,76 +973,186 @@ const MediaclassUploader = {
         // Re-initialize LightGallery for image and video items.
         $('.lightgallery-container').each(function () {
             const $container = $(this);
-            uploader.refreshLightGallery($container);
+            manager.refreshLightGallery($container);
         });
     },
 
-    bindMediaTypeOptions() {
+    parseSubgroupJson(value) {
+        try {
+            return JSON.parse(String(value || '{}'));
+        } catch (error) {
+            return {};
+        }
+    },
+
+    subgroupConfig(uploadable) {
+        const options = this.parseSubgroupJson(uploadable.attr('data-subgroup-options'));
+
+        if (Object.keys(options).length < 1) {
+            return null;
+        }
+
+        return {
+            options,
+            values: this.parseSubgroupJson(uploadable.attr('data-subgroup-values')),
+            label: String(uploadable.attr('data-subgroup-label') || 'Display group'),
+            emptyLabel: String(uploadable.attr('data-subgroup-empty-label') || 'No subgroup')
+        };
+    },
+
+    ensureSubgroupSelect(uploadedImage, uploadable, config) {
+        const mediaId = String(uploadedImage.data('id') || '');
+
+        if (
+            !mediaId
+            || String(uploadedImage.data('bridge') || '0') === '1'
+            || uploadedImage.find('[data-mediaclass-subgroup-select]').length
+            || !uploadedImage.find('.preview.image').length
+        ) {
+            return;
+        }
+
+        const selectedValue = String(config.values[mediaId] || '');
+        const control = $('<div>', {
+            class: 'col-12 mediaclass-subgroup ps-2 mb-2'
+        });
+        const label = $('<label>', {
+            class: 'form-label fw-semibold mb-1',
+            text: config.label
+        });
+        const select = $('<select>', {
+            class: 'form-control form-control-sm',
+            'data-mediaclass-subgroup-select': '1',
+            'data-saved-value': selectedValue
+        });
+
+        select.append($('<option>', {
+            value: '',
+            text: config.emptyLabel
+        }));
+
+        Object.entries(config.options).forEach(([value, text]) => {
+            select.append($('<option>', {value, text}));
+        });
+
+        select.val(selectedValue);
+        control.append(label, select);
+
+        const params = uploadedImage.find('.row.params').first();
+        if (params.length) {
+            params.prepend(control);
+
+            return;
+        }
+
+        uploadedImage.find('.impFileName').first().append(control);
+    },
+
+    attachSubgroupSelects(uploadable) {
+        const config = this.subgroupConfig(uploadable);
+
+        if (!config) {
+            return;
+        }
+
+        uploadable.find('.uploaded .mediaclass.uploaded-image').each((_, element) => {
+            this.ensureSubgroupSelect($(element), uploadable, config);
+        });
+    },
+
+    bindSubgroups() {
+        $('.mediaclass-uploadable').each((_, element) => {
+            const uploadable = $(element);
+            const uploaded = uploadable.find('.uploaded').first();
+
+            this.attachSubgroupSelects(uploadable);
+
+            if (!window.MutationObserver || !uploaded.length || uploaded.get(0).mediaclassSubgroupObserver) {
+                return;
+            }
+
+            const observer = new MutationObserver(() => this.attachSubgroupSelects(uploadable));
+            observer.observe(uploaded.get(0), {
+                childList: true,
+                subtree: true
+            });
+            uploaded.get(0).mediaclassSubgroupObserver = observer;
+        });
+
         $(document)
-            .off('change.mediaclassMediaType', '.mediaclass-media-type')
-            .on('change.mediaclassMediaType', '.mediaclass-media-type', function () {
-                const uploadable = $(this).closest('.mediaclass-uploadable');
-                const uploadContainer = MediaclassUploader.uploadableContainer(uploadable);
+            .off('change.mediaclassSubgroup', '[data-mediaclass-subgroup-select]')
+            .on('change.mediaclassSubgroup', '[data-mediaclass-subgroup-select]', (event) => {
+                const select = $(event.currentTarget);
+                const uploadedImage = select.closest('.mediaclass.uploaded-image');
+                const uploadable = select.closest('.mediaclass-uploadable');
+                const payload = $.param({
+                    action: 'saveSubgroup',
+                    model: uploadable.data('model') || '',
+                    model_id: uploadable.data('model-id') || '',
+                    group: uploadable.data('group') || '',
+                    ghost: uploadable.data('ghost') || '0',
+                    media_id: uploadedImage.data('id'),
+                    subgroup: select.val() || ''
+                });
 
-                uploadContainer.html('');
+                mfwAjax(payload, uploadable, {
+                    errorHandler: () => {
+                        select.val(select.attr('data-saved-value') || '');
 
-                if (MediaclassUploader.selectedMediaType(uploadable) === 'video') {
-                    MediaclassUploader.toggleVideoUrlForm(uploadContainer);
-                }
-            })
-            .off('click.mediaclassVideoUrlSubmit', '.mediaclass-video-url-submit')
-            .on('click.mediaclassVideoUrlSubmit', '.mediaclass-video-url-submit', function () {
-                MediaclassUploader.submitVideoUrl($(this));
-            })
-            .off('click.mediaclassVideoUrlCancel', '.mediaclass-video-url-cancel')
-            .on('click.mediaclassVideoUrlCancel', '.mediaclass-video-url-cancel', function () {
-                MediaclassUploader.uploadableContainer($(this)).html('');
+                        return true;
+                    },
+                    successHandler: (result) => {
+                        const values = this.parseSubgroupJson(uploadable.attr('data-subgroup-values'));
+                        const mediaId = String(result.media_id);
+                        const subgroup = result.subgroup ? String(result.subgroup) : '';
+
+                        if (subgroup) {
+                            values[mediaId] = subgroup;
+                        } else {
+                            delete values[mediaId];
+                        }
+
+                        uploadable.attr('data-subgroup-values', JSON.stringify(values));
+                        select.val(subgroup).attr('data-saved-value', subgroup);
+                        $(document).trigger('mediaclass:subgroup-saved', [result, uploadable, select]);
+
+                        return true;
+                    }
+                });
             });
     },
 
     init() {
-        // Fix modal locations first
         this.fixModalLocation();
 
-        // Also fix on tab changes
         $('a[data-toggle="tab"], button[data-bs-toggle="tab"]').on('shown.bs.tab', () => {
             this.fixModalLocation();
         });
 
         this.fixExistingFileLinks();
 
-        // Initialize positions for all uploadable elements
         $('.mediaclass-uploadable').each(function () {
-            MediaclassUploader.positions($(this));
-            MediaclassUploader.syncDetailsSaveButton($(this));
-            MediaclassUploader.syncSortable($(this));
+            MediaclassManager.positions($(this));
+            MediaclassManager.syncDetailsSaveButton($(this));
+            MediaclassManager.syncSortable($(this));
 
             $(this).find('.mediaclass-video-width-mode').each(function () {
-                MediaclassUploader.syncVideoWidthMode($(this));
+                MediaclassManager.syncVideoWidthMode($(this));
             });
         });
 
-        // Setup event handlers
-        this.uploaderCall();
         this.unlinkable();
         this.bindDescriptionSave();
         this.bindVideoDimensions();
-        this.bindMediaTypeOptions();
+        this.bindSubgroups();
         this.modalCrop();
-        this.initCropActions();
     },
 };
 
-window.MediaclassUploader = MediaclassUploader;
+window.MediaclassManager = MediaclassManager;
+window.mediaclassDeletedCrop = (result) => MediaclassManager.deletedCrop(result);
+window.mediaclassCropped = (result) => MediaclassManager.cropped(result);
 
-// Initialize the module
-MediaclassUploader.init();
-
-// Callbacks
-function mediaclassDeletedCrop(result) {
-    MediaclassUploader.deletedCrop(result);
-}
-
-function mediaclassCropped(result) {
-    MediaclassUploader.cropped(result);
+export function initMediaManager() {
+    MediaclassManager.init();
 }

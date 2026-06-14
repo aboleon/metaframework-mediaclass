@@ -1,5 +1,6 @@
 import { mount } from 'svelte';
 import Uploadable from './Uploadable.svelte';
+import { initMediaManager } from './media-manager.js';
 
 const mounted = new WeakMap<Element, ReturnType<typeof mount>>();
 
@@ -19,9 +20,14 @@ export function init(root: ParentNode = document): void {
 if (typeof window !== 'undefined') {
   window.MediaclassSvelteUploader = { init };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => init());
-  } else {
+  const initAll = (): void => {
+    initMediaManager();
     init();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll, { once: true });
+  } else {
+    initAll();
   }
 }

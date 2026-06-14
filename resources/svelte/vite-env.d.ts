@@ -3,10 +3,12 @@
 
 declare global {
   interface Window {
-    MediaclassUploader?: MediaclassLegacyBridge;
+    MediaclassManager?: MediaclassManagerBridge;
     MediaclassSvelteUploader?: {
       init(root?: ParentNode): void;
     };
+    mediaclassCropped?: (result: UploadResponse) => void;
+    mediaclassDeletedCrop?: (result: UploadResponse) => void;
     jQuery?: JQueryStatic;
     notificator?: (
       status: number | string,
@@ -17,7 +19,7 @@ declare global {
     ) => void;
   }
 
-  interface MediaclassLegacyBridge {
+  interface MediaclassManagerBridge {
     appendUploadedMedia(
       uploadable: JQuery<HTMLElement>,
       data: UploadResponse,

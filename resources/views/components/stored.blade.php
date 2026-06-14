@@ -181,32 +181,10 @@
     @endif
 </div>
 
-{{-- Include LightGallery CSS and JS once --}}
 @pushonce('css')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery-bundle.min.css"
         integrity="sha512-fXavT4uA4L0uTUFHC275D7zd751ohbSuD6VUMc5JysWfmR+NxTI3w7etE7N9hjTETcoh0w0V+24Cel4xXnqvCg=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-    <style>
-        /* Custom styles for lightgallery integration */
-        .lightgallery-item {
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .lightgallery-item:hover {
-            transform: scale(1.1);
-        }
-
-        /* Hide non-image items from lightgallery */
-        .lightgallery-container .file {
-            pointer-events: none;
-        }
-
-        .lightgallery-container .file .lightgallery-item {
-            display: none;
-        }
-    </style>
 @endpushonce
 
 @pushonce('js')
@@ -214,34 +192,4 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/zoom/lg-zoom.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/thumbnail/lg-thumbnail.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/video/lg-video.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.lightgallery-container').forEach(container => {
-                const galleryItems = container.querySelectorAll('.lightgallery-item');
-                if (galleryItems.length > 0) {
-                    if (container.mediaclassLightGallery) {
-                        container.mediaclassLightGallery.destroy();
-                    }
-
-                    container.mediaclassLightGallery = lightGallery(container, {
-                        selector: '.lightgallery-item',
-                        speed: 500,
-                        download: true,
-                        counter: true,
-                        zoom: true,
-                        thumbnail: galleryItems.length > 1,
-                        exThumbImage: 'data-thumb',
-                        autoplayFirstVideo: true,
-                        autoplayVideoOnSlide: true,
-                        plugins: [lgZoom, lgThumbnail, lgVideo],
-                        mobileSettings: {
-                            controls: true,
-                            showCloseIcon: true,
-                            download: true
-                        }
-                    });
-                }
-            });
-        });
-    </script>
 @endpushonce

@@ -10,28 +10,29 @@ class UploaderAssetTest extends TestCase
 {
     public function test_uploader_configures_lightgallery_thumbnails_from_preview_urls(): void
     {
-        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
 
-        $this->assertStringContainsString("exThumbImage: 'data-thumb'", $uploaderScript);
-        $this->assertStringContainsString('data-thumb="${preview}"', $uploaderScript);
-        $this->assertStringContainsString("attr('data-thumb', thumbUrl)", $uploaderScript);
+        $this->assertStringContainsString("exThumbImage: 'data-thumb'", $managerSource);
+        $this->assertStringContainsString('data-thumb="${preview}"', $managerSource);
+        $this->assertStringContainsString("attr('data-thumb', thumbUrl)", $managerSource);
     }
 
     public function test_uploader_removes_nested_links_from_reloaded_preview_actions(): void
     {
-        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
 
-        $this->assertStringContainsString('actionsWithoutLinks(actions)', $uploaderScript);
-        $this->assertStringContainsString('$(this).replaceWith($(this).contents());', $uploaderScript);
+        $this->assertStringContainsString('actionsWithoutLinks(actions)', $managerSource);
+        $this->assertStringContainsString('$(this).replaceWith($(this).contents());', $managerSource);
     }
 
     public function test_uploader_prints_success_response_messages(): void
     {
-        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
+        $svelteSource = file_get_contents(__DIR__ . '/../../resources/svelte/Uploadable.svelte');
 
-        $this->assertStringContainsString('printResponseMessages(uploadable, data)', $uploaderScript);
-        $this->assertStringContainsString("instantiator.data('enforce-dimensions')", $uploaderScript);
-        $this->assertStringContainsString("'dimension_recommendations'", $uploaderScript);
+        $this->assertStringContainsString('printResponseMessages(uploadable, data)', $managerSource);
+        $this->assertStringContainsString("text('dimension_requirements'", $svelteSource);
+        $this->assertStringContainsString("text('dimension_recommendations'", $svelteSource);
     }
 
     public function test_uploadable_component_mounts_svelte_uploader(): void
@@ -42,7 +43,9 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString('data-media-types', $uploadableView);
         $this->assertStringContainsString('data-ajax="{{ route(\'mediaclass.ajax\') }}"', $uploadableView);
         $this->assertStringNotContainsString('<x-mediaclass::template', $uploadableView);
-        $this->assertStringContainsString('mediaclass-upload-container d-none', $uploadableView);
+        $this->assertStringNotContainsString('mediaclass-upload-container', $uploadableView);
+        $this->assertStringNotContainsString('<style>', $uploadableView);
+        $this->assertStringNotContainsString('<script>', $uploadableView);
     }
 
     public function test_svelte_uploader_assets_are_loaded_without_blueimp_runtime(): void
@@ -51,10 +54,9 @@ class UploaderAssetTest extends TestCase
         $stylesView = file_get_contents(__DIR__ . '/../../resources/views/scripts/css.blade.php');
 
         $this->assertStringContainsString('sortablejs@1.15.7/Sortable.min.js', $scriptsView);
-        $this->assertStringContainsString("asset('vendor/mfw-mediaclass/uploader.js')", $scriptsView);
         $this->assertStringContainsString("asset('vendor/mfw-mediaclass/mediaclass-uploader.js')", $scriptsView);
-        $this->assertStringContainsString("filemtime(public_path('vendor/mfw-mediaclass/uploader.js'))", $scriptsView);
         $this->assertStringContainsString("filemtime(public_path('vendor/mfw-mediaclass/mediaclass-uploader.js'))", $scriptsView);
+        $this->assertStringNotContainsString('uploader.js', str_replace('mediaclass-uploader.js', '', $scriptsView));
         $this->assertStringNotContainsString('jQuery-File-Upload/js/jquery.fileupload.js', $scriptsView);
         $this->assertStringNotContainsString('jQuery-File-Upload/css/jquery.fileupload.css', $stylesView);
         $this->assertStringNotContainsString('mediaclass-uploader.css', $stylesView);
@@ -90,41 +92,40 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString('window.MediaclassSvelteUploader', $compiledScript);
         $this->assertStringContainsString('mediaclass-svelte-toolbar', $compiledScript);
         $this->assertStringContainsString('XMLHttpRequest', $compiledScript);
+        $this->assertStringContainsString('MediaclassManager', $compiledScript);
         $this->assertStringNotContainsString('document.createElement("style")', $compiledScript);
         $this->assertStringContainsString('.mediaclass-svelte-panel', $stylesheet);
         $this->assertStringContainsString('.mediaclass-svelte-toolbar', $stylesheet);
     }
 
-    public function test_legacy_uploader_bridge_is_exposed_for_svelte(): void
+    public function test_media_manager_is_bundled_with_the_svelte_uploader(): void
     {
-        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
+        $entrySource = file_get_contents(__DIR__ . '/../../resources/svelte/mediaclass-uploader.ts');
 
-        $this->assertStringContainsString('window.MediaclassUploader = MediaclassUploader;', $uploaderScript);
-        $this->assertStringContainsString('appendUploadedMedia(uploadable, data, hideDescription)', $uploaderScript);
-        $this->assertStringContainsString('printResponseMessages(uploadable, data)', $uploaderScript);
+        $this->assertStringContainsString('window.MediaclassManager = MediaclassManager;', $managerSource);
+        $this->assertStringContainsString('appendUploadedMedia(uploadable, data, hideDescription)', $managerSource);
+        $this->assertStringContainsString('printResponseMessages(uploadable, data)', $managerSource);
+        $this->assertStringContainsString("import { initMediaManager } from './media-manager.js';", $entrySource);
     }
 
     public function test_delete_uses_the_owning_uploaders_ajax_url_and_full_media_identity(): void
     {
-        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
 
-        $this->assertStringContainsString("deleteData.uploadable.attr('data-ajax')", $uploaderScript);
-        $this->assertStringContainsString("model_id: uploadable.attr('data-model-id')", $uploaderScript);
-        $this->assertStringContainsString("group: uploadable.attr('data-group')", $uploaderScript);
-        $this->assertStringContainsString("String(response.deleted_id ?? '')", $uploaderScript);
-        $this->assertStringNotContainsString(
-            'mfwAjax(deleteData.formData, MediaclassUploader.template())',
-            $uploaderScript,
-        );
-        $this->assertStringNotContainsString('ajaxSuccess.mediaclassDelete', $uploaderScript);
+        $this->assertStringContainsString("deleteData.uploadable.attr('data-ajax')", $managerSource);
+        $this->assertStringContainsString("model_id: uploadable.attr('data-model-id')", $managerSource);
+        $this->assertStringContainsString("group: uploadable.attr('data-group')", $managerSource);
+        $this->assertStringContainsString("String(response.deleted_id ?? '')", $managerSource);
+        $this->assertStringNotContainsString('ajaxSuccess.mediaclassDelete', $managerSource);
     }
 
     public function test_video_forms_include_editable_embed_dimensions(): void
     {
-        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
         $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
 
-        $this->assertStringContainsString("videoDimensionsFields(uploadable, namePrefix = '', storable = {})", $uploaderScript);
+        $this->assertStringContainsString("videoDimensionsFields(uploadable, namePrefix = '', storable = {})", $managerSource);
         $this->assertStringContainsString('value="full"', $storedView);
         $this->assertStringContainsString('mediaclass-video-width-mode', $storedView);
         $this->assertStringContainsString('[embed_height]', $storedView);
@@ -132,14 +133,14 @@ class UploaderAssetTest extends TestCase
 
     public function test_video_previews_use_lightgallery_posters_and_autoplay(): void
     {
-        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
         $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
 
-        $this->assertStringContainsString('data-poster="${preview}"', $uploaderScript);
-        $this->assertStringContainsString('data-src="${link}"', $uploaderScript);
-        $this->assertStringContainsString('plugins: [lgZoom, lgThumbnail, lgVideo]', $uploaderScript);
-        $this->assertStringContainsString('autoplayFirstVideo: true', $uploaderScript);
-        $this->assertStringContainsString('autoplayVideoOnSlide: true', $uploaderScript);
+        $this->assertStringContainsString('data-poster="${preview}"', $managerSource);
+        $this->assertStringContainsString('data-src="${link}"', $managerSource);
+        $this->assertStringContainsString('plugins: [lgZoom, lgThumbnail, lgVideo]', $managerSource);
+        $this->assertStringContainsString('autoplayFirstVideo: true', $managerSource);
+        $this->assertStringContainsString('autoplayVideoOnSlide: true', $managerSource);
         $this->assertStringContainsString('data-poster="{{ $preview }}"', $storedView);
         $this->assertStringContainsString('plugins/video/lg-video.min.js', $storedView);
     }
@@ -163,16 +164,28 @@ class UploaderAssetTest extends TestCase
 
     public function test_uploader_supports_persistent_left_to_right_sorting(): void
     {
-        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
         $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
         $scriptsView = file_get_contents(__DIR__ . '/../../resources/views/scripts/js.blade.php');
 
         $this->assertStringContainsString('sortablejs@1.15.7/Sortable.min.js', $scriptsView);
-        $this->assertStringContainsString("action: 'reorder'", $uploaderScript);
-        $this->assertStringContainsString("handle: '.mediaclass-sort-handle'", $uploaderScript);
-        $this->assertStringContainsString('media_ids: mediaIds', $uploaderScript);
-        $this->assertStringContainsString('mediaclass:reordered', $uploaderScript);
+        $this->assertStringContainsString("action: 'reorder'", $managerSource);
+        $this->assertStringContainsString("handle: '.mediaclass-sort-handle'", $managerSource);
+        $this->assertStringContainsString('media_ids: mediaIds', $managerSource);
+        $this->assertStringContainsString('mediaclass:reordered', $managerSource);
         $this->assertStringContainsString('data-sort-order="{{ $media->sort_order }}"', $storedView);
         $this->assertStringContainsString('bi-grip-vertical', $storedView);
+    }
+
+    public function test_v1_does_not_ship_blueimp_or_legacy_uploader_components(): void
+    {
+        $this->assertDirectoryDoesNotExist(
+            __DIR__ . '/../../public/vendor/mfw-mediaclass/jQuery-File-Upload',
+        );
+        $this->assertFileDoesNotExist(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $this->assertFileDoesNotExist(__DIR__ . '/../../src/Components/Template.php');
+        $this->assertFileDoesNotExist(__DIR__ . '/../../resources/views/components/template.blade.php');
+        $this->assertFileDoesNotExist(__DIR__ . '/../../resources/views/fileupload_scripts.blade.php');
+        $this->assertFileExists(__DIR__ . '/../../resources/views/assets.blade.php');
     }
 }

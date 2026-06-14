@@ -184,7 +184,7 @@ class MediaclassDescriptionSaveTest extends TestCase
     public function test_uploadable_component_renders_translated_media_details_save_button(): void
     {
         $view = file_get_contents(__DIR__ . '/../../resources/views/components/uploadable.blade.php');
-        $script = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $script = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
         $svelteSource = file_get_contents(__DIR__ . '/../../resources/svelte/Uploadable.svelte');
 
         $this->assertStringContainsString("data-ajax=\"{{ route('mediaclass.ajax') }}\"", $view);

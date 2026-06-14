@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace MetaFramework\Mediaclass\Components;
 
 use Illuminate\Contracts\Support\Renderable;
-use Illuminate\Support\Str;
 use Illuminate\View\Component;
 use MetaFramework\Mediaclass\Support\Config as MediaclassConfig;
 use MetaFramework\Mediaclass\Support\Subgroups;
@@ -16,13 +15,9 @@ class Uploadable extends Component
 
     public ?int $requiredHeight = null;
 
-    public string $displayLabel = '';
-
     public string $dimensionsInline = '';
 
     public array $mediaTypeOptions = [];
-
-    public string $mediaTypeInputName;
 
     public array $mediaLocales = [];
 
@@ -90,7 +85,6 @@ class Uploadable extends Component
                 ? Subgroups::values($this->model, $this->group, $this->ghost)
                 : [];
         }
-        $this->mediaTypeInputName = 'mediaclass_media_type_' . Str::random(10);
         $this->mediaLocales = $this->resolveMediaLocales();
         $this->description = $this->description ? 1 : 0;
         $this->nomedia = $this->nomedia ?: __('mfw-mediaclass.no_media');
@@ -106,8 +100,8 @@ class Uploadable extends Component
                     foreach ($groupSettings['sizes'] as $value) {
                         if (is_array($value) && isset($value['width'], $value['height'])) {
                             $groupSizes[] = [
-                                (int)$value['width'],
-                                (int)$value['height'],
+                                (int) $value['width'],
+                                (int) $value['height'],
                             ];
                         }
                     }
@@ -149,8 +143,8 @@ class Uploadable extends Component
 
         // Extract dimensions from settings array if available
         if (!$this->requiredWidth && !$this->requiredHeight && isset($this->settings['sizes']) && is_array($this->settings['sizes'])) {
-            $this->requiredWidth = (int)$this->settings['sizes'][0];
-            $this->requiredHeight = (int)$this->settings['sizes'][1];
+            $this->requiredWidth = (int) $this->settings['sizes'][0];
+            $this->requiredHeight = (int) $this->settings['sizes'][1];
         }
 
         $dimensions = [];
@@ -159,14 +153,14 @@ class Uploadable extends Component
             if (isset($modelSettings[$this->group]['sizes']) && is_array($modelSettings[$this->group]['sizes'])) {
                 foreach ($modelSettings[$this->group]['sizes'] as $size) {
                     if (is_array($size) && isset($size['width'], $size['height'])) {
-                        $dimensions[] = [(int)$size['width'], (int)$size['height']];
+                        $dimensions[] = [(int) $size['width'], (int) $size['height']];
                     }
                 }
                 usort($dimensions, fn (array $a, array $b) => $b[0] <=> $a[0]);
             } elseif (isset($modelSettings[$this->group]['width'], $modelSettings[$this->group]['height'])) {
                 $dimensions[] = [
-                    (int)$modelSettings[$this->group]['width'],
-                    (int)$modelSettings[$this->group]['height'],
+                    (int) $modelSettings[$this->group]['width'],
+                    (int) $modelSettings[$this->group]['height'],
                 ];
             }
         }
@@ -177,7 +171,7 @@ class Uploadable extends Component
 
         if (empty($dimensions)) {
             foreach (MediaclassConfig::getSizesInReverseOrder() as $size) {
-                $dimensions[] = [(int)$size['width'], (int)$size['height']];
+                $dimensions[] = [(int) $size['width'], (int) $size['height']];
             }
         }
 
@@ -186,11 +180,6 @@ class Uploadable extends Component
             $dimensions
         ));
 
-        // Build display label with dimensions
-        $this->displayLabel = $this->label;
-        /* if ($this->requiredWidth && $this->requiredHeight) {
-             $this->displayLabel .= ' <span class="dimensions-info" style="background: rgba(0,0,0,0.1); padding: 2px 8px; border-radius: 4px;">(' . $this->requiredWidth . ' × ' . $this->requiredHeight . ' px)</span>';
-         }*/
         if (is_array($this->cropable)) {
             $this->cropable = json_encode($this->cropable);
         }
@@ -205,8 +194,8 @@ class Uploadable extends Component
         $options = [];
 
         foreach ($mediaTypes as $key => $value) {
-            $type = is_int($key) ? (string)$value : (string)$key;
-            $label = is_int($key) ? $this->mediaTypeLabel($type) : (string)$value;
+            $type = is_int($key) ? (string) $value : (string) $key;
+            $label = is_int($key) ? $this->mediaTypeLabel($type) : (string) $value;
 
             if ($type !== '') {
                 $options[$type] = $label !== '' ? $label : $this->mediaTypeLabel($type);
@@ -218,7 +207,7 @@ class Uploadable extends Component
 
     private function normalizeGrid(mixed $grid): int
     {
-        $grid = (int)$grid;
+        $grid = (int) $grid;
 
         if ($grid < 1) {
             return 1;

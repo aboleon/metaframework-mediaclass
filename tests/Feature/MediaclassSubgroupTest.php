@@ -35,6 +35,7 @@ class MediaclassSubgroupTest extends TestCase
         $media = $this->media($post, 'gallery', 'group_2');
         $uploadable = new Uploadable(model: $post->load('media'), group: 'gallery');
         $view = file_get_contents(__DIR__ . '/../../resources/views/components/uploadable.blade.php');
+        $manager = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
 
         $this->assertSame([
             'group_1' => 'Group 1',
@@ -43,9 +44,10 @@ class MediaclassSubgroupTest extends TestCase
         ], $uploadable->subgroupOptions);
         $this->assertSame([$media->id => 'group_2'], $uploadable->subgroupValues);
         $this->assertStringContainsString('data-subgroup-options=', $view);
-        $this->assertStringContainsString('data-mediaclass-subgroup-select', $view);
-        $this->assertStringContainsString("action: 'saveSubgroup'", $view);
-        $this->assertStringContainsString('mediaclass:subgroup-saved', $view);
+        $this->assertStringNotContainsString('<script>', $view);
+        $this->assertStringContainsString('data-mediaclass-subgroup-select', $manager);
+        $this->assertStringContainsString("action: 'saveSubgroup'", $manager);
+        $this->assertStringContainsString('mediaclass:subgroup-saved', $manager);
     }
 
     public function test_ajax_can_save_and_clear_native_media_subgroup(): void
