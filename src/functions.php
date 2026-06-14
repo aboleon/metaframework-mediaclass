@@ -24,3 +24,8 @@ function mediaclass_embed(Media|string|null $source, array $options = []): HtmlS
 {
     return MediaclassFacade::embed($source, $options);
 }
+
+function mediaclass_thumbnail(Media|string|null $source): ?string
+{
+    return MediaclassFacade::thumbnail($source);
+}

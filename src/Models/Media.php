@@ -347,6 +347,28 @@ class Media extends Model
         return is_string($url) && $url !== '' ? $url : null;
     }
 
+    public function thumbnailUrl(): ?string
+    {
+        $thumbnail = ((array) ($this->storable ?? []))['thumbnail_url'] ?? null;
+
+        if (!is_string($thumbnail)) {
+            return null;
+        }
+
+        $thumbnail = trim($thumbnail);
+        $scheme = parse_url($thumbnail, PHP_URL_SCHEME);
+
+        if (
+            filter_var($thumbnail, FILTER_VALIDATE_URL) === false
+            || !is_string($scheme)
+            || !in_array(strtolower($scheme), ['http', 'https'], true)
+        ) {
+            return null;
+        }
+
+        return $thumbnail;
+    }
+
     public function embedWidth(): int|string
     {
         return self::normalizeEmbedWidth(((array) ($this->storable ?? []))['embed_width'] ?? null);

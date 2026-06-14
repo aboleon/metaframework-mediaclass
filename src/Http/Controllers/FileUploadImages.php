@@ -16,6 +16,7 @@ use Intervention\Image\ImageManager;
 use Intervention\Image\Interfaces\ImageInterface;
 use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 use MetaFramework\Mediaclass\Cropable;
+use MetaFramework\Mediaclass\Mediaclass;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Support\Config as MediaclassConfig;
 use MetaFramework\Mediaclass\Support\Path;
@@ -66,7 +67,7 @@ class FileUploadImages
 
     private bool $dimensionWarningAdded = false;
 
-    public function __construct()
+    public function __construct(private readonly Mediaclass $mediaclass)
     {
         $this->enableAjaxMode();
         $this->model_id    = (int) request('model_id') ?: null;
@@ -371,10 +372,16 @@ class FileUploadImages
             ? '100%'
             : Media::normalizeEmbedWidth(request('embed_width'));
         $this->storables['embed_height'] = Media::normalizeEmbedHeight(request('embed_height'));
+        $thumbnail = $this->mediaclass->thumbnail($url);
+
+        if ($thumbnail !== null) {
+            $this->storables['thumbnail_url'] = $thumbnail;
+        }
+
         $this->response['filetype'] = 'video';
         $this->response['filename'] = $this->filename;
         $this->response['link'] = $url;
-        $this->response['preview'] = asset('vendor/mfw-mediaclass/images/files/mov.png');
+        $this->response['preview'] = $thumbnail ?? asset('vendor/mfw-mediaclass/images/files/mov.png');
         $this->response['has_positions'] = (bool) request('positions');
 
         try {

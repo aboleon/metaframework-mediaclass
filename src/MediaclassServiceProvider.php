@@ -15,7 +15,8 @@ class MediaclassServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/mfw-mediaclass.php', 'mfw-mediaclass');
 
-        $this->app->singleton('mediaclass', fn () => new Mediaclass(new Factory));
+        $this->app->singleton(Mediaclass::class, fn () => new Mediaclass(new Factory));
+        $this->app->alias(Mediaclass::class, 'mediaclass');
     }
 
     public function boot(): void

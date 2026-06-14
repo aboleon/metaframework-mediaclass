@@ -54,4 +54,35 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString('mediaclass-video-width-mode', $storedView);
         $this->assertStringContainsString('[embed_height]', $storedView);
     }
+
+    public function test_video_previews_use_lightgallery_posters_and_autoplay(): void
+    {
+        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
+
+        $this->assertStringContainsString('data-poster="${preview}"', $uploaderScript);
+        $this->assertStringContainsString('data-src="${link}"', $uploaderScript);
+        $this->assertStringContainsString('plugins: [lgZoom, lgThumbnail, lgVideo]', $uploaderScript);
+        $this->assertStringContainsString('autoplayFirstVideo: true', $uploaderScript);
+        $this->assertStringContainsString('autoplayVideoOnSlide: true', $uploaderScript);
+        $this->assertStringContainsString('data-poster="{{ $preview }}"', $storedView);
+        $this->assertStringContainsString('plugins/video/lg-video.min.js', $storedView);
+    }
+
+    public function test_lightgallery_is_loaded_from_cdn_instead_of_a_published_distribution(): void
+    {
+        $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
+
+        $this->assertStringContainsString(
+            'https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/css/lightgallery-bundle.min.css',
+            $storedView,
+        );
+        $this->assertStringContainsString(
+            'https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/lightgallery.min.js',
+            $storedView,
+        );
+        $this->assertDirectoryDoesNotExist(
+            __DIR__ . '/../../public/vendor/mfw-mediaclass/lightgallery.js-master',
+        );
+    }
 }

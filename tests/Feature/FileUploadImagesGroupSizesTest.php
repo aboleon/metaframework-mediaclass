@@ -239,6 +239,7 @@ class FileUploadImagesGroupSizesTest extends TestCase
         $response->assertJsonPath('error', null);
         $response->assertJsonPath('filetype', 'video');
         $response->assertJsonPath('link', $url);
+        $response->assertJsonPath('preview', 'https://i.ytimg.com/vi/abc123/hqdefault.jpg');
 
         $media = Media::query()->where('group', 'gallery')->firstOrFail();
 
@@ -247,6 +248,10 @@ class FileUploadImagesGroupSizesTest extends TestCase
         $this->assertSame($url, $media->storable['url']);
         $this->assertSame('100%', $media->storable['embed_width']);
         $this->assertSame(420, $media->storable['embed_height']);
+        $this->assertSame(
+            'https://i.ytimg.com/vi/abc123/hqdefault.jpg',
+            $media->storable['thumbnail_url'],
+        );
         $this->assertSame($url, $media->url());
     }
 
@@ -266,5 +271,9 @@ class FileUploadImagesGroupSizesTest extends TestCase
 
         $this->assertSame(560, $media->storable['embed_width']);
         $this->assertSame(315, $media->storable['embed_height']);
+        $this->assertSame(
+            'https://i.ytimg.com/vi/default123/hqdefault.jpg',
+            $media->storable['thumbnail_url'],
+        );
     }
 }

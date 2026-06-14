@@ -7,6 +7,7 @@ namespace MetaFramework\Mediaclass;
 use Cohensive\OEmbed\Factory;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\HtmlString;
 use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 use MetaFramework\Mediaclass\Models\Media;
@@ -397,6 +398,75 @@ class Mediaclass
         return new HtmlString($html);
     }
 
+    /**
+     * Resolve a provider thumbnail for an external video.
+     */
+    public function thumbnail(Media|string|null $source): ?string
+    {
+        if ($source instanceof Media) {
+            if (!$source->isVideo() || !$source->isExternalUrl()) {
+                return null;
+            }
+
+            $storedThumbnail = $source->thumbnailUrl();
+
+            if ($storedThumbnail !== null) {
+                return $storedThumbnail;
+            }
+        }
+
+        $url = $this->embedUrl($source);
+
+        if ($url === null) {
+            return null;
+        }
+
+        $youtubeThumbnail = $this->youtubeThumbnailUrl($url);
+
+        if ($youtubeThumbnail !== null) {
+            return $youtubeThumbnail;
+        }
+
+        $thumbnail = Cache::remember(
+            'mediaclass:oembed-thumbnail:' . sha1($url),
+            now()->addDays(30),
+            function () use ($url): string {
+                try {
+                    return $this->validHttpUrl($this->oEmbedFactory()->get($url)?->thumbnailUrl()) ?? '';
+                } catch (Throwable) {
+                    return '';
+                }
+            },
+        );
+
+        return $this->validHttpUrl($thumbnail);
+    }
+
+    protected function youtubeThumbnailUrl(string $url): ?string
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+        $videoId = null;
+
+        if (in_array($host, ['youtu.be', 'www.youtu.be'], true)) {
+            $videoId = explode('/', $path)[0] ?? null;
+        } elseif (in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com'], true)) {
+            parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+            $videoId = $query['v'] ?? null;
+
+            if (!is_string($videoId) && preg_match('#^(?:embed|shorts|live)/([^/]+)#', $path, $matches)) {
+                $videoId = $matches[1];
+            }
+        }
+
+        if (!is_string($videoId) || preg_match('/^[A-Za-z0-9_-]+$/', $videoId) !== 1) {
+            return null;
+        }
+
+        return 'https://i.ytimg.com/vi/' . $videoId . '/hqdefault.jpg';
+    }
+
     protected function embedUrl(Media|string|null $source): ?string
     {
         if ($source instanceof Media) {
@@ -412,6 +482,26 @@ class Mediaclass
         }
 
         $url = trim($source);
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+
+        if (
+            filter_var($url, FILTER_VALIDATE_URL) === false
+            || !is_string($scheme)
+            || !in_array(strtolower($scheme), ['http', 'https'], true)
+        ) {
+            return null;
+        }
+
+        return $url;
+    }
+
+    protected function validHttpUrl(mixed $url): ?string
+    {
+        if (!is_string($url)) {
+            return null;
+        }
+
+        $url = trim($url);
         $scheme = parse_url($url, PHP_URL_SCHEME);
 
         if (

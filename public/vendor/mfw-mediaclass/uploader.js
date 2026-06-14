@@ -62,7 +62,9 @@ const MediaclassUploader = {
             zoom: true,
             thumbnail: enableThumbnails,
             exThumbImage: 'data-thumb',
-            plugins: [lgZoom, lgThumbnail],
+            autoplayFirstVideo: true,
+            autoplayVideoOnSlide: true,
+            plugins: [lgZoom, lgThumbnail, lgVideo],
             mobileSettings: {
                 controls: true,
                 showCloseIcon: true,
@@ -836,15 +838,15 @@ const MediaclassUploader = {
         this.syncDetailsSaveButton(uploadable);
 
         setTimeout(() => {
-            const imageItems = lightGalleryContainer.find('.lightgallery-item');
+            const galleryItems = lightGalleryContainer.find('.lightgallery-item');
 
-            if (imageItems.length > 0) {
+            if (galleryItems.length > 0) {
                 const lgInstance = lightGalleryContainer.data('lightGallery');
                 if (lgInstance) {
                     lgInstance.destroy();
                 }
 
-                lightGallery(lightGalleryContainer[0], this.lightGalleryOptions(imageItems.length > 1));
+                lightGallery(lightGalleryContainer[0], this.lightGalleryOptions(galleryItems.length > 1));
             }
         }, 100);
 
@@ -891,6 +893,25 @@ const MediaclassUploader = {
                style="background-image: url(${preview}); background-size: contain; background-repeat: no-repeat; background-position: center;">
                 <div class="actions">
                     <i class="bi bi-zoom-in"></i>
+                </div>
+            </a>`;
+        } else if (filetype === 'video') {
+            const storable = uploaded.storable || {};
+            const embedWidth = Number(storable.embed_width) > 0 ? Number(storable.embed_width) : 560;
+            const embedHeight = Number(storable.embed_height) > 0 ? Number(storable.embed_height) : 315;
+
+            html += `
+            <a href="${link}"
+               data-src="${link}"
+               data-poster="${preview}"
+               data-thumb="${preview}"
+               data-download-url="false"
+               data-lg-size="${embedWidth}-${embedHeight}"
+               data-sub-html="<h4>${uploaded.original_filename}</h4><p>${uploaded.description ? (uploaded.description[document.documentElement.lang] || '') : ''}</p>"
+               class="lightgallery-item d-block w-100 h-100"
+               style="background-image: url(${preview}); background-size: cover; background-repeat: no-repeat; background-position: center;">
+                <div class="actions">
+                    <i class="bi bi-play-circle-fill"></i>
                 </div>
             </a>`;
         } else {
@@ -1274,10 +1295,10 @@ const MediaclassUploader = {
             }
         });
 
-        // Re-initialize LightGallery only for containers with images
+        // Re-initialize LightGallery for image and video items.
         $('.lightgallery-container').each(function () {
             const $container = $(this);
-            const imageItems = $container.find('.lightgallery-item');
+            const galleryItems = $container.find('.lightgallery-item');
 
             // Destroy existing instance
             const lgInstance = $container.data('lightGallery');
@@ -1285,9 +1306,8 @@ const MediaclassUploader = {
                 lgInstance.destroy();
             }
 
-            // Only init if there are image items
-            if (imageItems.length > 0) {
-                lightGallery(this, uploader.lightGalleryOptions(imageItems.length > 1));
+            if (galleryItems.length > 0) {
+                lightGallery(this, uploader.lightGalleryOptions(galleryItems.length > 1));
             }
         });
     },

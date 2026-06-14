@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MetaFramework\Mediaclass\Http\Controllers;
 
+use MetaFramework\Mediaclass\Mediaclass;
 use MetaFramework\Support\Traits\Ajax;
 
 class AjaxController
@@ -12,9 +13,9 @@ class AjaxController
 
     private FileUploadImages $uploader;
 
-    public function __construct()
+    public function __construct(Mediaclass $mediaclass)
     {
-        $this->uploader = new FileUploadImages;
+        $this->uploader = new FileUploadImages($mediaclass);
     }
 
     public function upload(): array

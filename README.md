@@ -42,6 +42,12 @@ php artisan vendor:publish --tag=mfw-mediaclass-views
 php artisan migrate
 ```
 
+The stored-media component loads LightGallery `2.8.3` from
+`https://cdnjs.cloudflare.com`, including its bundled CSS and the core, zoom,
+thumbnail, and video scripts. The package does not publish a local LightGallery
+distribution. Applications with a Content Security Policy must allow this host
+in `script-src` and `style-src`.
+
 ## Model Setup
 
 ```php
@@ -493,6 +499,11 @@ $media->storable = [
 ```
 
 Explicit helper options override the stored dimensions.
+
+The back-office uploader stores the provider thumbnail when available. Existing
+external videos resolve and cache their oEmbed thumbnail on first display. Video
+previews open in the CDN-hosted LightGallery viewer and autoplay through its
+video plugin.
 
 Unsupported URLs and provider failures return an empty `HtmlString`.
 

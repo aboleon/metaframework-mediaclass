@@ -13,11 +13,15 @@
                 $embed_width = $is_video && !$is_bridge ? $media->embedWidth() : null;
                 $embed_height = $is_video && !$is_bridge ? $media->embedHeight() : null;
                 $embed_width_mode = $embed_width === '100%' ? 'full' : 'pixels';
+                $video_lightgallery_width = is_int($embed_width)
+                    ? $embed_width
+                    : \MetaFramework\Mediaclass\Models\Media::DEFAULT_EMBED_WIDTH;
                 $cropableImg = $is_bridge || !$is_image ? null : new \MetaFramework\Mediaclass\Cropable($media);
                 $cropableImg?->setCropableFromComponent($cropable);
                 $preview = match (true) {
                     $is_image => $media->url($cropableImg?->isCropped() ? 'cropped' : 'sm'),
-                    $is_video => asset('vendor/mfw-mediaclass/images/files/mov.png'),
+                    $is_video => $videoPreviews[(string) $media->id] ??
+                        asset('vendor/mfw-mediaclass/images/files/mov.png'),
                     default => asset('vendor/mfw-mediaclass/images/files/' . $media->extension() . '.png'),
                 };
                 $fullSizeUrl = $is_image ? $media->url('xl') : null;
@@ -39,13 +43,24 @@
                 <div class="row m-0">
                     <div class="col-xl-3 pe-xl-4 col-12 impImg position-relative preview {{ $previewType }}">
                         @if ($is_image)
-                            {{-- LightGallery trigger --}}
                             <a href="{{ $fullSizeUrl }}" class="lightgallery-item d-block w-100 h-100"
                                 data-thumb="{{ $preview }}"
                                 data-sub-html="<h4>{{ $media->original_filename }}</h4><p>{{ $media->description[app()->getLocale()] ?? '' }}</p>"
                                 style="background-image: url({{ $preview }});background-size: contain;background-repeat: no-repeat;background-position: center;">
                                 <div class="actions">
                                     <i class="bi bi-zoom-in"></i>
+                                </div>
+                            </a>
+                        @elseif ($is_video && !$is_bridge)
+                            <a href="{{ $media->url() }}" data-src="{{ $media->url() }}"
+                                data-poster="{{ $preview }}" data-thumb="{{ $preview }}"
+                                data-download-url="false"
+                                data-lg-size="{{ $video_lightgallery_width }}-{{ $embed_height }}"
+                                data-sub-html="<h4>{{ $media->original_filename }}</h4><p>{{ $media->description[app()->getLocale()] ?? '' }}</p>"
+                                class="lightgallery-item d-block w-100 h-100"
+                                style="background-image: url({{ $preview }});background-size: cover;background-repeat: no-repeat;background-position: center;">
+                                <div class="actions">
+                                    <i class="bi bi-play-circle-fill"></i>
                                 </div>
                             </a>
                         @else
@@ -190,21 +205,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/lightgallery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/zoom/lg-zoom.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/thumbnail/lg-thumbnail.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightgallery/2.8.3/plugins/video/lg-video.min.js"></script>
     <script>
-        // Initialize LightGallery on page load for existing images
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.lightgallery-container').forEach(container => {
-                const imageLinks = container.querySelectorAll('.lightgallery-item');
-                if (imageLinks.length > 0) {
+                const galleryItems = container.querySelectorAll('.lightgallery-item');
+                if (galleryItems.length > 0) {
                     lightGallery(container, {
                         selector: '.lightgallery-item',
                         speed: 500,
                         download: true,
                         counter: true,
                         zoom: true,
-                        thumbnail: imageLinks.length > 1,
+                        thumbnail: galleryItems.length > 1,
                         exThumbImage: 'data-thumb',
-                        plugins: [lgZoom, lgThumbnail],
+                        autoplayFirstVideo: true,
+                        autoplayVideoOnSlide: true,
+                        plugins: [lgZoom, lgThumbnail, lgVideo],
                         mobileSettings: {
                             controls: true,
                             showCloseIcon: true,

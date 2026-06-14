@@ -391,6 +391,26 @@ class MediaModelTest extends TestCase
         $this->assertSame(315, Media::normalizeEmbedHeight(0));
     }
 
+    public function test_external_video_thumbnail_url_is_validated(): void
+    {
+        $media = new Media([
+            'mime' => 'video/url',
+            'storable' => [
+                'url' => 'https://youtu.be/abc123',
+                'thumbnail_url' => 'https://cdn.example.com/poster.jpg',
+            ],
+        ]);
+
+        $this->assertSame('https://cdn.example.com/poster.jpg', $media->thumbnailUrl());
+
+        $media->storable = [
+            'url' => 'https://youtu.be/abc123',
+            'thumbnail_url' => 'javascript:alert(1)',
+        ];
+
+        $this->assertNull($media->thumbnailUrl());
+    }
+
     public function test_has_crop_alias_works(): void
     {
         // hasCrop is an alias for isCroppedForKey

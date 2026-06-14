@@ -222,5 +222,11 @@ class MediaclassDescriptionSaveTest extends TestCase
         $this->assertMatchesRegularExpression('/name="mediaclass\[' . $media->id . '\]\[embed_width\]"[^>]*value="560"/', $html);
         $this->assertMatchesRegularExpression('/name="mediaclass\[' . $media->id . '\]\[embed_height\]"[^>]*value="315"/', $html);
         $this->assertStringContainsString('value="full"', $html);
+        $this->assertStringContainsString('data-src="https://youtu.be/abc123"', $html);
+        $this->assertStringContainsString(
+            'data-poster="https://i.ytimg.com/vi/abc123/hqdefault.jpg"',
+            $html,
+        );
+        $this->assertStringContainsString('data-thumb="https://i.ytimg.com/vi/abc123/hqdefault.jpg"', $html);
     }
 }

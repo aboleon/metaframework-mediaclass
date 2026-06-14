@@ -21,6 +21,8 @@ class Stored extends Component
 
     public array $mediaLocales = [];
 
+    public array $videoPreviews = [];
+
     public function __construct(
         public MediaclassInterface $model,
         public string $group,
@@ -76,6 +78,13 @@ class Stored extends Component
         $this->medias = collect($this->medias->values()->all())
             ->concat($this->bridgeMedia())
             ->values();
+        $this->videoPreviews = $this->medias
+            ->filter(fn (mixed $media): bool => $media instanceof Media && $media->isVideo())
+            ->mapWithKeys(fn (Media $media): array => [
+                (string) $media->id => mediaclass_thumbnail($media),
+            ])
+            ->filter()
+            ->all();
 
         $this->nomedia = $this->nomedia ?: __('mfw-mediaclass.no_media');
 
