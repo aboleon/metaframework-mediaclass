@@ -53,6 +53,8 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString('sortablejs@1.15.7/Sortable.min.js', $scriptsView);
         $this->assertStringContainsString("asset('vendor/mfw-mediaclass/uploader.js')", $scriptsView);
         $this->assertStringContainsString("asset('vendor/mfw-mediaclass/mediaclass-uploader.js')", $scriptsView);
+        $this->assertStringContainsString("filemtime(public_path('vendor/mfw-mediaclass/uploader.js'))", $scriptsView);
+        $this->assertStringContainsString("filemtime(public_path('vendor/mfw-mediaclass/mediaclass-uploader.js'))", $scriptsView);
         $this->assertStringNotContainsString('jQuery-File-Upload/js/jquery.fileupload.js', $scriptsView);
         $this->assertStringNotContainsString('jQuery-File-Upload/css/jquery.fileupload.css', $stylesView);
         $this->assertStringNotContainsString('mediaclass-uploader.css', $stylesView);
@@ -62,6 +64,13 @@ class UploaderAssetTest extends TestCase
     {
         $svelteSource = file_get_contents(__DIR__ . '/../../resources/svelte/Uploadable.svelte');
 
+        $this->assertStringContainsString("import { onDestroy, onMount } from 'svelte';", $svelteSource);
+        $this->assertStringContainsString('let { host }: { host: HTMLElement } = $props();', $svelteSource);
+        $this->assertStringContainsString('onMount(() => {', $svelteSource);
+        $this->assertStringContainsString("uploadable = host.closest('.mediaclass-uploadable')", $svelteSource);
+        $this->assertStringContainsString('<div class="mediaclass-svelte-panel">', $svelteSource);
+        $this->assertStringNotContainsString('{@attach initHost}', $svelteSource);
+        $this->assertStringNotContainsString('<style>', $svelteSource);
         $this->assertStringContainsString('new XMLHttpRequest', $svelteSource);
         $this->assertStringContainsString("formData.set('action', 'upload')", $svelteSource);
         $this->assertStringContainsString("formData.append('files[]', item.file)", $svelteSource);
@@ -74,12 +83,16 @@ class UploaderAssetTest extends TestCase
     public function test_compiled_svelte_uploader_is_shipped(): void
     {
         $compiledScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/mediaclass-uploader.js');
+        $stylesheet = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/css/styles.css');
 
         $this->assertFileExists(__DIR__ . '/../../public/vendor/mfw-mediaclass/mediaclass-uploader.js');
         $this->assertStringContainsString('MediaclassSvelteUploader', $compiledScript);
         $this->assertStringContainsString('window.MediaclassSvelteUploader', $compiledScript);
         $this->assertStringContainsString('mediaclass-svelte-toolbar', $compiledScript);
         $this->assertStringContainsString('XMLHttpRequest', $compiledScript);
+        $this->assertStringNotContainsString('document.createElement("style")', $compiledScript);
+        $this->assertStringContainsString('.mediaclass-svelte-panel', $stylesheet);
+        $this->assertStringContainsString('.mediaclass-svelte-toolbar', $stylesheet);
     }
 
     public function test_legacy_uploader_bridge_is_exposed_for_svelte(): void
@@ -89,6 +102,21 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString('window.MediaclassUploader = MediaclassUploader;', $uploaderScript);
         $this->assertStringContainsString('appendUploadedMedia(uploadable, data, hideDescription)', $uploaderScript);
         $this->assertStringContainsString('printResponseMessages(uploadable, data)', $uploaderScript);
+    }
+
+    public function test_delete_uses_the_owning_uploaders_ajax_url_and_full_media_identity(): void
+    {
+        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+
+        $this->assertStringContainsString("deleteData.uploadable.attr('data-ajax')", $uploaderScript);
+        $this->assertStringContainsString("model_id: uploadable.attr('data-model-id')", $uploaderScript);
+        $this->assertStringContainsString("group: uploadable.attr('data-group')", $uploaderScript);
+        $this->assertStringContainsString("String(response.deleted_id ?? '')", $uploaderScript);
+        $this->assertStringNotContainsString(
+            'mfwAjax(deleteData.formData, MediaclassUploader.template())',
+            $uploaderScript,
+        );
+        $this->assertStringNotContainsString('ajaxSuccess.mediaclassDelete', $uploaderScript);
     }
 
     public function test_video_forms_include_editable_embed_dimensions(): void

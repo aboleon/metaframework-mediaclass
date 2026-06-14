@@ -142,6 +142,7 @@ class BridgeMediaTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('error', null);
+        $response->assertJsonPath('deleted_id', 'legacy:1');
 
         $this->assertSame([
             [

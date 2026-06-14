@@ -424,16 +424,33 @@ const MediaclassUploader = {
                 // Hide the modal first
                 MediaclassUploader.confirmDeleteModal().modal('hide');
 
+                const ajaxUrl = String(deleteData.uploadable.attr('data-ajax') || '');
+
+                if (!ajaxUrl) {
+                    console.error('Mediaclass delete aborted: missing uploader data-ajax URL.');
+                    return;
+                }
+
                 // Perform the deletion
                 MediaclassUploader.setVeil(deleteData.selector);
-                mfwAjax(deleteData.formData, MediaclassUploader.template());
+                $.ajax({
+                    url: ajaxUrl,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: deleteData.formData,
+                    headers: {
+                        'X-CSRF-TOKEN': MediaclassUploader.csrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }).done(function (response) {
+                    MediaclassUploader.printResponseMessages(deleteData.uploadable, response);
 
-                $(document).off('ajaxSuccess.mediaclassDelete').on('ajaxSuccess.mediaclassDelete', function (_event, xhr) {
-                    MediaclassUploader.removeVeil(deleteData.selector);
-                    const response = xhr.responseJSON || MediaclassUploader.parseJsonResponse(xhr.responseText);
-
-                    if (response && (response.error || response.abort)) {
-                        $(document).off('ajaxSuccess.mediaclassDelete');
+                    if (
+                        !response
+                        || response.error
+                        || response.abort
+                        || String(response.deleted_id ?? '') !== String(deleteData.selector.attr('data-id') ?? '')
+                    ) {
                         return;
                     }
 
@@ -442,23 +459,15 @@ const MediaclassUploader = {
                     MediaclassUploader.syncSortable(deleteData.uploadable);
 
                     if (deleteData.container.find('.unlinkable').length < 1) {
-                        // Find the alerts container specific to this uploadable
                         const alertsContainer = deleteData.uploadable.find('.mediaclass-alerts').first();
                         alertsContainer.html(`<div class="alert alert-info">${alertsContainer.data('msg')}</div>`);
                     }
 
-                    // Re-enable uploader button if we're now below the limit
                     if (!MediaclassUploader.isLimitReached(deleteData.uploadable)) {
                         deleteData.uploadable.find('span.mediaclass-uploader').removeClass('disabled');
                     }
-
-                    // Remove this specific success handler
-                    $(document).off('ajaxSuccess.mediaclassDelete');
-                });
-
-                $(document).off('ajaxError.mediaclassDelete').on('ajaxError.mediaclassDelete', function () {
+                }).always(function () {
                     MediaclassUploader.removeVeil(deleteData.selector);
-                    $(document).off('ajaxError.mediaclassDelete');
                 });
             });
         });
@@ -489,7 +498,12 @@ const MediaclassUploader = {
         return $.param({
             action: 'delete',
             id: selector.attr('data-id'),
-            model: uploadable.attr('data-model')
+            model: uploadable.attr('data-model'),
+            model_id: uploadable.attr('data-model-id'),
+            group: uploadable.attr('data-group'),
+            subgroup: uploadable.attr('data-subgroup') || '',
+            ghost: uploadable.attr('data-ghost') || '0',
+            mediaclass_temp_id: $('input[name="mediaclass_temp_id"]').first().val() || ''
         });
     },
 

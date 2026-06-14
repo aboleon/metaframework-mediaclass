@@ -9,7 +9,10 @@ export function init(root: ParentNode = document): void {
       return;
     }
 
-    mounted.set(target, mount(Uploadable, { target }));
+    mounted.set(target, mount(Uploadable, {
+      target,
+      props: { host: target as HTMLElement }
+    }));
   });
 }
 

@@ -131,32 +131,71 @@ class FileUploadImages
      */
     public function delete(): static
     {
+        if ($this->responseHasErrors()) {
+            return $this;
+        }
+
+        if (!$this->is_ghost && !$this->model_id) {
+            $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+
+            return $this;
+        }
+
         try {
-            $media = Media::query()->find((int) request('id'));
-            if (!$media) {
+            $media = $this->mediaDescriptionQuery()
+                ->whereKey((int) request('id'))
+                ->first();
+
+            if (!$media instanceof Media) {
+                $this->responseError(__('mfw-mediaclass.errors.mediaDeleteFailed'));
+
                 return $this;
             }
 
+            $media->setRelation('model', $this->model);
+
             if (!$media->isExternalUrl()) {
                 $path = Path::mediaFolderForMedia($media);
-                File::delete(
-                    File::glob(
-                        $this->disk->path($path . DIRECTORY_SEPARATOR . '*' . $media->filename . '*'),
-                    ),
-                );
+                $files = $this->mediaFiles($media);
 
-                if (count($this->disk->files($path)) === 0) {
+                if ($files !== [] && !$this->disk->delete($files)) {
+                    $this->responseError(__('mfw-mediaclass.errors.mediaDeleteFailed'));
+
+                    return $this;
+                }
+
+                if ($this->disk->files($path) === []) {
                     $this->disk->deleteDirectory($path);
                 }
             }
 
             $media->delete();
+            $this->responseSuccess(__('mfw-mediaclass.notices.media_deleted'));
+            $this->responseElement('deleted_id', $media->id);
         } catch (Throwable $e) {
             $this->responseException($e);
             report($e);
         }
 
         return $this;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function mediaFiles(Media $media): array
+    {
+        $folder = Path::mediaFolderForMedia($media);
+        $filename = preg_quote((string) $media->filename, '/');
+
+        return collect($this->disk->files($folder))
+            ->filter(static function (string $path) use ($filename): bool {
+                $basename = pathinfo($path, PATHINFO_FILENAME);
+
+                return preg_match('/(?:^|_)' . $filename . '(?:_|$)/', $basename) === 1;
+            })
+            ->values()
+            ->all();
     }
 
     public function deleteBridge(): static
@@ -185,6 +224,7 @@ class FileUploadImages
             }
 
             $this->responseSuccess(__('mfw-mediaclass.notices.bridge_deleted'));
+            $this->responseElement('deleted_id', (string) request('id'));
         } catch (Throwable $e) {
             $this->responseException($e);
         }
@@ -914,6 +954,10 @@ class FileUploadImages
                 $this->is_ghost,
                 fn ($query) => $query->whereNull('model_id'),
                 fn ($query) => $query->where('model_id', $this->model_id),
+            )
+            ->when(
+                $this->is_ghost && $this->temp,
+                fn ($query) => $query->where('temp', $this->temp),
             )
             ->when($subgroup !== null, fn ($query) => $query->where('subgroup', $subgroup));
     }

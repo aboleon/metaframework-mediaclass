@@ -11,6 +11,7 @@ class UpdateMediaclassCommand extends Command
 {
     protected $signature = 'mediaclass:update
         {--force : Overwrite already published files and force migrations in production}
+        {--config : Publish the package config; combine with --force only to intentionally replace it}
         {--migrations : Publish Mediaclass migrations}
         {--migrate : Publish Mediaclass migrations and run the application migrations}
         {--views : Publish Mediaclass views for application customization}';
@@ -21,8 +22,16 @@ class UpdateMediaclassCommand extends Command
     {
         $force = (bool) $this->option('force');
 
-        foreach (['config', 'assets', 'lang'] as $resource) {
+        foreach (['assets', 'lang'] as $resource) {
             $exitCode = $this->publishTag("mfw-mediaclass-{$resource}", $force);
+
+            if ($exitCode !== SymfonyCommand::SUCCESS) {
+                return $exitCode;
+            }
+        }
+
+        if ((bool) $this->option('config')) {
+            $exitCode = $this->publishTag('mfw-mediaclass-config', $force);
 
             if ($exitCode !== SymfonyCommand::SUCCESS) {
                 return $exitCode;
@@ -62,7 +71,7 @@ class UpdateMediaclassCommand extends Command
         return SymfonyCommand::SUCCESS;
     }
 
-    private function publishTag(string $tag, bool $force): int
+    protected function publishTag(string $tag, bool $force): int
     {
         $this->line("Publishing {$tag}...");
 

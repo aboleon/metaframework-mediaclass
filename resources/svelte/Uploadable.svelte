@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
 
   type MediaTypeMap = Record<string, string>;
   type I18nMap = Record<string, string>;
@@ -51,10 +51,12 @@
     url: string;
   };
 
+  let { host }: { host: HTMLElement } = $props();
+
   const positions = ['left', 'up', 'down', 'right'];
   const fileInputId = `mediaclass-svelte-files-${Math.random().toString(36).slice(2)}`;
 
-  let uploadable = $state<HTMLElement>();
+  let uploadable: HTMLElement | undefined;
   let observer: MutationObserver | null = null;
   let queue = $state<QueueItem[]>([]);
   let config = $state<Config>(defaultConfig());
@@ -62,7 +64,7 @@
   let showFilePanel = $state(false);
   let showVideoPanel = $state(false);
   let limitReached = $state(false);
-  let storedVersion = $state(0);
+  let hasStoredVideos = $state(false);
   let videoUploading = $state(false);
   let videoError = $state('');
   let video = $state<VideoInput>(defaultVideoInput([]));
@@ -73,23 +75,23 @@
   let hasQueue = $derived(queue.length > 0);
   let isUploading = $derived(queue.some((item) => item.status === 'uploading') || videoUploading);
   let canUpload = $derived(queuedItems.length > 0 && !isUploading && !limitReached);
-  let detailsButtonVisible = $derived(config.hasDescription || (storedVersion >= 0 && hasUploadedVideos()));
+  let detailsButtonVisible = $derived(config.hasDescription || hasStoredVideos);
 
-  function initHost(node: HTMLElement): () => void {
-    uploadable = node.closest('.mediaclass-uploadable') as HTMLElement | undefined;
+  onMount(() => {
+    uploadable = host.closest('.mediaclass-uploadable') as HTMLElement | undefined;
 
     if (!uploadable) {
       return () => {};
     }
 
-    config = readConfig(uploadable, node);
+    config = readConfig(uploadable, host);
     selectedType = Object.keys(config.mediaTypes)[0] ?? 'image';
     video = defaultVideoInput(config.mediaLocales);
-    syncLimitReached();
+    syncStoredMediaState();
 
     const uploaded = uploadable.querySelector('.uploaded');
     if (uploaded && typeof MutationObserver !== 'undefined') {
-      observer = new MutationObserver(() => syncLimitReached());
+      observer = new MutationObserver(() => syncStoredMediaState());
       observer.observe(uploaded, {
         childList: true,
         subtree: true
@@ -100,7 +102,7 @@
       observer?.disconnect();
       observer = null;
     };
-  }
+  });
 
   onDestroy(() => {
     observer?.disconnect();
@@ -237,8 +239,8 @@
     return uploadable?.querySelectorAll('.uploaded div.mediaclass.unlinkable').length ?? 0;
   }
 
-  function syncLimitReached(): void {
-    storedVersion += 1;
+  function syncStoredMediaState(): void {
+    hasStoredVideos = Boolean(uploadable?.querySelector('.uploaded .preview.video'));
     limitReached = config.limit > 0 && currentCount() >= config.limit;
 
     if (!limitReached) {
@@ -268,7 +270,7 @@
   }
 
   function toggleActivePanel(): void {
-    syncLimitReached();
+    syncStoredMediaState();
 
     if (limitReached) {
       showLimitReached();
@@ -401,7 +403,7 @@
       }
 
       await uploadFile(item);
-      syncLimitReached();
+      syncStoredMediaState();
 
       if (limitReached) {
         break;
@@ -603,11 +605,11 @@
     bridge?.printResponseMessages(wrapped, data);
     bridge?.executeCallback(wrapped, data);
     bridge?.appendUploadedMedia(wrapped, data, !config.hasDescription);
-    syncLimitReached();
+    syncStoredMediaState();
   }
 </script>
 
-<div {@attach initHost} class="mediaclass-svelte-panel">
+<div class="mediaclass-svelte-panel">
   <div class="mediaclass-svelte-toolbar">
     <button
       type="button"
@@ -830,192 +832,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  .mediaclass-svelte-panel {
-    margin-bottom: 12px;
-  }
-
-  .mediaclass-svelte-toolbar {
-    align-items: center;
-    background: #efefef;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px;
-  }
-
-  .mediaclass-svelte-open {
-    align-items: center;
-    background: #efefef;
-    border: 0;
-    color: #212529;
-    cursor: pointer;
-    display: inline-flex;
-    font-size: 18px;
-    gap: 8px;
-    padding: 8px 10px;
-  }
-
-  .mediaclass-svelte-open:hover:not(:disabled) {
-    background: #e5e5e5;
-  }
-
-  .mediaclass-svelte-open:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-
-  .mediaclass-svelte-types {
-    display: inline-flex;
-    gap: 4px;
-  }
-
-  .mediaclass-svelte-inline-dimensions {
-    font-family: monospace;
-    font-size: 13px;
-    opacity: 0.8;
-  }
-
-  .mediaclass-svelte-types button {
-    background: #fff;
-    border: 1px solid #ced4da;
-    color: #495057;
-    padding: 6px 10px;
-  }
-
-  .mediaclass-svelte-types button.active {
-    background: #2a3f54;
-    border-color: #2a3f54;
-    color: #fff;
-  }
-
-  .mediaclass-svelte-card {
-    background: #f8f9fa;
-    border: 2px dashed #aedbeb;
-    margin: 10px 0;
-    padding: 16px;
-  }
-
-  .mediaclass-svelte-dimensions {
-    color: #495057;
-    font-size: 13px;
-    padding: 10px 0 0;
-  }
-
-  .mediaclass-svelte-filebar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .mediaclass-svelte-filebar input[type='file'] {
-    display: none;
-  }
-
-  .mediaclass-svelte-queue {
-    display: grid;
-    gap: 12px;
-    margin-top: 14px;
-  }
-
-  .mediaclass-svelte-queue-item {
-    background: #fff;
-    border: 1px solid #dee2e6;
-    display: grid;
-    gap: 14px;
-    grid-template-columns: 180px minmax(0, 1fr);
-    padding: 12px;
-  }
-
-  .mediaclass-svelte-queue-item.error {
-    border-color: #dc3545;
-  }
-
-  .mediaclass-svelte-preview {
-    align-items: center;
-    background: #f1f3f5;
-    display: flex;
-    justify-content: center;
-    min-height: 130px;
-  }
-
-  .mediaclass-svelte-preview img {
-    height: 100%;
-    max-height: 160px;
-    max-width: 100%;
-    object-fit: contain;
-    width: 100%;
-  }
-
-  .mediaclass-svelte-preview i {
-    color: #6c757d;
-    font-size: 44px;
-  }
-
-  .mediaclass-svelte-meta {
-    min-width: 0;
-  }
-
-  .mediaclass-svelte-fileline {
-    align-items: center;
-    display: flex;
-    gap: 10px;
-    justify-content: space-between;
-  }
-
-  .mediaclass-svelte-fileline strong {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .mediaclass-svelte-fileline button {
-    background: transparent;
-    border: 0;
-    color: #495057;
-  }
-
-  .mediaclass-svelte-progress {
-    height: 8px;
-  }
-
-  .positions .choices button {
-    background: transparent;
-    border: 0;
-    color: inherit;
-    padding: 0;
-  }
-
-  .positions .choices button.active,
-  .positions .choices button:hover {
-    color: var(--ab-blue);
-  }
-
-  .positions .choices button i {
-    font-size: 36px;
-  }
-
-  .ajax-spinner {
-    display: none;
-  }
-
-  @media (max-width: 767px) {
-    .mediaclass-svelte-queue-item {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .mediaclass-svelte-toolbar {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .mediaclass-svelte-types {
-      width: 100%;
-    }
-
-    .mediaclass-svelte-types button {
-      flex: 1;
-    }
-  }
-</style>

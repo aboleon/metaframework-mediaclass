@@ -55,7 +55,7 @@ class AjaxController
 
     public function delete(): array
     {
-        return $this->uploader->delete()->fetchResponse();
+        return $this->uploader->setModel(request('model'))->delete()->fetchResponse();
     }
 
     public function deleteBridge(): array

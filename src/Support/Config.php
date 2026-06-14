@@ -134,8 +134,7 @@ class Config
 
     public static function getDisk(): Filesystem
     {
-        $configured = self::config('disk');
-        $disk       = $configured && (array_key_exists($configured, ConfigFacade::get('filesystems.disks'))) ? $configured : 'public';
+        $disk = (string) (self::config('disk') ?: 'public');
 
         return Storage::disk($disk);
     }

@@ -36,8 +36,19 @@ Publish package resources after install or update:
 php artisan mediaclass:update --force
 ```
 
-For a first install, or when a release adds migrations, publish and run them
-explicitly:
+On first install, publish the config without `--force`, then set its `disk` to
+the application filesystem disk that owns the media paths:
+
+```bash
+php artisan mediaclass:update --config
+```
+
+Normal package updates never publish the config, including when `--force` is
+used. This preserves application-owned disk, dimensions, subgroup, and path
+settings. Use `--config --force` only when intentionally replacing the
+application config with package defaults.
+
+When a release adds migrations, publish and run them explicitly:
 
 ```bash
 php artisan mediaclass:update --force --migrate
@@ -96,6 +107,11 @@ npm install
 npm run check
 npm run build
 ```
+
+Uploader styles live in
+`public/vendor/mfw-mediaclass/css/styles.css` and are processed by the existing
+CSSCrush integration. Svelte components must not contain component-level style
+blocks or inject CSS into the compiled JavaScript bundle.
 
 The Vite build disables `publicDir` intentionally because the bundle output is
 inside the package `public` tree. Do not re-enable public copying for this build.
