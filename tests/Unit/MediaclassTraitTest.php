@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MetaFramework\Mediaclass\Tests\Unit;
 
 use Illuminate\Support\Collection;
@@ -112,7 +114,7 @@ class MediaclassTraitTest extends TestCase
         $this->assertEquals('back123', $back->getMedia()->filename);
     }
 
-    public function test_img_returns_first_by_position(): void
+    public function test_img_returns_first_by_sort_order_independently_of_flow_position(): void
     {
         Media::create([
             'model_type' => Post::class,
@@ -121,7 +123,8 @@ class MediaclassTraitTest extends TestCase
             'mime' => 'image/jpeg',
             'original_filename' => 'second.jpg',
             'filename' => 'second',
-            'position' => 'right',
+            'position' => 'left',
+            'sort_order' => 2,
         ]);
 
         Media::create([
@@ -131,13 +134,39 @@ class MediaclassTraitTest extends TestCase
             'mime' => 'image/jpeg',
             'original_filename' => 'first.jpg',
             'filename' => 'first',
-            'position' => 'left',
+            'position' => 'right',
+            'sort_order' => 1,
         ]);
 
         $result = $this->post->img('gallery');
 
-        // Should return first by position order
-        $this->assertNotNull($result->getMedia());
+        $this->assertSame('first', $result->getMedia()?->filename);
+    }
+
+    public function test_imgs_returns_media_in_sort_order(): void
+    {
+        foreach ([
+            ['filename' => 'third', 'sort_order' => 3],
+            ['filename' => 'first', 'sort_order' => 1],
+            ['filename' => 'second', 'sort_order' => 2],
+        ] as $media) {
+            Media::create([
+                'model_type' => Post::class,
+                'model_id' => $this->post->id,
+                'group' => 'gallery',
+                'mime' => 'image/jpeg',
+                'original_filename' => $media['filename'] . '.jpg',
+                'filename' => $media['filename'],
+                'position' => 'left',
+                'sort_order' => $media['sort_order'],
+            ]);
+        }
+
+        $filenames = $this->post->imgs('gallery')
+            ->map(fn (MediaBuilder $builder): ?string => $builder->getMedia()?->filename)
+            ->all();
+
+        $this->assertSame(['first', 'second', 'third'], $filenames);
     }
 
     public function test_imgs_returns_collection(): void
@@ -265,7 +294,7 @@ class MediaclassTraitTest extends TestCase
             'position' => 'left',
         ]);
 
-        $urls = $this->post->imgs('gallery')->map(fn($img) => $img->url());
+        $urls = $this->post->imgs('gallery')->map(fn ($img) => $img->url());
 
         $this->assertCount(2, $urls);
         $this->assertIsString($urls->first());

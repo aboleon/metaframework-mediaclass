@@ -85,4 +85,19 @@ class UploaderAssetTest extends TestCase
             __DIR__ . '/../../public/vendor/mfw-mediaclass/lightgallery.js-master',
         );
     }
+
+    public function test_uploader_supports_persistent_left_to_right_sorting(): void
+    {
+        $uploaderScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/uploader.js');
+        $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
+        $scriptsView = file_get_contents(__DIR__ . '/../../resources/views/scripts/js.blade.php');
+
+        $this->assertStringContainsString('sortablejs@1.15.7/Sortable.min.js', $scriptsView);
+        $this->assertStringContainsString("action: 'reorder'", $uploaderScript);
+        $this->assertStringContainsString("handle: '.mediaclass-sort-handle'", $uploaderScript);
+        $this->assertStringContainsString('media_ids: mediaIds', $uploaderScript);
+        $this->assertStringContainsString('mediaclass:reordered', $uploaderScript);
+        $this->assertStringContainsString('data-sort-order="{{ $media->sort_order }}"', $storedView);
+        $this->assertStringContainsString('bi-grip-vertical', $storedView);
+    }
 }

@@ -34,10 +34,18 @@
                     : null;
             @endphp
             <div class="mediaclass unlinkable uploaded-image my-2" data-id="{{ $media->id }}"
-                data-bridge="{{ $is_bridge ? '1' : '0' }}" id="mediaclass-{{ $media_dom_id }}">
+                data-bridge="{{ $is_bridge ? '1' : '0' }}"
+                @if (!$is_bridge) data-sort-order="{{ $media->sort_order }}" @endif
+                id="mediaclass-{{ $media_dom_id }}">
                 @if ($is_bridge)
                     <input type="hidden" name="mediaclass_bridge[{{ $group }}][{{ $media_key }}][id]"
                         value="{{ $media->id }}">
+                @else
+                    <span class="mediaclass-sort-handle" role="button" tabindex="0"
+                        title="{{ __('mfw-mediaclass.labels.sort_handle') }}"
+                        aria-label="{{ __('mfw-mediaclass.labels.sort_handle') }}">
+                        <i class="bi bi-grip-vertical"></i>
+                    </span>
                 @endif
                 <span class="unlink"><i class="bi bi-x-circle-fill"></i></span>
                 <div class="row m-0">
@@ -211,7 +219,11 @@
             document.querySelectorAll('.lightgallery-container').forEach(container => {
                 const galleryItems = container.querySelectorAll('.lightgallery-item');
                 if (galleryItems.length > 0) {
-                    lightGallery(container, {
+                    if (container.mediaclassLightGallery) {
+                        container.mediaclassLightGallery.destroy();
+                    }
+
+                    container.mediaclassLightGallery = lightGallery(container, {
                         selector: '.lightgallery-item',
                         speed: 500,
                         download: true,

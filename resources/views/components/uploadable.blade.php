@@ -25,6 +25,8 @@
         'save_media_details' => __('mfw-mediaclass.buttons.save_media_details'),
         'subgroup_label' => $subgroupLabel,
         'subgroup_empty_label' => $subgroupEmptyLabel,
+        'sort_handle' => __('mfw-mediaclass.labels.sort_handle'),
+        'reorder_failed' => __('mfw-mediaclass.errors.reorderFailed'),
     ];
 @endphp
 <div class="mediaclass-uploadable {{ $size }}" data-maxfilesize="{{ $maxfilesize }}"

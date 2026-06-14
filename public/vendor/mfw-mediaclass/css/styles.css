@@ -242,6 +242,26 @@ canvas {
 }
 .uploaded-image {
     position: relative;
+
+    .mediaclass-sort-handle {
+        align-items: center;
+        background: #fff;
+        border: 1px solid #ced4da;
+        color: #495057;
+        cursor: grab;
+        display: none;
+        height: 30px;
+        justify-content: center;
+        left: 10px;
+        position: absolute;
+        top: 10px;
+        width: 30px;
+        z-index: 11;
+
+        &:active {
+            cursor: grabbing;
+        }
+    }
     .sizes {
         background: #dee2e6;
         padding: 4px;
@@ -336,6 +356,23 @@ canvas {
         width: 100%;
     }
 
+}
+
+.mediaclass-sortable-enabled .mediaclass-sort-handle {
+    display: flex;
+}
+
+.mediaclass-sort-ghost {
+    opacity: 0.35;
+}
+
+.mediaclass-sort-chosen {
+    outline: 2px solid var(--ab-blue);
+    outline-offset: 2px;
+}
+
+.mediaclass-sort-drag {
+    cursor: grabbing;
 }
 
 .mediaclass-stored-grid {

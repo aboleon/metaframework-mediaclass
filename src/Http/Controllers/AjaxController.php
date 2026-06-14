@@ -38,6 +38,11 @@ class AjaxController
         return $this->uploader->setModel(request('model'))->saveSubgroup()->fetchResponse();
     }
 
+    public function reorder(): array
+    {
+        return $this->uploader->setModel(request('model'))->reorder()->fetchResponse();
+    }
+
     public function crop(): array
     {
         return Cropper::crop();

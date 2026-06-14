@@ -72,6 +72,196 @@ const MediaclassUploader = {
             }
         };
     },
+    refreshLightGallery(container) {
+        const $container = container instanceof jQuery ? container : $(container);
+        const element = $container.get(0);
+
+        if (!element || typeof window.lightGallery !== 'function') {
+            return;
+        }
+
+        const instance = element.mediaclassLightGallery || $container.data('lightGallery');
+        if (instance && typeof instance.destroy === 'function') {
+            instance.destroy();
+        }
+
+        const galleryItems = $container.find('.lightgallery-item');
+        element.mediaclassLightGallery = galleryItems.length > 0
+            ? lightGallery(element, this.lightGalleryOptions(galleryItems.length > 1))
+            : null;
+    },
+    mediaOrder(container) {
+        return container
+            .children('.uploaded-image[data-bridge="0"]')
+            .map(function () {
+                return Number($(this).attr('data-id'));
+            })
+            .get();
+    },
+    restoreMediaOrder(container, mediaIds) {
+        mediaIds.forEach((mediaId) => {
+            const item = container.children(`.uploaded-image[data-id="${mediaId}"][data-bridge="0"]`).first();
+
+            if (item.length) {
+                container.append(item);
+            }
+        });
+
+        this.refreshLightGallery(container);
+    },
+    resetFlowAssignments(uploadable, container, result) {
+        container.children('.uploaded-image[data-bridge="0"]').each(function (index) {
+            const media = $(this);
+            const positions = media.find('.positions').first();
+
+            media.attr('data-sort-order', index + 1);
+            positions.find('[data-position]').removeClass('active');
+            positions.find('[data-position="left"]').addClass('active');
+            positions.find('input[type="hidden"]').val('left');
+            media.find('[data-mediaclass-subgroup-select]')
+                .val('')
+                .attr('data-saved-value', '');
+        });
+
+        uploadable.attr('data-subgroup-values', '{}');
+        $(document).trigger('mediaclass:subgroup-saved', [result, uploadable, null]);
+        $(document).trigger('mediaclass:reordered', [result, uploadable, container]);
+    },
+    persistMediaOrder(uploadable, container, previousOrder) {
+        const mediaIds = this.mediaOrder(container);
+
+        if (mediaIds.join(',') === previousOrder.join(',')) {
+            return;
+        }
+
+        this.setVeil(uploadable);
+
+        $.ajax({
+            url: uploadable.attr('data-ajax'),
+            type: 'POST',
+            dataType: 'json',
+            headers: {
+                'X-CSRF-TOKEN': this.csrfToken()
+            },
+            data: {
+                action: 'reorder',
+                model: uploadable.attr('data-model') || '',
+                model_id: uploadable.attr('data-model-id') || '',
+                group: uploadable.attr('data-group') || '',
+                ghost: uploadable.attr('data-ghost') || '0',
+                media_ids: mediaIds
+            },
+            success: (result) => {
+                if (result.error || result.abort) {
+                    this.restoreMediaOrder(container, previousOrder);
+                    this.printResponseMessages(uploadable, result);
+
+                    return;
+                }
+
+                if (result.changed) {
+                    this.resetFlowAssignments(uploadable, container, result);
+                }
+
+                this.refreshLightGallery(container);
+                this.printResponseMessages(uploadable, result);
+            },
+            error: () => {
+                this.restoreMediaOrder(container, previousOrder);
+
+                const message = this.i18nText(
+                    uploadable,
+                    'reorder_failed',
+                    'The media order could not be saved.'
+                );
+                notificator(200, {danger: [message]}, this.messages(uploadable), false, {isDismissable: true});
+            },
+            complete: () => {
+                this.removeVeil(uploadable);
+            }
+        });
+    },
+    syncSortable(uploadable) {
+        const container = uploadable.find('.lightgallery-container').first();
+
+        if (!container.length || typeof window.Sortable === 'undefined') {
+            return;
+        }
+
+        const element = container.get(0);
+        const nativeMedia = container.children('.uploaded-image[data-bridge="0"]');
+        const hasBridgeMedia = container.children('.uploaded-image[data-bridge="1"]').length > 0;
+        const subgroup = String(uploadable.attr('data-subgroup') || '');
+        const hasFixedSubgroup = subgroup !== '' && subgroup !== 'false';
+        const hasStorableFilters = uploadable.find('input[name^="mediaclass_storable["]').length > 0;
+        const enabled = nativeMedia.length > 1
+            && !hasBridgeMedia
+            && !hasFixedSubgroup
+            && !hasStorableFilters;
+
+        container.toggleClass('mediaclass-sortable-enabled', enabled);
+
+        if (!enabled) {
+            container.off('keydown.mediaclassSort');
+
+            if (element.mediaclassSortable) {
+                element.mediaclassSortable.destroy();
+                element.mediaclassSortable = null;
+            }
+
+            return;
+        }
+
+        container
+            .off('keydown.mediaclassSort')
+            .on('keydown.mediaclassSort', '.mediaclass-sort-handle', (event) => {
+                if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+                    return;
+                }
+
+                const item = $(event.currentTarget).closest('.uploaded-image[data-bridge="0"]');
+                const target = event.key === 'ArrowLeft'
+                    ? item.prevAll('.uploaded-image[data-bridge="0"]').first()
+                    : item.nextAll('.uploaded-image[data-bridge="0"]').first();
+
+                if (!target.length) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const previousKeyboardOrder = this.mediaOrder(container);
+                if (event.key === 'ArrowLeft') {
+                    item.insertBefore(target);
+                } else {
+                    item.insertAfter(target);
+                }
+
+                this.persistMediaOrder(uploadable, container, previousKeyboardOrder);
+                event.currentTarget.focus();
+            });
+
+        if (element.mediaclassSortable) {
+            return;
+        }
+
+        let previousOrder = [];
+
+        element.mediaclassSortable = Sortable.create(element, {
+            animation: 150,
+            draggable: '.uploaded-image[data-bridge="0"]',
+            handle: '.mediaclass-sort-handle',
+            ghostClass: 'mediaclass-sort-ghost',
+            chosenClass: 'mediaclass-sort-chosen',
+            dragClass: 'mediaclass-sort-drag',
+            onStart: () => {
+                previousOrder = this.mediaOrder(container);
+            },
+            onEnd: () => {
+                this.persistMediaOrder(uploadable, container, previousOrder);
+            }
+        });
+    },
     actionsWithoutLinks(actions) {
         actions.find('a').each(function () {
             $(this).replaceWith($(this).contents());
@@ -249,6 +439,7 @@ const MediaclassUploader = {
 
                     deleteData.selector.remove();
                     MediaclassUploader.syncDetailsSaveButton(deleteData.uploadable);
+                    MediaclassUploader.syncSortable(deleteData.uploadable);
 
                     if (deleteData.container.find('.unlinkable').length < 1) {
                         // Find the alerts container specific to this uploadable
@@ -836,18 +1027,10 @@ const MediaclassUploader = {
         lightGalleryContainer.append(html);
         this.unlinkable();
         this.syncDetailsSaveButton(uploadable);
+        this.syncSortable(uploadable);
 
         setTimeout(() => {
-            const galleryItems = lightGalleryContainer.find('.lightgallery-item');
-
-            if (galleryItems.length > 0) {
-                const lgInstance = lightGalleryContainer.data('lightGallery');
-                if (lgInstance) {
-                    lgInstance.destroy();
-                }
-
-                lightGallery(lightGalleryContainer[0], this.lightGalleryOptions(galleryItems.length > 1));
-            }
+            this.refreshLightGallery(lightGalleryContainer);
         }, 100);
 
         if (this.isLimitReached(uploadable)) {
@@ -873,12 +1056,16 @@ const MediaclassUploader = {
         });
         const positionsLabel = this.i18nText(uploadable, 'positions_label');
         const descriptionLabel = this.i18nText(uploadable, 'description_label');
+        const sortHandleLabel = this.i18nText(uploadable, 'sort_handle', 'Change media order');
 
         // For images, we need to get the full size URL for LightGallery
         const fullSizeUrl = filetype === 'image' ? (data.urls && data.urls.xl ? data.urls.xl : link) : link;
 
         let html = `
-<div class="mediaclass unlinkable uploaded-image my-2" data-id="${uploaded.id}" id="mediaclass-${uploaded.id}">
+<div class="mediaclass unlinkable uploaded-image my-2" data-id="${uploaded.id}" data-bridge="0" data-sort-order="${uploaded.sort_order || 0}" id="mediaclass-${uploaded.id}">
+    <span class="mediaclass-sort-handle" role="button" tabindex="0" title="${sortHandleLabel}" aria-label="${sortHandleLabel}">
+        <i class="bi bi-grip-vertical"></i>
+    </span>
     <span class="unlink"><i class="bi bi-x-circle-fill"></i></span>
     <div class="row m-0">
         <div class="col-xl-3 pe-xl-4 col-12 impImg position-relative preview ${filetype}">`;
@@ -1298,17 +1485,7 @@ const MediaclassUploader = {
         // Re-initialize LightGallery for image and video items.
         $('.lightgallery-container').each(function () {
             const $container = $(this);
-            const galleryItems = $container.find('.lightgallery-item');
-
-            // Destroy existing instance
-            const lgInstance = $container.data('lightGallery');
-            if (lgInstance) {
-                lgInstance.destroy();
-            }
-
-            if (galleryItems.length > 0) {
-                lightGallery(this, uploader.lightGalleryOptions(galleryItems.length > 1));
-            }
+            uploader.refreshLightGallery($container);
         });
     },
 
@@ -1350,6 +1527,7 @@ const MediaclassUploader = {
         $('.mediaclass-uploadable').each(function () {
             MediaclassUploader.positions($(this));
             MediaclassUploader.syncDetailsSaveButton($(this));
+            MediaclassUploader.syncSortable($(this));
 
             $(this).find('.mediaclass-video-width-mode').each(function () {
                 MediaclassUploader.syncVideoWidthMode($(this));

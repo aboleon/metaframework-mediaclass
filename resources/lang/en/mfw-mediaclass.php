@@ -41,6 +41,7 @@ return [
         'crops' => 'Crops',
         'subgroup' => 'Display group',
         'no_subgroup' => 'Normal flow',
+        'sort_handle' => 'Change media order',
     ],
     'notices' => [
         'limit_reached' => 'Limit of :count file(s) reached',
@@ -51,6 +52,7 @@ return [
         'descriptions_saved' => 'Descriptions saved successfully',
         'media_details_saved' => 'Media details saved successfully',
         'subgroup_saved' => 'The image group has been saved.',
+        'order_saved' => 'The media order has been saved. Flow positions and groups were reset.',
     ],
     'errors' => [
         'missing_model' => 'Media must belong to an object',
@@ -74,6 +76,8 @@ return [
         'subgroupUnsupported' => 'This media group does not support subgroups.',
         'subgroupInvalid' => 'This subgroup is not allowed.',
         'subgroupSaveFailed' => 'The image group could not be saved.',
+        'reorderInvalid' => 'The media order is no longer current. Reload the page and try again.',
+        'reorderFailed' => 'The media order could not be saved.',
     ],
     'uploaded_at' => 'Uploaded on :date at :time',
     'crop_success' => 'Image cropped successfully',

@@ -54,7 +54,7 @@ trait Mediaclass
             $query->where('subgroup', $subgroup);
         }
 
-        $media = $query->orderBy('position')->first();
+        $media = $query->orderBy('sort_order')->orderBy('id')->first();
 
         $builder = new MediaBuilder($media);
 
@@ -86,7 +86,7 @@ trait Mediaclass
             $query->where('subgroup', $subgroup);
         }
 
-        return $query->orderBy('position')->get()->map(function (Media $media) {
+        return $query->orderBy('sort_order')->orderBy('id')->get()->map(function (Media $media) {
             $media->setRelation('model', $this);
 
             return new MediaBuilder($media);

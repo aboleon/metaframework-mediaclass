@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('subgroup')->nullable();
             $table->json('description')->nullable();
             $table->enum('position', ['left', 'right', 'up', 'down'])->default('up')->index();
+            $table->unsignedInteger('sort_order')->default(0)->index();
             $table->string('original_filename');
             $table->string('filename', 6);
             $table->string('mime');

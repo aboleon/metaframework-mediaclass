@@ -55,7 +55,10 @@ class Stored extends Component
                 $query->where('subgroup', $this->subgroup);
             }
 
-            $this->medias = $query->get();
+            $this->medias = $query
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
 
             // Inject the ghost model into each media
             $this->medias->each(function ($media) {
@@ -76,6 +79,12 @@ class Stored extends Component
         }
 
         $this->medias = collect($this->medias->values()->all())
+            ->sortBy(fn (Media $media): string => sprintf(
+                '%010d-%020d',
+                (int) $media->sort_order,
+                (int) $media->id,
+            ))
+            ->values()
             ->concat($this->bridgeMedia())
             ->values();
         $this->videoPreviews = $this->medias

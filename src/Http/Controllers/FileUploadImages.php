@@ -8,6 +8,7 @@ use Exception;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -276,6 +277,98 @@ class FileUploadImages
             $this->responseElement('uses_subgroups', Subgroups::active($this->model, $this->media_group, $this->is_ghost));
         } catch (Throwable $e) {
             $this->responseException($e, __('mfw-mediaclass.errors.subgroupSaveFailed'));
+        }
+
+        return $this;
+    }
+
+    public function reorder(): static
+    {
+        if ($this->responseHasErrors()) {
+            return $this;
+        }
+
+        if (!$this->is_ghost && !$this->model_id) {
+            $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+
+            return $this;
+        }
+
+        $validator = Validator::make(request()->all(), [
+            'media_ids' => ['required', 'array', 'min:1'],
+            'media_ids.*' => ['required', 'integer', 'distinct'],
+        ]);
+
+        if ($validator->fails()) {
+            $this->responseError($validator->errors()->first());
+
+            return $this;
+        }
+
+        $mediaIds = array_map('intval', array_values($validator->validated()['media_ids']));
+
+        try {
+            $changed = DB::transaction(function () use ($mediaIds): ?bool {
+                $query = Subgroups::mediaQuery($this->model, $this->media_group, $this->is_ghost);
+                $currentIds = (clone $query)
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->pluck('id')
+                    ->map(fn (mixed $id): int => (int) $id)
+                    ->all();
+
+                $expectedIds = $currentIds;
+                $submittedIds = $mediaIds;
+                sort($expectedIds);
+                sort($submittedIds);
+
+                if ($submittedIds !== $expectedIds) {
+                    return null;
+                }
+
+                if ($mediaIds === $currentIds) {
+                    return false;
+                }
+
+                $sortOrderCase = collect($mediaIds)
+                    ->map(
+                        fn (int $mediaId, int $index): string => sprintf(
+                            'WHEN %d THEN %d',
+                            $mediaId,
+                            $index + 1,
+                        ),
+                    )
+                    ->implode(' ');
+
+                (clone $query)
+                    ->whereIn('id', $mediaIds)
+                    ->update([
+                        'sort_order' => DB::raw("CASE id {$sortOrderCase} END"),
+                        'position' => 'left',
+                        'subgroup' => null,
+                        'updated_at' => now(),
+                    ]);
+
+                return true;
+            });
+
+            if ($changed === null) {
+                $this->responseError(__('mfw-mediaclass.errors.reorderInvalid'));
+
+                return $this;
+            }
+
+            if ($changed) {
+                $this->responseSuccess(__('mfw-mediaclass.notices.order_saved'));
+            }
+
+            $this->responseElement('changed', $changed);
+            $this->responseElement('media_ids', $mediaIds);
+            $this->responseElement('group', $this->media_group);
+            $this->responseElement('uses_subgroups', false);
+        } catch (Throwable $e) {
+            $this->responseException($e, __('mfw-mediaclass.errors.reorderFailed'));
         }
 
         return $this;
@@ -680,12 +773,24 @@ class FileUploadImages
             'subgroup'          => request('subgroup') ?: null,
             'description'       => request('description'),
             'position'          => request('position') ?: 'left',
+            'sort_order'        => $this->nextSortOrder(),
             'mime'              => $this->storedMime ?? $this->uploadedFile?->getMimeType(),
             'original_filename' => $this->storedOriginalFilename ?? $this->uploadedFile?->getClientOriginalName(),
             'filename'          => $this->filename,
             'temp'              => $this->is_ghost ? null : $this->temp,
             'storable'          => $this->getStorables(),
         ]);
+    }
+
+    private function nextSortOrder(): int
+    {
+        $query = Subgroups::mediaQuery($this->model, $this->media_group, $this->is_ghost);
+
+        if (!$this->is_ghost && !$this->model_id && $this->temp) {
+            $query->where('temp', $this->temp);
+        }
+
+        return ((int) $query->max('sort_order')) + 1;
     }
 
     private function mediaResponse(): static

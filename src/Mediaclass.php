@@ -567,7 +567,8 @@ class Mediaclass
         // Build query
         $query = Media::where('model_type', $morphType)
             ->whereNull('model_id')
-            ->orderBy('position')
+            ->orderBy('sort_order')
+            ->orderBy('id')
             ->orderBy('id');
 
         if ($group !== null) {

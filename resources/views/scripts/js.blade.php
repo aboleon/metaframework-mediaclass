@@ -14,4 +14,5 @@
 <script src="{!! asset('vendor/mfw-mediaclass/jQuery-File-Upload/js/jquery.fileupload-validate.js') !!}"></script>
 <!-- The File Upload user interface plugin -->
 <script src="{!! asset('vendor/mfw-mediaclass/jQuery-File-Upload/js/jquery.fileupload-ui.js') !!}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.7/Sortable.min.js"></script>
 <script src="{!! asset('vendor/mfw-mediaclass/uploader.js') !!}"></script>

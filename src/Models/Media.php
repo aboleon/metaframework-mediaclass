@@ -15,6 +15,7 @@ use Symfony\Component\Mime\MimeTypes;
 /**
  * @property string $filename
  * @property string $position
+ * @property int $sort_order
  * @property array $description
  * @property string $mime
  * @property int $id
@@ -37,6 +38,7 @@ class Media extends Model
         = [
             'description' => 'array',
             'storable' => 'array',
+            'sort_order' => 'integer',
         ];
 
     public function model(): MorphTo

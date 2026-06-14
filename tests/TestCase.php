@@ -69,6 +69,7 @@ abstract class TestCase extends OrchestraTestCase
             $table->string('subgroup')->nullable();
             $table->json('description')->nullable();
             $table->string('position')->default('left');
+            $table->unsignedInteger('sort_order')->default(0);
             $table->string('mime');
             $table->string('original_filename');
             $table->string('filename');
