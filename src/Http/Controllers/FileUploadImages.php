@@ -12,9 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Intervention\Image\Drivers\Gd\Driver as GdDriver;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Interfaces\ImageInterface;
 use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
 use MetaFramework\Mediaclass\Cropable;
 use MetaFramework\Mediaclass\Mediaclass;
@@ -29,8 +26,6 @@ use Throwable;
 class FileUploadImages
 {
     use Responses;
-
-    protected ImageInterface $image;
 
     protected MediaclassInterface $model;
 
@@ -64,8 +59,6 @@ class FileUploadImages
 
     private Filesystem $disk;
 
-    private ImageManager $imageManager;
-
     private bool $dimensionWarningAdded = false;
 
     public function __construct(private readonly Mediaclass $mediaclass)
@@ -81,8 +74,6 @@ class FileUploadImages
 
         $this->disk = MediaclassConfig::getDisk();
 
-        // Initialize ImageManager with GD driver (you can switch to ImagickDriver if needed)
-        $this->imageManager = new ImageManager(new GdDriver);
     }
 
     public function getStorables(): ?array
@@ -420,8 +411,10 @@ class FileUploadImages
             return $this;
         }
 
-        $this->filename     = Str::random(6);
-        $this->uploadedFile = request()->file('files')[0];
+        $files = request()->file('files');
+
+        $this->filename = Str::random(6);
+        $this->uploadedFile = is_array($files) ? ($files[0] ?? null) : $files;
 
         if ($this->hasErrors()) {
             return $this;
@@ -580,7 +573,16 @@ class FileUploadImages
         // Load dimensions from group settings or default (largest -> smallest)
         $this->dimensions = MediaclassConfig::getGroupResizeDimensions($this->model, $this->media_group);
 
-        $this->image = $this->imageManager->read($this->uploadedFile);
+        $imageInfo = @getimagesize($this->uploadedFile->getPathname());
+
+        if (!$imageInfo) {
+            $this->responseError(__('mfw-mediaclass.errors.mustBeImage'));
+
+            return $this;
+        }
+
+        $imageWidth = (int) $imageInfo[0];
+        $imageHeight = (int) $imageInfo[1];
 
         // Check dimensions if group settings exist
         if (!empty($groupSettings)) {
@@ -588,16 +590,10 @@ class FileUploadImages
             $requiredWidth = $required ? $required[0] : null;
             $requiredHeight = $required ? $required[1] : null;
 
-            $imageWidth  = $this->image->width();
-            $imageHeight = $this->image->height();
-
             // Validate dimensions
             if ($requiredWidth && $requiredHeight) {
                 if ($imageWidth < $requiredWidth || $imageHeight < $requiredHeight) {
                     if ($this->handleDimensionMismatch($requiredWidth, $requiredHeight, $imageWidth, $imageHeight)) {
-                        // Clean up the image resource
-                        unset($this->image);
-
                         return $this;
                     }
                 }
@@ -641,9 +637,6 @@ class FileUploadImages
                                     'uploaded_height' => $imageHeight,
                                 ],
                             )) {
-                                // Clean up the image resource
-                                unset($this->image);
-
                                 return $this;
                             }
                         }
@@ -659,7 +652,7 @@ class FileUploadImages
         $this->mime_type            = (str_contains($mimeType, 'png') ? 'png' : 'jpg');
         $this->response['fileicon'] = asset('vendor/mfw-mediaclass/images/files/jpg.png');
 
-        $ratio                   = ($this->image->width() / $this->image->height()) > 1 ? 'h' : 'v';
+        $ratio                   = ($imageWidth / $imageHeight) > 1 ? 'h' : 'v';
         $this->response['ratio'] = $ratio;
 
         $isSingleGroupSize = !empty($groupSettings)
@@ -677,47 +670,26 @@ class FileUploadImages
 
             $targetWidth  = $dimensions['width'];
             $targetHeight = $dimensions['height'];
-            $imageWidth   = $this->image->width();
-            $imageHeight  = $this->image->height();
 
-            // Always resize from the original to avoid cumulative downscaling
-            $sourceImage = clone $this->image;
-            $resizedImage = null;
+            [$newWidth, $newHeight] = $this->targetImageDimensions(
+                $imageWidth,
+                $imageHeight,
+                (int) $targetWidth,
+                (int) $targetHeight,
+                $isSingleGroupSize,
+            );
 
-            // For group settings (single dimension), apply special logic
-            if ($isSingleGroupSize) {
-                // Determine which is the main dimension (the larger one)
-                $isWidthMain          = $targetWidth >= $targetHeight;
-                $mainDimension        = $isWidthMain ? $targetWidth : $targetHeight;
-                $currentMainDimension = $isWidthMain ? $imageWidth : $imageHeight;
+            $encodedImage = $this->encodeResizedImage($newWidth, $newHeight);
 
-                // If main dimension is exact, keep original image
-                if ($currentMainDimension === $mainDimension) {
-                    $resizedImage = $sourceImage;
-                } else {
-                    // Main dimension is larger, resize to exact main dimension and scale the other proportionally
-                    $scaleRatio   = $mainDimension / $currentMainDimension;
-                    $newWidth     = (int) ($imageWidth * $scaleRatio);
-                    $newHeight    = (int) ($imageHeight * $scaleRatio);
-                    $resizedImage = $sourceImage->resize($newWidth, $newHeight);
-                }
-            } else {
-                // For configured size sets, width is authoritative; keep aspect ratio and don't upsize.
-                $widthRatio  = $targetWidth / $imageWidth;
-                $scaleRatio  = min($widthRatio, 1);
-
-                $newWidth     = (int) ($imageWidth * $scaleRatio);
-                $newHeight    = (int) ($imageHeight * $scaleRatio);
-                $resizedImage = $sourceImage->resize($newWidth, $newHeight);
+            if ($encodedImage === null) {
+                return $this;
             }
-
-            $encodedImage = $this->mime_type === 'png'
-                ? $resizedImage->toPng()
-                : $resizedImage->toJpeg(75);
 
             $this->disk->put($file, $encodedImage);
 
             $this->urls[$key] = $this->disk->url($file . '?' . time());
+
+            unset($encodedImage);
         }
 
         $this->responseElement('link', $this->urls[array_key_first($this->urls)] ?? MediaclassConfig::defaultImgUrl());
@@ -749,9 +721,6 @@ class FileUploadImages
             $requiredHeight = $required ? $required[1] : null;
 
             // Check if image dimensions match exactly
-            $imageWidth  = $this->image->width();
-            $imageHeight = $this->image->height();
-
             $isExactMatch = ($imageWidth == $requiredWidth && $imageHeight == $requiredHeight);
 
             // Only set cropable if cropable is true AND dimensions don't match exactly
@@ -840,6 +809,125 @@ class FileUploadImages
         $this->responseElement('count_files', request('count_files'));
 
         return $this;
+    }
+
+    /**
+     * @return array{0: int, 1: int}
+     */
+    private function targetImageDimensions(
+        int $imageWidth,
+        int $imageHeight,
+        int $targetWidth,
+        int $targetHeight,
+        bool $isSingleGroupSize,
+    ): array {
+        if ($isSingleGroupSize) {
+            $isWidthMain = $targetWidth >= $targetHeight;
+            $mainDimension = $isWidthMain ? $targetWidth : $targetHeight;
+            $currentMainDimension = $isWidthMain ? $imageWidth : $imageHeight;
+
+            if ($currentMainDimension === $mainDimension) {
+                return [$imageWidth, $imageHeight];
+            }
+
+            $scaleRatio = $mainDimension / $currentMainDimension;
+
+            return [
+                max(1, (int) ($imageWidth * $scaleRatio)),
+                max(1, (int) ($imageHeight * $scaleRatio)),
+            ];
+        }
+
+        $widthRatio = $targetWidth / $imageWidth;
+        $scaleRatio = min($widthRatio, 1);
+
+        return [
+            max(1, (int) ($imageWidth * $scaleRatio)),
+            max(1, (int) ($imageHeight * $scaleRatio)),
+        ];
+    }
+
+    private function encodeResizedImage(int $width, int $height): ?string
+    {
+        $source = $this->createSourceImage();
+
+        if (!$source instanceof \GdImage) {
+            $this->responseError(__('mfw-mediaclass.errors.upload_failed'));
+
+            return null;
+        }
+
+        $resized = $this->resizeSourceImage($source, $width, $height);
+
+        if (!$resized instanceof \GdImage) {
+            $this->responseError(__('mfw-mediaclass.errors.upload_failed'));
+
+            return null;
+        }
+
+        ob_start();
+
+        $encoded = $this->mime_type === 'png'
+            ? imagepng($resized)
+            : imagejpeg($resized, null, 75);
+
+        $contents = ob_get_clean();
+
+        unset($source, $resized);
+
+        if (!$encoded || !is_string($contents)) {
+            $this->responseError(__('mfw-mediaclass.errors.upload_failed'));
+
+            return null;
+        }
+
+        return $contents;
+    }
+
+    private function createSourceImage(): \GdImage|false
+    {
+        return $this->mime_type === 'png'
+            ? imagecreatefrompng($this->uploadedFile->getPathname())
+            : imagecreatefromjpeg($this->uploadedFile->getPathname());
+    }
+
+    private function resizeSourceImage(\GdImage $source, int $width, int $height): \GdImage|false
+    {
+        if (imagesx($source) === $width && imagesy($source) === $height) {
+            return $source;
+        }
+
+        $resized = imagecreatetruecolor($width, $height);
+
+        if (!$resized instanceof \GdImage) {
+            return false;
+        }
+
+        if ($this->mime_type === 'png') {
+            imagealphablending($resized, false);
+            imagesavealpha($resized, true);
+
+            $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
+
+            if ($transparent !== false) {
+                imagefill($resized, 0, 0, $transparent);
+            }
+        }
+
+        imagecopyresampled(
+            $resized,
+            $source,
+            0,
+            0,
+            0,
+            0,
+            $width,
+            $height,
+            imagesx($source),
+            imagesy($source),
+        );
+
+        return $resized;
     }
 
     private function saveNativeMediaDetails(array $medias): int
@@ -1016,14 +1104,14 @@ class FileUploadImages
     private function hasErrors(): bool
     {
         // Check if file upload failed
-        if (!request()->hasFile('files') || !request()->file('files')[0]->isValid()) {
+        if (!$this->uploadedFile || !$this->uploadedFile->isValid()) {
             $this->responseError(__('mfw-mediaclass.errors.upload_failed'));
 
             return true;
         }
 
         // Check file size
-        $file    = request()->file('files')[0];
+        $file    = $this->uploadedFile;
         $maxSize = $this->calculateMaxFileSize(request('maxfilesize'));
 
         if ($file->getSize() > $maxSize) {

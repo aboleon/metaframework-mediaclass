@@ -13,6 +13,7 @@ use MetaFramework\Mediaclass\Tests\Fixtures\PostWithCustomMediaPath;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithGroupSizes;
 use MetaFramework\Mediaclass\Tests\Fixtures\PostWithoutInstanceModelMethod;
 use MetaFramework\Mediaclass\Tests\TestCase;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
 class FileUploadImagesGroupSizesTest extends TestCase
 {
@@ -85,6 +86,43 @@ class FileUploadImagesGroupSizesTest extends TestCase
 
         $this->assertSame([1600, 1000], array_slice(getimagesize(Storage::disk('testing')->path($xlPath)), 0, 2));
         $this->assertSame([1200, 750], array_slice(getimagesize(Storage::disk('testing')->path($smPath)), 0, 2));
+    }
+
+    #[RunInSeparateProcess]
+    public function test_upload_processes_large_source_images_without_cloning_original_bitmap(): void
+    {
+        $fixture = dirname(__DIR__, 5) . '/bg/_doc/pink-roses.jpg';
+
+        if (!is_file($fixture)) {
+            $this->markTestSkipped('The local large image fixture is not available.');
+        }
+
+        $post = PostWithGroupSizes::create(['title' => 'Large Source Upload']);
+
+        $file = new UploadedFile($fixture, 'pink-roses.jpg', 'image/jpeg', null, true);
+
+        $response = $this->post('mediaclass-ajax', [
+            'action' => 'upload',
+            'model' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
+            'files' => [$file],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('error', null);
+        $response->assertJsonPath('uploaded.original_filename', 'pink-roses.jpg');
+
+        $folder = Path::mediaFolderName($post);
+        $files = Storage::disk('testing')->files($folder);
+        $xlPath = collect($files)->first(fn ($path) => str_contains($path, '/1600_'));
+        $smPath = collect($files)->first(fn ($path) => str_contains($path, '/1200_'));
+
+        $this->assertCount(2, $files);
+        $this->assertNotNull($xlPath);
+        $this->assertNotNull($smPath);
+        $this->assertSame([1600, 900], array_slice(getimagesize(Storage::disk('testing')->path($xlPath)), 0, 2));
+        $this->assertSame([1200, 675], array_slice(getimagesize(Storage::disk('testing')->path($smPath)), 0, 2));
     }
 
     public function test_upload_can_use_model_defined_folder_and_size_filenames(): void
@@ -160,6 +198,21 @@ class FileUploadImagesGroupSizesTest extends TestCase
             'model_id' => $post->id,
             'group' => 'cover',
             'files' => [$file],
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('error', true);
+    }
+
+    public function test_upload_returns_json_error_when_file_payload_is_missing(): void
+    {
+        $post = PostWithGroupSizes::create(['title' => 'Missing File Upload']);
+
+        $response = $this->post('mediaclass-ajax', [
+            'action' => 'upload',
+            'model' => PostWithGroupSizes::class,
+            'model_id' => $post->id,
+            'group' => 'cover',
         ]);
 
         $response->assertStatus(200);
