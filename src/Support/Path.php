@@ -12,14 +12,16 @@ use ReflectionClass;
 
 class Path
 {
-    public static function mediaFolderName(MediaclassInterface $model): string
+    public static function mediaFolderName(MediaclassInterface $model, bool $createAccessKey = false): string
     {
-        if ($accessKey = ModelAccessKey::forModel($model, self::customMediaFolderName($model))) {
+        $customFolder = self::customMediaFolderName($model);
+
+        if ($accessKey = ModelAccessKey::forModel($model, $customFolder, $createAccessKey)) {
             return $accessKey;
         }
 
-        if ($folder = self::customMediaFolderName($model)) {
-            return $folder;
+        if ($customFolder) {
+            return $customFolder;
         }
 
         return self::defaultMediaFolderName($model);
@@ -38,7 +40,7 @@ class Path
     private static function customMediaFolderName(MediaclassInterface $model): ?string
     {
         if (method_exists($model, 'mediaclassFolderName')) {
-            $folder = trim((string) $model->mediaclassFolderName(), '/\\');
+            $folder = trim((string)$model->mediaclassFolderName(), '/\\');
 
             if ($folder !== '') {
                 return $folder;
@@ -87,7 +89,7 @@ class Path
         bool $allowCustomName = true,
     ): string {
         if ($allowCustomName && method_exists($model, 'mediaclassFileName')) {
-            $customFilename = trim((string) $model->mediaclassFileName($filename, $extension, $sizeKey, $media));
+            $customFilename = trim((string)$model->mediaclassFileName($filename, $extension, $sizeKey, $media));
 
             if ($customFilename !== '') {
                 return $customFilename;
@@ -112,8 +114,9 @@ class Path
         ?string $sizeKey = null,
         ?int $width = null,
         ?Media $media = null,
+        bool $createAccessKey = false,
     ): string {
-        return self::mediaFolderName($model) . '/' . self::mediaFileName($model, $filename, $extension, $sizeKey, $width, $media);
+        return self::mediaFolderName($model, $createAccessKey) . '/' . self::mediaFileName($model, $filename, $extension, $sizeKey, $width, $media);
     }
 
     public static function mediaFilePathForMedia(Media $media, string $sizeKey): string

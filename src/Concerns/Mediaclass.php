@@ -123,7 +123,7 @@ trait Mediaclass
                 }
 
                 if ($media->isVideo()) {
-                    $storable = (array) ($media->storable ?? []);
+                    $storable = (array)($media->storable ?? []);
                     $storable['embed_width'] = ($value['embed_width_mode'] ?? null) === 'full'
                         ? '100%'
                         : Media::normalizeEmbedWidth($value['embed_width'] ?? $media->embedWidth());
@@ -138,7 +138,7 @@ trait Mediaclass
         }
 
         if (request()->has('mediaclass_bridge') && method_exists($this, 'syncMediaclassBridgeMedia')) {
-            $this->syncMediaclassBridgeMedia((array) request('mediaclass_bridge'));
+            $this->syncMediaclassBridgeMedia((array)request('mediaclass_bridge'));
         }
 
         if (request()->has('mediaclass_temp_id')) {
@@ -154,7 +154,7 @@ trait Mediaclass
                 'temp' => null,
             ]);
 
-            $modelFolder = Path::mediaFolderName($this->model());
+            $modelFolder = Path::mediaFolderName($this->model(), true);
             $tempFolder = Path::mediaTempFolderName($this->model());
             $disk = Config::getDisk();
 

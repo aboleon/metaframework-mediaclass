@@ -64,6 +64,23 @@ class ModelAccessKeyTest extends TestCase
         $this->assertSame(1, $this->accessKeyTableSelectCount($queries));
     }
 
+    public function test_media_folder_resolution_does_not_create_access_key_by_default(): void
+    {
+        $post = Post::create(['title' => 'Read Only Path']);
+
+        $this->assertSame('post/' . $post->id, Path::mediaFolderName($post));
+        $this->assertDatabaseMissing('mediaclass_model_keys', [
+            'model_type' => Post::class,
+            'model_id' => $post->id,
+        ]);
+
+        $this->assertNotNull(ModelAccessKey::forModel($post, create: true));
+        $this->assertDatabaseHas('mediaclass_model_keys', [
+            'model_type' => Post::class,
+            'model_id' => $post->id,
+        ]);
+    }
+
     /**
      * @return Collection<int, Post>
      */

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace MetaFramework\Mediaclass\Support;
 
 use Illuminate\Database\Eloquent\Model as EloquentModel;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
@@ -23,7 +22,7 @@ class ModelAccessKey
      */
     private static array $accessKeysByModel = [];
 
-    public static function forModel(MediaclassInterface $model, ?string $preferredKey = null, bool $create = true): ?string
+    public static function forModel(MediaclassInterface $model, ?string $preferredKey = null, bool $create = false): ?string
     {
         if (!$model instanceof EloquentModel || !$model->exists || !$model->getKey()) {
             return null;
@@ -34,7 +33,7 @@ class ModelAccessKey
         }
 
         $modelType = self::modelType($model);
-        $modelId = (int) $model->getKey();
+        $modelId = (int)$model->getKey();
         $existing = self::existingAccessKey($modelType, $modelId);
 
         if (is_string($existing) && $existing !== '') {
@@ -64,7 +63,7 @@ class ModelAccessKey
             return null;
         }
 
-        $existing = self::existingAccessKey((string) $media->model_type, (int) $media->model_id);
+        $existing = self::existingAccessKey((string)$media->model_type, (int)$media->model_id);
 
         if (is_string($existing) && $existing !== '') {
             return $existing;
@@ -83,7 +82,7 @@ class ModelAccessKey
             }
 
             $modelType = self::modelType($model);
-            $modelIdsByType[$modelType][(int) $model->getKey()] = (int) $model->getKey();
+            $modelIdsByType[$modelType][(int)$model->getKey()] = (int)$model->getKey();
         }
 
         self::preloadAccessKeys($modelIdsByType);
@@ -98,8 +97,8 @@ class ModelAccessKey
                 continue;
             }
 
-            $modelType = (string) $media->model_type;
-            $modelIdsByType[$modelType][(int) $media->model_id] = (int) $media->model_id;
+            $modelType = (string)$media->model_type;
+            $modelIdsByType[$modelType][(int)$media->model_id] = (int)$media->model_id;
         }
 
         self::preloadAccessKeys($modelIdsByType);
@@ -113,9 +112,7 @@ class ModelAccessKey
 
     public static function modelType(EloquentModel $model): string
     {
-        $alias = array_search($model::class, Relation::morphMap(), true);
-
-        return $alias === false ? $model::class : (string) $alias;
+        return (string)$model->getMorphClass();
     }
 
     private static function availableAccessKey(string $modelType, int $modelId, ?string $preferredKey = null): string
@@ -147,7 +144,7 @@ class ModelAccessKey
 
     private static function normalize(?string $accessKey): ?string
     {
-        $accessKey = trim((string) $accessKey, "/\\ \t\n\r\0\x0B");
+        $accessKey = trim((string)$accessKey, "/\\ \t\n\r\0\x0B");
 
         return $accessKey === '' ? null : $accessKey;
     }
@@ -183,7 +180,7 @@ class ModelAccessKey
 
         foreach ($modelIdsByType as $modelType => $modelIds) {
             foreach (array_filter(array_unique($modelIds)) as $modelId) {
-                $modelId = (int) $modelId;
+                $modelId = (int)$modelId;
                 $cacheKey = self::cacheKey($modelType, $modelId);
 
                 if (!array_key_exists($cacheKey, self::$accessKeysByModel)) {
@@ -210,10 +207,10 @@ class ModelAccessKey
             ->get(['model_type', 'model_id', 'access_key']);
 
         foreach ($keys as $key) {
-            $accessKey = (string) $key->access_key;
+            $accessKey = (string)$key->access_key;
 
             if ($accessKey !== '') {
-                self::$accessKeysByModel[self::cacheKey((string) $key->model_type, (int) $key->model_id)] = $accessKey;
+                self::$accessKeysByModel[self::cacheKey((string)$key->model_type, (int)$key->model_id)] = $accessKey;
             }
         }
     }

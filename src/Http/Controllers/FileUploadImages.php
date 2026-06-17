@@ -64,11 +64,11 @@ class FileUploadImages
     public function __construct(private readonly Mediaclass $mediaclass)
     {
         $this->enableAjaxMode();
-        $this->model_id    = (int) request('model_id') ?: null;
+        $this->model_id    = (int)request('model_id') ?: null;
         $this->temp        = request('mediaclass_temp_id') ?: null;
         $this->media_group = request('group') ?: MediaclassConfig::defaultGroup();
         $this->is_ghost    = request('ghost') === '1';
-        $this->storables   = (array) request('storables');
+        $this->storables   = (array)request('storables');
 
         $this->response['filetype'] = 'image';
 
@@ -134,7 +134,7 @@ class FileUploadImages
 
         try {
             $media = $this->mediaDescriptionQuery()
-                ->whereKey((int) request('id'))
+                ->whereKey((int)request('id'))
                 ->first();
 
             if (!$media instanceof Media) {
@@ -177,7 +177,7 @@ class FileUploadImages
     private function mediaFiles(Media $media): array
     {
         $folder = Path::mediaFolderForMedia($media);
-        $filename = preg_quote((string) $media->filename, '/');
+        $filename = preg_quote((string)$media->filename, '/');
 
         return collect($this->disk->files($folder))
             ->filter(static function (string $path) use ($filename): bool {
@@ -203,9 +203,9 @@ class FileUploadImages
 
         try {
             $deleted = $this->model->deleteMediaclassBridgeMedia(
-                (string) request('id'),
-                (string) request('group', $this->media_group),
-                request('subgroup') ? (string) request('subgroup') : null,
+                (string)request('id'),
+                (string)request('group', $this->media_group),
+                request('subgroup') ? (string)request('subgroup') : null,
             );
 
             if (!$deleted) {
@@ -215,7 +215,7 @@ class FileUploadImages
             }
 
             $this->responseSuccess(__('mfw-mediaclass.notices.bridge_deleted'));
-            $this->responseElement('deleted_id', (string) request('id'));
+            $this->responseElement('deleted_id', (string)request('id'));
         } catch (Throwable $e) {
             $this->responseException($e);
         }
@@ -236,8 +236,8 @@ class FileUploadImages
         }
 
         try {
-            $nativeCount = $this->saveNativeMediaDetails((array) request('mediaclass'));
-            $bridgeCount = $this->saveBridgeDescriptions((array) request('mediaclass_bridge'));
+            $nativeCount = $this->saveNativeMediaDetails((array)request('mediaclass'));
+            $bridgeCount = $this->saveBridgeDescriptions((array)request('mediaclass_bridge'));
 
             $this->responseSuccess(__('mfw-mediaclass.notices.media_details_saved'));
             $this->responseElement('updated_count', $nativeCount + $bridgeCount);
@@ -279,7 +279,7 @@ class FileUploadImages
             return $this;
         }
 
-        $subgroup = trim((string) request('subgroup', ''));
+        $subgroup = trim((string)request('subgroup', ''));
 
         if ($subgroup !== '' && !array_key_exists($subgroup, $options)) {
             $this->responseError(__('mfw-mediaclass.errors.subgroupInvalid'));
@@ -289,7 +289,7 @@ class FileUploadImages
 
         try {
             $media = Subgroups::mediaQuery($this->model, $this->media_group, $this->is_ghost)
-                ->whereKey((int) request('media_id'))
+                ->whereKey((int)request('media_id'))
                 ->first();
 
             if (!$media instanceof Media) {
@@ -346,7 +346,7 @@ class FileUploadImages
                     ->orderBy('id')
                     ->lockForUpdate()
                     ->pluck('id')
-                    ->map(fn (mixed $id): int => (int) $id)
+                    ->map(fn (mixed $id): int => (int)$id)
                     ->all();
 
                 $expectedIds = $currentIds;
@@ -453,7 +453,7 @@ class FileUploadImages
             return $this->uploadFiles();
         }
 
-        $this->response['has_positions'] = (bool) request('positions');
+        $this->response['has_positions'] = (bool)request('positions');
 
         // svg
         if (str_contains($this->uploadedFile->getMimeType(), 'svg')) {
@@ -488,7 +488,7 @@ class FileUploadImages
             return $this;
         }
 
-        $url = (string) $validator->validated()['url'];
+        $url = (string)$validator->validated()['url'];
 
         $this->filename = Str::random(6);
         $this->storedMime = 'video/url';
@@ -508,7 +508,7 @@ class FileUploadImages
         $this->response['filename'] = $this->filename;
         $this->response['link'] = $url;
         $this->response['preview'] = $thumbnail ?? asset('vendor/mfw-mediaclass/images/files/mov.png');
-        $this->response['has_positions'] = (bool) request('positions');
+        $this->response['has_positions'] = (bool)request('positions');
 
         try {
             $this->media = $this->store();
@@ -523,6 +523,10 @@ class FileUploadImages
 
     private function uploadFiles(): static
     {
+        if (!$this->is_ghost) {
+            $this->folder_name = Path::mediaFolderName($this->model, true);
+        }
+
         $this->response['filetype'] = 'file';
         $this->response['filename'] = $this->filename . '.' . $this->uploadedFile->guessExtension();
         $this->response['link']     = $this->disk->url($this->folder_name . '/' . $this->response['filename'] . '?' . time());
@@ -544,6 +548,10 @@ class FileUploadImages
 
     private function uploadSvg(): static
     {
+        if (!$this->is_ghost) {
+            $this->folder_name = Path::mediaFolderName($this->model, true);
+        }
+
         $this->response['filename'] = $this->filename . '.svg';
         $file                       = $this->folder_name . '/' . $this->response['filename'];
         $img                        = $this->disk->url($file . '?' . time());
@@ -581,8 +589,8 @@ class FileUploadImages
             return $this;
         }
 
-        $imageWidth = (int) $imageInfo[0];
-        $imageHeight = (int) $imageInfo[1];
+        $imageWidth = (int)$imageInfo[0];
+        $imageHeight = (int)$imageInfo[1];
 
         // Check dimensions if group settings exist
         if (!empty($groupSettings)) {
@@ -608,8 +616,8 @@ class FileUploadImages
                     // Only check scale if resizing will happen
                     if ($currentMainDimension !== $mainDimension) {
                         $scaleRatio    = $mainDimension / $currentMainDimension;
-                        $resizedWidth  = (int) ($imageWidth * $scaleRatio);
-                        $resizedHeight = (int) ($imageHeight * $scaleRatio);
+                        $resizedWidth  = (int)($imageWidth * $scaleRatio);
+                        $resizedHeight = (int)($imageHeight * $scaleRatio);
 
                         // Check if resized dimensions would be insufficient for cropping
                         if ($resizedWidth < $requiredWidth || $resizedHeight < $requiredHeight) {
@@ -619,8 +627,8 @@ class FileUploadImages
                             $minScale       = max($minScaleWidth, $minScaleHeight);
 
                             // Calculate minimum original dimensions needed
-                            $minOriginalWidth  = (int) ceil($requiredWidth / $minScale);
-                            $minOriginalHeight = (int) ceil($requiredHeight / $minScale);
+                            $minOriginalWidth  = (int)ceil($requiredWidth / $minScale);
+                            $minOriginalHeight = (int)ceil($requiredHeight / $minScale);
 
                             if ($this->handleDimensionMismatch(
                                 $requiredWidth,
@@ -664,8 +672,9 @@ class FileUploadImages
                 $this->model,
                 $this->filename,
                 $this->mime_type,
-                (string) $key,
-                (int) $dimensions['width'],
+                (string)$key,
+                (int)$dimensions['width'],
+                createAccessKey: true,
             );
 
             $targetWidth  = $dimensions['width'];
@@ -674,8 +683,8 @@ class FileUploadImages
             [$newWidth, $newHeight] = $this->targetImageDimensions(
                 $imageWidth,
                 $imageHeight,
-                (int) $targetWidth,
-                (int) $targetHeight,
+                (int)$targetWidth,
+                (int)$targetHeight,
                 $isSingleGroupSize,
             );
 
@@ -763,7 +772,7 @@ class FileUploadImages
      */
     private function store(): Media
     {
-        if (config()->has('app.cacheables') && in_array($this->model->type, (array) config('app.cacheables'))) {
+        if (config()->has('app.cacheables') && in_array($this->model->type, (array)config('app.cacheables'))) {
             cache()->forget($this->model->type);
         }
 
@@ -799,7 +808,7 @@ class FileUploadImages
             $query->where('temp', $this->temp);
         }
 
-        return ((int) $query->max('sort_order')) + 1;
+        return ((int)$query->max('sort_order')) + 1;
     }
 
     private function mediaResponse(): static
@@ -833,8 +842,8 @@ class FileUploadImages
             $scaleRatio = $mainDimension / $currentMainDimension;
 
             return [
-                max(1, (int) ($imageWidth * $scaleRatio)),
-                max(1, (int) ($imageHeight * $scaleRatio)),
+                max(1, (int)($imageWidth * $scaleRatio)),
+                max(1, (int)($imageHeight * $scaleRatio)),
             ];
         }
 
@@ -842,8 +851,8 @@ class FileUploadImages
         $scaleRatio = min($widthRatio, 1);
 
         return [
-            max(1, (int) ($imageWidth * $scaleRatio)),
-            max(1, (int) ($imageHeight * $scaleRatio)),
+            max(1, (int)($imageWidth * $scaleRatio)),
+            max(1, (int)($imageHeight * $scaleRatio)),
         ];
     }
 
@@ -945,7 +954,7 @@ class FileUploadImages
             }
 
             $media = (clone $query)
-                ->whereKey((int) $mediaId)
+                ->whereKey((int)$mediaId)
                 ->first();
 
             if (!$media instanceof Media) {
@@ -964,11 +973,11 @@ class FileUploadImages
             }
 
             if ($hasDescription) {
-                $media->description = $this->normalizeDescriptions((array) $mediaInput['description']);
+                $media->description = $this->normalizeDescriptions((array)$mediaInput['description']);
             }
 
             if ($hasEmbedDimensions) {
-                $storable = (array) ($media->storable ?? []);
+                $storable = (array)($media->storable ?? []);
                 $storable['embed_width'] = ($mediaInput['embed_width_mode'] ?? null) === 'full'
                     ? '100%'
                     : Media::normalizeEmbedWidth($mediaInput['embed_width'] ?? $media->embedWidth());
@@ -988,7 +997,7 @@ class FileUploadImages
 
     private function saveBridgeDescriptions(array $bridgeMedia): int
     {
-        $groupPayload = (array) ($bridgeMedia[$this->media_group] ?? []);
+        $groupPayload = (array)($bridgeMedia[$this->media_group] ?? []);
 
         if ($groupPayload === [] || !method_exists($this->model, 'syncMediaclassBridgeMedia')) {
             return 0;
@@ -1001,7 +1010,7 @@ class FileUploadImages
                 continue;
             }
 
-            $bridgeId = trim((string) ($bridgeInput['id'] ?? ''));
+            $bridgeId = trim((string)($bridgeInput['id'] ?? ''));
 
             if ($bridgeId === '') {
                 continue;
@@ -1011,9 +1020,9 @@ class FileUploadImages
                 continue;
             }
 
-            $payload[(string) $key] = [
+            $payload[(string)$key] = [
                 'id' => $bridgeId,
-                'description' => $this->normalizeDescriptions((array) $bridgeInput['description']),
+                'description' => $this->normalizeDescriptions((array)$bridgeInput['description']),
             ];
         }
 
@@ -1052,7 +1061,7 @@ class FileUploadImages
 
     private function requestedSubgroup(): ?string
     {
-        $subgroup = trim((string) request('subgroup', ''));
+        $subgroup = trim((string)request('subgroup', ''));
 
         return $subgroup !== '' && $subgroup !== 'false' ? $subgroup : null;
     }
@@ -1091,7 +1100,7 @@ class FileUploadImages
         return collect($descriptions)
             ->mapWithKeys(static function (mixed $description, int|string $locale): array {
                 return [
-                    (string) $locale => is_string($description) ? trim($description) : (string) $description,
+                    (string)$locale => is_string($description) ? trim($description) : (string)$description,
                 ];
             })
             ->all();
@@ -1162,7 +1171,7 @@ class FileUploadImages
         }
 
         $size  = strtoupper(trim($size));
-        $value = (int) preg_replace('/[^0-9]/', '', $size);
+        $value = (int)preg_replace('/[^0-9]/', '', $size);
 
         return match (true) {
             str_contains($size, 'KB') => $value * 1024,
