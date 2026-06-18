@@ -120,6 +120,19 @@ class UploaderAssetTest extends TestCase
         $this->assertStringNotContainsString('ajaxSuccess.mediaclassDelete', $managerSource);
     }
 
+    public function test_empty_media_notice_tracks_uploads_and_deletions(): void
+    {
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
+        $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
+
+        $this->assertStringContainsString('syncEmptyState(uploadable)', $managerSource);
+        $this->assertStringContainsString('MediaclassManager.syncEmptyState(deleteData.uploadable)', $managerSource);
+        $this->assertStringContainsString('this.syncEmptyState(uploadable)', $managerSource);
+        $this->assertStringContainsString("alertsContainer.find('[data-mediaclass-empty-state]').remove()", $managerSource);
+        $this->assertStringContainsString('data-mediaclass-empty-state', $storedView);
+        $this->assertStringNotContainsString('alertsContainer.html(`<div class="alert alert-info">', $managerSource);
+    }
+
     public function test_video_forms_include_editable_embed_dimensions(): void
     {
         $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');

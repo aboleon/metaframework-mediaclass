@@ -177,7 +177,9 @@
 
 <div class="mediaclass-alerts mt-2" data-msg="{{ $nomedia }}">
     @if ($medias->isEmpty())
-        <x-mfw-support::alert type="warning" :message="$nomedia" />
+        <div class="mediaclass-empty-state" data-mediaclass-empty-state>
+            <x-mfw-support::alert type="warning" :message="$nomedia" />
+        </div>
     @endif
 </div>
 

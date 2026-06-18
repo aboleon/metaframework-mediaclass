@@ -16,6 +16,55 @@ const MediaclassManager = {
     alerts(uploadable = null) {
         return uploadable ? uploadable.find('.mediaclass-alerts').first() : $('.mediaclass-alerts');
     },
+    syncEmptyState(uploadable) {
+        const alertsContainer = this.alerts(uploadable);
+
+        alertsContainer.find('[data-mediaclass-empty-state]').remove();
+
+        if (uploadable.find('.uploaded div.mediaclass.unlinkable').length > 0) {
+            return;
+        }
+
+        const message = String(alertsContainer.attr('data-msg') || '');
+
+        if (!message) {
+            return;
+        }
+
+        $('<div>', {
+            'data-mediaclass-empty-state': '',
+            class: 'mediaclass-empty-state'
+        })
+            .append($('<div>', {
+                class: 'alert alert-warning',
+                text: message
+            }))
+            .appendTo(alertsContainer);
+    },
+    lightGalleryContainer(uploadable) {
+        let container = uploadable.find('.lightgallery-container').first();
+
+        if (container.length > 0) {
+            return container;
+        }
+
+        const grid = Math.min(Math.max(Number(uploadable.data('grid')) || 1, 1), 4);
+        container = $('<div>', {
+            id: `lightgallery-${uploadable.data('group')}-${uploadable.data('model-id')}`,
+            class: `lightgallery-container mediaclass-stored-grid mediaclass-stored-grid--${grid}`,
+            'data-grid': grid
+        });
+
+        const alertsContainer = this.alerts(uploadable);
+
+        if (alertsContainer.length > 0) {
+            container.insertBefore(alertsContainer);
+        } else {
+            uploadable.find('.uploaded').first().append(container);
+        }
+
+        return container;
+    },
     setVeil(container) {
         const $container = container instanceof jQuery ? container : $(container);
         this.removeVeil($container);
@@ -379,11 +428,7 @@ const MediaclassManager = {
                         deleteData.selector.remove();
                         MediaclassManager.syncDetailsSaveButton(deleteData.uploadable);
                         MediaclassManager.syncSortable(deleteData.uploadable);
-
-                        if (deleteData.container.find('.unlinkable').length < 1) {
-                            const alertsContainer = deleteData.uploadable.find('.mediaclass-alerts').first();
-                            alertsContainer.html(`<div class="alert alert-info">${alertsContainer.data('msg')}</div>`);
-                        }
+                        MediaclassManager.syncEmptyState(deleteData.uploadable);
                     }).always(function () {
                         MediaclassManager.removeVeil(deleteData.selector);
                     });
@@ -542,15 +587,10 @@ const MediaclassManager = {
 
     appendUploadedMedia(uploadable, data, hideDescription) {
         const html = this.buildUploadedFileHTML(data, hideDescription, uploadable);
-
-        let lightGalleryContainer = uploadable.find('.lightgallery-container');
-        if (lightGalleryContainer.length === 0) {
-            const grid = Math.min(Math.max(Number(uploadable.data('grid')) || 1, 1), 4);
-            uploadable.find('.uploaded').wrapInner(`<div id="lightgallery-${uploadable.data('group')}-${uploadable.data('model-id')}" class="lightgallery-container mediaclass-stored-grid mediaclass-stored-grid--${grid}" data-grid="${grid}"></div>`);
-            lightGalleryContainer = uploadable.find('.lightgallery-container');
-        }
+        const lightGalleryContainer = this.lightGalleryContainer(uploadable);
 
         lightGalleryContainer.append(html);
+        this.syncEmptyState(uploadable);
         this.unlinkable();
         this.positions(uploadable);
         this.syncDetailsSaveButton(uploadable);
