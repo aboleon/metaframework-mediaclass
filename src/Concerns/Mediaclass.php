@@ -48,13 +48,7 @@ trait Mediaclass
      */
     public function img(string $group, ?string $subgroup = null): MediaBuilder
     {
-        $query = $this->media()->where('group', $group);
-
-        if ($subgroup !== null) {
-            $query->where('subgroup', $subgroup);
-        }
-
-        $media = $query->orderBy('sort_order')->orderBy('id')->first();
+        $media = $this->mediaForMediaclassGroup($group, $subgroup)->first();
 
         $builder = new MediaBuilder($media);
 
@@ -80,17 +74,43 @@ trait Mediaclass
      */
     public function imgs(string $group, ?string $subgroup = null): Collection
     {
+        return $this->mediaForMediaclassGroup($group, $subgroup)->map(function (Media $media) {
+            $media->setRelation('model', $this);
+
+            return new MediaBuilder($media);
+        });
+    }
+
+    private function mediaForMediaclassGroup(string $group, ?string $subgroup = null): Collection
+    {
+        if (method_exists($this, 'relationLoaded') && $this->relationLoaded('media')) {
+            return $this->loadedMediaForMediaclassGroup($group, $subgroup);
+        }
+
         $query = $this->media()->where('group', $group);
 
         if ($subgroup !== null) {
             $query->where('subgroup', $subgroup);
         }
 
-        return $query->orderBy('sort_order')->orderBy('id')->get()->map(function (Media $media) {
-            $media->setRelation('model', $this);
+        return $query->orderBy('sort_order')->orderBy('id')->get();
+    }
 
-            return new MediaBuilder($media);
-        });
+    private function loadedMediaForMediaclassGroup(string $group, ?string $subgroup = null): Collection
+    {
+        $media = $this->media->where('group', $group);
+
+        if ($subgroup !== null) {
+            $media = $media->where('subgroup', $subgroup);
+        }
+
+        return $media
+            ->sortBy(fn (Media $media): string => sprintf(
+                '%010d-%020d',
+                (int) $media->sort_order,
+                (int) $media->id,
+            ))
+            ->values();
     }
 
     public function model(): static
@@ -123,7 +143,7 @@ trait Mediaclass
                 }
 
                 if ($media->isVideo()) {
-                    $storable = (array)($media->storable ?? []);
+                    $storable = (array) ($media->storable ?? []);
                     $storable['embed_width'] = ($value['embed_width_mode'] ?? null) === 'full'
                         ? '100%'
                         : Media::normalizeEmbedWidth($value['embed_width'] ?? $media->embedWidth());
@@ -138,7 +158,7 @@ trait Mediaclass
         }
 
         if (request()->has('mediaclass_bridge') && method_exists($this, 'syncMediaclassBridgeMedia')) {
-            $this->syncMediaclassBridgeMedia((array)request('mediaclass_bridge'));
+            $this->syncMediaclassBridgeMedia((array) request('mediaclass_bridge'));
         }
 
         if (request()->has('mediaclass_temp_id')) {
