@@ -82,6 +82,34 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString('<option value="full">', $svelteSource);
     }
 
+    public function test_selecting_video_opens_the_video_url_panel(): void
+    {
+        $svelteSource = file_get_contents(__DIR__ . '/../../resources/svelte/Uploadable.svelte');
+
+        $this->assertMatchesRegularExpression(
+            "/function selectType\\(type: string\\): void \\{.*syncStoredMediaState\\(\\);.*setVideoPanelOpen\\(type === 'video'\\);.*\\}/s",
+            $svelteSource,
+        );
+        $this->assertStringContainsString("setVideoPanelOpen(type === 'video');", $svelteSource);
+        $this->assertStringContainsString("{#if showVideoPanel}", $svelteSource);
+        $this->assertStringContainsString("type=\"url\"", $svelteSource);
+    }
+
+    public function test_video_panel_hides_the_empty_media_notice_while_open(): void
+    {
+        $svelteSource = file_get_contents(__DIR__ . '/../../resources/svelte/Uploadable.svelte');
+
+        $this->assertMatchesRegularExpression(
+            "/function setVideoPanelOpen\\(open: boolean\\): void \\{.*showVideoPanel = open;.*querySelectorAll<HTMLElement>\\('\\[data-mediaclass-empty-state\\]'\\).*emptyState.hidden = open;.*\\}/s",
+            $svelteSource,
+        );
+        $this->assertStringContainsString('onclick={() => setVideoPanelOpen(false)}', $svelteSource);
+        $this->assertMatchesRegularExpression(
+            '/new MutationObserver\\(\\(\\) => \\{.*syncStoredMediaState\\(\\);.*setVideoPanelOpen\\(showVideoPanel\\);.*\\}\\)/s',
+            $svelteSource,
+        );
+    }
+
     public function test_compiled_svelte_uploader_is_shipped(): void
     {
         $compiledScript = file_get_contents(__DIR__ . '/../../public/vendor/mfw-mediaclass/mediaclass-uploader.js');

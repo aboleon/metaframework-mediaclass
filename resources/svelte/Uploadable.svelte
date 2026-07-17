@@ -89,7 +89,10 @@
 
     const uploaded = uploadable.querySelector('.uploaded');
     if (uploaded && typeof MutationObserver !== 'undefined') {
-      observer = new MutationObserver(() => syncStoredMediaState());
+      observer = new MutationObserver(() => {
+        syncStoredMediaState();
+        setVideoPanelOpen(showVideoPanel);
+      });
       observer.observe(uploaded, {
         childList: true,
         subtree: true
@@ -233,6 +236,13 @@
     return uploadable?.querySelectorAll('.uploaded div.mediaclass.unlinkable').length ?? 0;
   }
 
+  function setVideoPanelOpen(open: boolean): void {
+    showVideoPanel = open;
+    uploadable?.querySelectorAll<HTMLElement>('[data-mediaclass-empty-state]').forEach((emptyState) => {
+      emptyState.hidden = open;
+    });
+  }
+
   function syncStoredMediaState(): void {
     hasStoredVideos = Boolean(uploadable?.querySelector('.uploaded .preview.video'));
     limitReached = config.limit > 0 && currentCount() >= config.limit;
@@ -242,7 +252,7 @@
     }
 
     showFilePanel = false;
-    showVideoPanel = false;
+    setVideoPanelOpen(false);
   }
 
   function remainingSlots(): number {
@@ -255,8 +265,16 @@
 
   function selectType(type: string): void {
     selectedType = type;
+    syncStoredMediaState();
+
+    if (limitReached) {
+      showLimitReached();
+
+      return;
+    }
+
     showFilePanel = false;
-    showVideoPanel = false;
+    setVideoPanelOpen(type === 'video');
   }
 
   function toggleActivePanel(): void {
@@ -269,14 +287,14 @@
     }
 
     if (selectedType === 'video') {
-      showVideoPanel = !showVideoPanel;
+      setVideoPanelOpen(!showVideoPanel);
       showFilePanel = false;
 
       return;
     }
 
     showFilePanel = !showFilePanel;
-    showVideoPanel = false;
+    setVideoPanelOpen(false);
   }
 
   function showLimitReached(): void {
@@ -493,7 +511,7 @@
 
         finishSuccessfulUpload(data);
         video = defaultVideoInput(config.mediaLocales);
-        showVideoPanel = false;
+        setVideoPanelOpen(false);
       })
       .catch(() => {
         videoError = text('upload_error_generic', 'An error occurred while uploading your file');
@@ -816,7 +834,7 @@
       <button type="button" class="btn btn-sm btn-warning" onclick={submitVideo} disabled={videoUploading}>
         {text('add', 'Add')}
       </button>
-      <button type="button" class="btn btn-sm btn-secondary ms-2" onclick={() => (showVideoPanel = false)} disabled={videoUploading}>
+      <button type="button" class="btn btn-sm btn-secondary ms-2" onclick={() => setVideoPanelOpen(false)} disabled={videoUploading}>
         {text('cancel', 'Cancel')}
       </button>
     </div>
