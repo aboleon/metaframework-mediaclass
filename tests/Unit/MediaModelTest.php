@@ -367,10 +367,10 @@ class MediaModelTest extends TestCase
         ]);
 
         $this->assertSame(560, $media->embedWidth());
-        $this->assertSame(315, $media->embedHeight());
+        $this->assertSame('auto', $media->embedHeight());
         $this->assertSame([
             'width' => 560,
-            'height' => 315,
+            'height' => 'auto',
         ], $media->embedOptions());
     }
 
@@ -388,7 +388,13 @@ class MediaModelTest extends TestCase
         $this->assertSame('100%', $media->embedWidth());
         $this->assertSame(420, $media->embedHeight());
         $this->assertSame(560, Media::normalizeEmbedWidth('invalid'));
-        $this->assertSame(315, Media::normalizeEmbedHeight(0));
+        $this->assertSame('auto', Media::normalizeEmbedHeight(0));
+        $this->assertSame('auto', Media::normalizeEmbedHeight('AUTO'));
+        $this->assertTrue(Media::isValidEmbedHeight('auto'));
+        $this->assertTrue(Media::isValidEmbedHeight(420));
+        $this->assertFalse(Media::isValidEmbedHeight(0));
+        $this->assertSame('auto', Media::normalizeEmbedHeightForMode('auto', 420));
+        $this->assertSame(420, Media::normalizeEmbedHeightForMode('pixels', 420));
     }
 
     public function test_external_video_thumbnail_url_is_validated(): void

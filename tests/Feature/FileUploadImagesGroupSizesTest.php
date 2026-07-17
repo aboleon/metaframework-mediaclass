@@ -285,6 +285,7 @@ class FileUploadImagesGroupSizesTest extends TestCase
             'description' => ['en' => 'Video description'],
             'positions' => true,
             'embed_width_mode' => 'full',
+            'embed_height_mode' => 'pixels',
             'embed_height' => 420,
         ]);
 
@@ -323,7 +324,7 @@ class FileUploadImagesGroupSizesTest extends TestCase
         $media = Media::query()->where('group', 'gallery')->firstOrFail();
 
         $this->assertSame(560, $media->storable['embed_width']);
-        $this->assertSame(315, $media->storable['embed_height']);
+        $this->assertSame('auto', $media->storable['embed_height']);
         $this->assertSame(
             'https://i.ytimg.com/vi/default123/hqdefault.jpg',
             $media->storable['thumbnail_url'],

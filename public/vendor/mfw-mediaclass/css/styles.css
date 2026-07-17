@@ -845,6 +845,37 @@ canvas {
     }
 }
 
+.mediaclass-video-dimensions {
+    .mediaclass-video-dimensions__grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    }
+
+    .mediaclass-video-dimension {
+        min-width: 0;
+    }
+
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 6px;
+    }
+
+    .input-group {
+        flex-wrap: nowrap;
+
+        .form-select {
+            flex: 0 1 46%;
+            min-width: 110px;
+        }
+
+        .form-control {
+            flex: 1 1 54%;
+            min-width: 90px;
+        }
+    }
+}
+
 @media (max-width: 767px) {
     .mediaclass-svelte-panel {
         .mediaclass-svelte-queue-item {

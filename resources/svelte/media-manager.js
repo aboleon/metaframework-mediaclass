@@ -304,6 +304,45 @@ const MediaclassManager = {
 
         return match ? match[2] : '';
     },
+    escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    },
+    html5VideoMimeType(url) {
+        let path = '';
+
+        try {
+            path = new URL(url, window.location.href).pathname;
+        } catch {
+            return null;
+        }
+
+        const match = path.match(/\.(mp4|m4v|webm|ogv|ogg)(?:$|[_-])/i);
+
+        if (!match) {
+            return null;
+        }
+
+        return {
+            mp4: 'video/mp4',
+            m4v: 'video/mp4',
+            webm: 'video/webm',
+            ogv: 'video/ogg',
+            ogg: 'video/ogg'
+        }[match[1].toLowerCase()];
+    },
+    html5VideoData(url) {
+        const mimeType = this.html5VideoMimeType(url);
+
+        return mimeType ? JSON.stringify({
+            source: [{ src: url, type: mimeType }],
+            attributes: { preload: 'metadata', playsinline: true, controls: true }
+        }) : null;
+    },
     getI18n(uploadable) {
         if (!uploadable || uploadable.length < 1) {
             return {};
@@ -521,24 +560,30 @@ const MediaclassManager = {
 
         widthInput.prop('disabled', select.val() === 'full');
     },
+    syncVideoHeightMode(select) {
+        const heightInput = select.closest('.input-group').find('.mediaclass-video-height').first();
+
+        heightInput.prop('disabled', select.val() === 'auto');
+    },
 
     videoDimensionsFields(uploadable, namePrefix = '', storable = {}) {
         const widthLabel = this.i18nText(uploadable, 'video_width_label', 'Video width');
         const heightLabel = this.i18nText(uploadable, 'video_height_label', 'Video height');
+        const autoHeightLabel = this.i18nText(uploadable, 'video_height_auto', 'Auto');
         const pixelsLabel = this.i18nText(uploadable, 'video_width_pixels', 'Pixels');
         const fullWidthLabel = this.i18nText(uploadable, 'video_width_full', '100% width');
         const storedWidth = String(storable.embed_width ?? '560').trim();
         const isFullWidth = storedWidth === '100%';
         const pixelWidth = /^\d+$/.test(storedWidth) ? storedWidth : '560';
-        const height = /^\d+$/.test(String(storable.embed_height ?? '315'))
-            ? String(storable.embed_height ?? '315')
-            : '315';
+        const storedHeight = String(storable.embed_height ?? 'auto').trim().toLowerCase();
+        const isAutoHeight = storedHeight === 'auto' || !/^\d+$/.test(storedHeight);
+        const pixelHeight = /^\d+$/.test(storedHeight) ? storedHeight : '315';
         const fieldName = (name) => namePrefix ? `${namePrefix}[${name}]` : name;
 
         return `
             <div class="col-12 mediaclass-video-dimensions">
-                <div class="row">
-                    <div class="col-md-6 col-12">
+                <div class="mediaclass-video-dimensions__grid">
+                    <div class="mediaclass-video-dimension">
                         <label class="form-label">${widthLabel}</label>
                         <div class="input-group">
                             <select name="${fieldName('embed_width_mode')}" class="form-select mediaclass-video-width-mode">
@@ -551,12 +596,18 @@ const MediaclassManager = {
                                    value="${pixelWidth}"${isFullWidth ? ' disabled' : ''}>
                         </div>
                     </div>
-                    <div class="col-md-6 col-12">
+                    <div class="mediaclass-video-dimension">
                         <label class="form-label">${heightLabel}</label>
-                        <input type="number" min="1" max="4320"
-                               name="${fieldName('embed_height')}"
-                               class="form-control"
-                               value="${height}">
+                        <div class="input-group">
+                            <select name="${fieldName('embed_height_mode')}" class="form-select mediaclass-video-height-mode">
+                                <option value="auto"${isAutoHeight ? ' selected' : ''}>${autoHeightLabel}</option>
+                                <option value="pixels"${isAutoHeight ? '' : ' selected'}>${pixelsLabel}</option>
+                            </select>
+                            <input type="number" min="1" max="4320"
+                                   name="${fieldName('embed_height')}"
+                                   class="form-control mediaclass-video-height"
+                                   value="${pixelHeight}"${isAutoHeight ? ' disabled' : ''}>
+                        </div>
                     </div>
                 </div>
             </div>`;
@@ -567,6 +618,12 @@ const MediaclassManager = {
             .off('change.mediaclassVideoWidth', '.mediaclass-video-width-mode')
             .on('change.mediaclassVideoWidth', '.mediaclass-video-width-mode', function () {
                 MediaclassManager.syncVideoWidthMode($(this));
+            });
+
+        $(document)
+            .off('change.mediaclassVideoHeight', '.mediaclass-video-height-mode')
+            .on('change.mediaclassVideoHeight', '.mediaclass-video-height-mode', function () {
+                MediaclassManager.syncVideoHeightMode($(this));
             });
     },
 
@@ -643,15 +700,21 @@ const MediaclassManager = {
         } else if (filetype === 'video') {
             const storable = uploaded.storable || {};
             const embedWidth = Number(storable.embed_width) > 0 ? Number(storable.embed_width) : 560;
-            const embedHeight = Number(storable.embed_height) > 0 ? Number(storable.embed_height) : 315;
+            const embedHeight = Number(storable.embed_height) > 0 ? Number(storable.embed_height) : 'auto';
+            const videoSizeAttribute = Number.isInteger(embedHeight)
+                ? `data-lg-size="${embedWidth}-${embedHeight}"`
+                : '';
+            const html5VideoData = this.html5VideoData(link);
+            const videoSourceAttributes = html5VideoData
+                ? `data-video='${this.escapeHtml(html5VideoData)}'`
+                : `href="${this.escapeHtml(link)}" data-src="${this.escapeHtml(link)}"`;
 
             html += `
-            <a href="${link}"
-               data-src="${link}"
+            <a ${videoSourceAttributes}
                data-poster="${preview}"
                data-thumb="${preview}"
                data-download-url="false"
-               data-lg-size="${embedWidth}-${embedHeight}"
+               ${videoSizeAttribute}
                data-sub-html="<h4>${uploaded.original_filename}</h4><p>${uploaded.description ? (uploaded.description[document.documentElement.lang] || '') : ''}</p>"
                class="lightgallery-item d-block w-100 h-100"
                style="background-image: url(${preview}); background-size: cover; background-repeat: no-repeat; background-position: center;">
@@ -1178,6 +1241,9 @@ const MediaclassManager = {
 
             $(this).find('.mediaclass-video-width-mode').each(function () {
                 MediaclassManager.syncVideoWidthMode($(this));
+            });
+            $(this).find('.mediaclass-video-height-mode').each(function () {
+                MediaclassManager.syncVideoHeightMode($(this));
             });
         });
 

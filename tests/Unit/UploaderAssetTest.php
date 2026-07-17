@@ -78,7 +78,9 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString("formData.append('files[]', item.file)", $svelteSource);
         $this->assertStringContainsString("formData.set('action', 'uploadUrl')", $svelteSource);
         $this->assertStringContainsString("embedWidth: '560'", $svelteSource);
-        $this->assertStringContainsString("embedHeight: '315'", $svelteSource);
+        $this->assertStringContainsString("embedHeightMode: 'auto'", $svelteSource);
+        $this->assertStringContainsString('<option value="auto">', $svelteSource);
+        $this->assertStringContainsString("disabled={video.embedHeightMode === 'auto'}", $svelteSource);
         $this->assertStringContainsString('<option value="full">', $svelteSource);
     }
 
@@ -91,8 +93,8 @@ class UploaderAssetTest extends TestCase
             $svelteSource,
         );
         $this->assertStringContainsString("setVideoPanelOpen(type === 'video');", $svelteSource);
-        $this->assertStringContainsString("{#if showVideoPanel}", $svelteSource);
-        $this->assertStringContainsString("type=\"url\"", $svelteSource);
+        $this->assertStringContainsString('{#if showVideoPanel}', $svelteSource);
+        $this->assertStringContainsString('type="url"', $svelteSource);
     }
 
     public function test_video_panel_hides_the_empty_media_notice_while_open(): void
@@ -169,6 +171,8 @@ class UploaderAssetTest extends TestCase
         $this->assertStringContainsString("videoDimensionsFields(uploadable, namePrefix = '', storable = {})", $managerSource);
         $this->assertStringContainsString('value="full"', $storedView);
         $this->assertStringContainsString('mediaclass-video-width-mode', $storedView);
+        $this->assertStringContainsString('mediaclass-video-height-mode', $storedView);
+        $this->assertStringContainsString("heightInput.prop('disabled', select.val() === 'auto')", $managerSource);
         $this->assertStringContainsString('[embed_height]', $storedView);
     }
 
@@ -178,12 +182,23 @@ class UploaderAssetTest extends TestCase
         $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
 
         $this->assertStringContainsString('data-poster="${preview}"', $managerSource);
-        $this->assertStringContainsString('data-src="${link}"', $managerSource);
+        $this->assertStringContainsString('data-src="${this.escapeHtml(link)}"', $managerSource);
         $this->assertStringContainsString('plugins: [lgZoom, lgThumbnail, lgVideo]', $managerSource);
         $this->assertStringContainsString('autoplayFirstVideo: true', $managerSource);
         $this->assertStringContainsString('autoplayVideoOnSlide: true', $managerSource);
         $this->assertStringContainsString('data-poster="{{ $preview }}"', $storedView);
         $this->assertStringContainsString('plugins/video/lg-video.min.js', $storedView);
+    }
+
+    public function test_html5_video_previews_use_explicit_lightgallery_video_data(): void
+    {
+        $managerSource = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
+        $storedView = file_get_contents(__DIR__ . '/../../resources/views/components/stored.blade.php');
+
+        $this->assertStringContainsString("data-video='@json(\$html5_video", $storedView);
+        $this->assertStringContainsString('html5VideoMimeType(url)', $managerSource);
+        $this->assertStringContainsString("attributes: { preload: 'metadata', playsinline: true, controls: true }", $managerSource);
+        $this->assertStringContainsString("? `data-video='", $managerSource);
     }
 
     public function test_lightgallery_is_loaded_from_cdn_instead_of_a_published_distribution(): void

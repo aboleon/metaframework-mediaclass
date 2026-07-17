@@ -18,6 +18,7 @@
         'video_url_placeholder' => __('mfw-mediaclass.labels.video_url_placeholder'),
         'video_width_label' => __('mfw-mediaclass.labels.video_width'),
         'video_height_label' => __('mfw-mediaclass.labels.video_height'),
+        'video_height_auto' => __('mfw-mediaclass.labels.video_height_auto'),
         'video_width_pixels' => __('mfw-mediaclass.labels.video_width_pixels'),
         'video_width_full' => __('mfw-mediaclass.labels.video_width_full'),
         'add' => __('mfw-mediaclass.buttons.add'),

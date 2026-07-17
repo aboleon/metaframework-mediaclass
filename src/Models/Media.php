@@ -28,7 +28,9 @@ class Media extends Model
 
     public const DEFAULT_EMBED_WIDTH = 560;
 
-    public const DEFAULT_EMBED_HEIGHT = 315;
+    public const DEFAULT_EMBED_HEIGHT = 'auto';
+
+    public const DEFAULT_EMBED_PIXEL_HEIGHT = 315;
 
     protected $table = 'mediaclass';
 
@@ -336,6 +338,30 @@ class Media extends Model
         return str_contains($this->mime, 'video');
     }
 
+    public function html5VideoMimeType(): ?string
+    {
+        if (!$this->isVideo() || !$this->isExternalUrl()) {
+            return null;
+        }
+
+        return self::html5VideoMimeTypeForUrl($this->externalUrl());
+    }
+
+    public static function html5VideoMimeTypeForUrl(?string $url): ?string
+    {
+        $path = is_string($url) ? (string) parse_url($url, PHP_URL_PATH) : '';
+
+        if (preg_match('/\.(mp4|m4v|webm|ogv|ogg)(?:$|[_-])/i', $path, $matches) !== 1) {
+            return null;
+        }
+
+        return match (strtolower($matches[1])) {
+            'mp4', 'm4v' => 'video/mp4',
+            'webm' => 'video/webm',
+            'ogv', 'ogg' => 'video/ogg',
+        };
+    }
+
     public function isExternalUrl(): bool
     {
         return str_contains($this->mime, 'url') && $this->externalUrl() !== null;
@@ -376,13 +402,13 @@ class Media extends Model
         return self::normalizeEmbedWidth(((array) ($this->storable ?? []))['embed_width'] ?? null);
     }
 
-    public function embedHeight(): int
+    public function embedHeight(): int|string
     {
         return self::normalizeEmbedHeight(((array) ($this->storable ?? []))['embed_height'] ?? null);
     }
 
     /**
-     * @return array{width: int|string, height: int}
+     * @return array{width: int|string, height: int|string}
      */
     public function embedOptions(): array
     {
@@ -408,8 +434,12 @@ class Media extends Model
         return $width === false ? self::DEFAULT_EMBED_WIDTH : $width;
     }
 
-    public static function normalizeEmbedHeight(mixed $height): int
+    public static function normalizeEmbedHeight(mixed $height): int|string
     {
+        if (is_string($height) && strtolower(trim($height)) === self::DEFAULT_EMBED_HEIGHT) {
+            return self::DEFAULT_EMBED_HEIGHT;
+        }
+
         $height = filter_var($height, FILTER_VALIDATE_INT, [
             'options' => [
                 'min_range' => 1,
@@ -418,6 +448,29 @@ class Media extends Model
         ]);
 
         return $height === false ? self::DEFAULT_EMBED_HEIGHT : $height;
+    }
+
+    public static function isValidEmbedHeight(mixed $height): bool
+    {
+        if (is_string($height) && strtolower(trim($height)) === self::DEFAULT_EMBED_HEIGHT) {
+            return true;
+        }
+
+        return filter_var($height, FILTER_VALIDATE_INT, [
+            'options' => [
+                'min_range' => 1,
+                'max_range' => 4320,
+            ],
+        ]) !== false;
+    }
+
+    public static function normalizeEmbedHeightForMode(mixed $mode, mixed $height): int|string
+    {
+        if ($mode === 'auto') {
+            return self::DEFAULT_EMBED_HEIGHT;
+        }
+
+        return self::normalizeEmbedHeight($height);
     }
 
     /**

@@ -13,6 +13,17 @@
                 $embed_width = $is_video && !$is_bridge ? $media->embedWidth() : null;
                 $embed_height = $is_video && !$is_bridge ? $media->embedHeight() : null;
                 $embed_width_mode = $embed_width === '100%' ? 'full' : 'pixels';
+                $embed_height_mode = $embed_height === 'auto' ? 'auto' : 'pixels';
+                $embed_height_pixels = is_int($embed_height)
+                    ? $embed_height
+                    : \MetaFramework\Mediaclass\Models\Media::DEFAULT_EMBED_PIXEL_HEIGHT;
+                $html5_video_mime = $is_video && !$is_bridge ? $media->html5VideoMimeType() : null;
+                $html5_video = $html5_video_mime
+                    ? [
+                        'source' => [['src' => $media->url(), 'type' => $html5_video_mime]],
+                        'attributes' => ['preload' => 'metadata', 'playsinline' => true, 'controls' => true],
+                    ]
+                    : null;
                 $video_lightgallery_width = is_int($embed_width)
                     ? $embed_width
                     : \MetaFramework\Mediaclass\Models\Media::DEFAULT_EMBED_WIDTH;
@@ -60,10 +71,11 @@
                                 </div>
                             </a>
                         @elseif ($is_video && !$is_bridge)
-                            <a href="{{ $media->url() }}" data-src="{{ $media->url() }}"
+                            <a @if ($html5_video) data-video='@json($html5_video, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)'
+                                @else href="{{ $media->url() }}" data-src="{{ $media->url() }}" @endif
                                 data-poster="{{ $preview }}" data-thumb="{{ $preview }}"
                                 data-download-url="false"
-                                data-lg-size="{{ $video_lightgallery_width }}-{{ $embed_height }}"
+                                @if (is_int($embed_height)) data-lg-size="{{ $video_lightgallery_width }}-{{ $embed_height }}" @endif
                                 data-sub-html="<h4>{{ $media->original_filename }}</h4><p>{{ $media->description[app()->getLocale()] ?? '' }}</p>"
                                 class="lightgallery-item d-block w-100 h-100"
                                 style="background-image: url({{ $preview }});background-size: cover;background-repeat: no-repeat;background-position: center;">
@@ -117,8 +129,8 @@
 
                             @if ($is_video && !$is_bridge)
                                 <div class="col-12 mediaclass-video-dimensions">
-                                    <div class="row">
-                                        <div class="col-md-6 col-12">
+                                    <div class="mediaclass-video-dimensions__grid">
+                                        <div class="mediaclass-video-dimension">
                                             <label
                                                 class="form-label">{{ __('mfw-mediaclass.labels.video_width') }}</label>
                                             <div class="input-group">
@@ -138,12 +150,25 @@
                                                     @disabled($embed_width_mode === 'full')>
                                             </div>
                                         </div>
-                                        <div class="col-md-6 col-12">
+                                        <div class="mediaclass-video-dimension">
                                             <label
                                                 class="form-label">{{ __('mfw-mediaclass.labels.video_height') }}</label>
-                                            <input type="number" min="1" max="4320"
-                                                name="mediaclass[{{ $media->id }}][embed_height]"
-                                                class="form-control" value="{{ $embed_height }}">
+                                            <div class="input-group">
+                                                <select name="mediaclass[{{ $media->id }}][embed_height_mode]"
+                                                    class="form-select mediaclass-video-height-mode">
+                                                    <option value="auto" @selected($embed_height_mode === 'auto')>
+                                                        {{ __('mfw-mediaclass.labels.video_height_auto') }}
+                                                    </option>
+                                                    <option value="pixels" @selected($embed_height_mode === 'pixels')>
+                                                        {{ __('mfw-mediaclass.labels.video_width_pixels') }}
+                                                    </option>
+                                                </select>
+                                                <input type="number" min="1" max="4320"
+                                                    name="mediaclass[{{ $media->id }}][embed_height]"
+                                                    class="form-control mediaclass-video-height"
+                                                    value="{{ $embed_height_pixels }}"
+                                                    @disabled($embed_height_mode === 'auto')>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

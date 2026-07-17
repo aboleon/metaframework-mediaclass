@@ -28,7 +28,7 @@ class MediaclassEmbedTest extends TestCase
             ->method('html')
             ->with([
                 'width' => 560,
-                'height' => 315,
+                'height' => 'auto',
                 'loading' => 'lazy',
             ])
             ->willReturn('<iframe src="https://www.youtube.com/embed/abc123"></iframe>');
@@ -69,7 +69,7 @@ class MediaclassEmbedTest extends TestCase
             ->method('html')
             ->with([
                 'width' => 560,
-                'height' => 315,
+                'height' => 'auto',
                 'loading' => 'lazy',
                 'title' => 'Video&quot; onload=&quot;alert(1)',
             ])
@@ -120,9 +120,27 @@ class MediaclassEmbedTest extends TestCase
 
         $this->assertStringContainsString('<video', $html);
         $this->assertStringContainsString('width="560"', $html);
-        $this->assertStringContainsString('height="315"', $html);
+        $this->assertStringContainsString('height="auto"', $html);
         $this->assertStringContainsString('loading="lazy"', $html);
         $this->assertStringContainsString('https://cdn.example.com/video.mp4', $html);
+    }
+
+    public function test_it_renders_direct_video_urls_with_a_cdn_suffix(): void
+    {
+        $url = 'https://video.bta.bg/2026/06/05/0000.260605_VIDIN_RAZKOPKI_NEW.mp4_up';
+        $factory = $this->createStub(Factory::class);
+        $factory->method('get')->willReturn(null);
+
+        $html = (new Mediaclass($factory))->embed($url, [
+            'width' => '100%',
+            'height' => 315,
+            'loading' => 'lazy',
+            'title' => 'Vidin "video"',
+        ])->toHtml();
+
+        $this->assertStringContainsString('<video controls width="100%" height="315" loading="lazy"', $html);
+        $this->assertStringContainsString('title="Vidin &quot;video&quot;"', $html);
+        $this->assertStringContainsString('<source src="' . $url . '" type="video/mp4">', $html);
     }
 
     public function test_stored_video_dimensions_override_the_default_embed_size(): void

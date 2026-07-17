@@ -26,6 +26,7 @@ return [
         'video_url_placeholder' => 'https://...',
         'video_width' => 'Ширина на видеото',
         'video_height' => 'Височина на видеото',
+        'video_height_auto' => 'Автоматично',
         'video_width_pixels' => 'Пиксели',
         'video_width_full' => '100% ширина',
         'positions' => 'Позиции спрямо съдържанието',

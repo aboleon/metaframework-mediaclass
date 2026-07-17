@@ -147,7 +147,8 @@ trait Mediaclass
                     $storable['embed_width'] = ($value['embed_width_mode'] ?? null) === 'full'
                         ? '100%'
                         : Media::normalizeEmbedWidth($value['embed_width'] ?? $media->embedWidth());
-                    $storable['embed_height'] = Media::normalizeEmbedHeight(
+                    $storable['embed_height'] = Media::normalizeEmbedHeightForMode(
+                        $value['embed_height_mode'] ?? null,
                         $value['embed_height'] ?? $media->embedHeight(),
                     );
                     $media->storable = $storable;

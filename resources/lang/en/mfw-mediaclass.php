@@ -26,6 +26,7 @@ return [
         'video_url_placeholder' => 'https://...',
         'video_width' => 'Video width',
         'video_height' => 'Video height',
+        'video_height_auto' => 'Auto',
         'video_width_pixels' => 'Pixels',
         'video_width_full' => '100% width',
         'positions' => 'Positions relative to content',

@@ -43,6 +43,7 @@
   type VideoInput = {
     descriptions: Record<string, string>;
     embedHeight: string;
+    embedHeightMode: 'auto' | 'pixels';
     embedWidth: string;
     embedWidthMode: 'pixels' | 'full';
     position: string;
@@ -140,6 +141,7 @@
     return {
       descriptions: Object.fromEntries((locales.length > 0 ? locales : [locale()]).map((value) => [value, ''])),
       embedHeight: '315',
+      embedHeightMode: 'auto',
       embedWidth: '560',
       embedWidthMode: 'pixels',
       position: 'left',
@@ -487,7 +489,8 @@
     formData.set('position', video.position);
     formData.set('embed_width_mode', video.embedWidthMode);
     formData.set('embed_width', video.embedWidth);
-    formData.set('embed_height', video.embedHeight);
+    formData.set('embed_height_mode', video.embedHeightMode);
+    formData.set('embed_height', video.embedHeightMode === 'auto' ? 'auto' : video.embedHeight);
 
     Object.entries(video.descriptions).forEach(([key, value]) => {
       formData.set(`description[${key}]`, value);
@@ -777,8 +780,8 @@
 
       <div class="row params mt-3">
         <div class="col-12 mediaclass-video-dimensions">
-          <div class="row">
-            <div class="col-md-6 col-12">
+          <div class="mediaclass-video-dimensions__grid">
+            <div class="mediaclass-video-dimension">
               <label class="form-label" for="mediaclass-svelte-video-width-mode">{text('video_width_label', 'Video width')}</label>
               <div class="input-group">
                 <select id="mediaclass-svelte-video-width-mode" bind:value={video.embedWidthMode} class="form-select mediaclass-video-width-mode">
@@ -796,9 +799,15 @@
                 >
               </div>
             </div>
-            <div class="col-md-6 col-12">
+            <div class="mediaclass-video-dimension">
               <label class="form-label" for="mediaclass-svelte-video-height">{text('video_height_label', 'Video height')}</label>
-              <input id="mediaclass-svelte-video-height" type="number" min="1" max="4320" bind:value={video.embedHeight} class="form-control">
+              <div class="input-group">
+                <select id="mediaclass-svelte-video-height-mode" bind:value={video.embedHeightMode} class="form-select mediaclass-video-height-mode">
+                  <option value="auto">{text('video_height_auto', 'Auto')}</option>
+                  <option value="pixels">{text('video_width_pixels', 'Pixels')}</option>
+                </select>
+                <input id="mediaclass-svelte-video-height" type="number" min="1" max="4320" bind:value={video.embedHeight} class="form-control mediaclass-video-height" disabled={video.embedHeightMode === 'auto'}>
+              </div>
             </div>
           </div>
         </div>

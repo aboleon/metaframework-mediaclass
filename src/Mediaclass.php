@@ -395,7 +395,39 @@ class Mediaclass
             $html = '';
         }
 
+        if ($html === '') {
+            $html = $this->html5VideoHtml($url, $options);
+        }
+
         return new HtmlString($html);
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    protected function html5VideoHtml(string $url, array $options): string
+    {
+        $mimeType = Media::html5VideoMimeTypeForUrl($url);
+
+        if ($mimeType === null) {
+            return '';
+        }
+
+        $attributes = $this->sanitizeEmbedOptions(['controls' => true, ...$options]);
+        $attributes = collect($attributes)
+            ->map(static function (bool|float|int|string $value, string $key): string {
+                if (is_bool($value)) {
+                    return $value ? $key : '';
+                }
+
+                return $key . '="' . $value . '"';
+            })
+            ->filter()
+            ->implode(' ');
+
+        return '<video' . ($attributes !== '' ? ' ' . $attributes : '') . '>'
+            . '<source src="' . htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" type="' . $mimeType . '">'
+            . '</video>';
     }
 
     /**

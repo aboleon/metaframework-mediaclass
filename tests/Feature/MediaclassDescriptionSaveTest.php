@@ -165,6 +165,7 @@ class MediaclassDescriptionSaveTest extends TestCase
             'mediaclass' => [
                 $media->id => [
                     'embed_width_mode' => 'full',
+                    'embed_height_mode' => 'pixels',
                     'embed_height' => 420,
                 ],
             ],
@@ -223,7 +224,12 @@ class MediaclassDescriptionSaveTest extends TestCase
         );
         $this->assertMatchesRegularExpression('/<option value="pixels"[^>]*selected/', $html);
         $this->assertMatchesRegularExpression('/name="mediaclass\[' . $media->id . '\]\[embed_width\]"[^>]*value="560"/', $html);
-        $this->assertMatchesRegularExpression('/name="mediaclass\[' . $media->id . '\]\[embed_height\]"[^>]*value="315"/', $html);
+        $this->assertStringContainsString(
+            'name="mediaclass[' . $media->id . '][embed_height_mode]"',
+            $html,
+        );
+        $this->assertMatchesRegularExpression('/<option value="auto"[^>]*selected/', $html);
+        $this->assertMatchesRegularExpression('/name="mediaclass\[' . $media->id . '\]\[embed_height\]"[^>]*value="315"[^>]*disabled/', $html);
         $this->assertStringContainsString('value="full"', $html);
         $this->assertStringContainsString('data-src="https://youtu.be/abc123"', $html);
         $this->assertStringContainsString(
