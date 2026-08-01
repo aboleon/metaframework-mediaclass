@@ -8,8 +8,11 @@ use Cohensive\OEmbed\Embed;
 use Cohensive\OEmbed\Factory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\HtmlString;
+use MetaFramework\Mediaclass\Contracts\EmbedProvider;
+use MetaFramework\Mediaclass\Data\ExternalVideoEmbed;
 use MetaFramework\Mediaclass\Mediaclass;
 use MetaFramework\Mediaclass\Models\Media;
+use MetaFramework\Mediaclass\Support\EmbedProviderManager;
 use MetaFramework\Mediaclass\Tests\TestCase;
 use MetaFramework\Mediaclass\VideoEmbedders\Tf1InfoEmbedProvider;
 use RuntimeException;
@@ -168,17 +171,79 @@ class MediaclassEmbedTest extends TestCase
         ])->toHtml();
 
         $this->assertSame(
-            '<iframe src="' . $url . '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen width="100%" height="315" loading="lazy" title="Bulgarie &quot;video&quot;"></iframe>',
+            '<iframe src="' . $url . '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen width="100%" loading="lazy" title="Bulgarie &quot;video&quot;" style="width: 100%; height: auto; aspect-ratio: 16 / 9;"></iframe>',
             $html,
         );
+    }
+
+    public function test_tf1_info_percentage_height_is_responsive(): void
+    {
+        $url = 'https://www.tf1info.fr/player/647975e0-402c-4608-84ad-c12a3bb63ede/';
+        $factory = $this->createStub(Factory::class);
+        $factory->method('get')->willReturn(null);
+
+        $html = (new Mediaclass($factory))->embed($url, [
+            'width' => '100%',
+            'height' => '100%',
+        ])->toHtml();
+
+        $this->assertStringNotContainsString('height="100%"', $html);
+        $this->assertStringContainsString(
+            'style="width: 100%; height: auto; aspect-ratio: 16 / 9;"',
+            $html,
+        );
+    }
+
+    public function test_tf1_info_pixel_height_remains_explicit(): void
+    {
+        $url = 'https://www.tf1info.fr/player/647975e0-402c-4608-84ad-c12a3bb63ede/';
+        $factory = $this->createStub(Factory::class);
+        $factory->method('get')->willReturn(null);
+
+        $html = (new Mediaclass($factory))->embed($url, [
+            'width' => '100%',
+            'height' => 630,
+        ])->toHtml();
+
+        $this->assertStringContainsString('width="100%" height="630"', $html);
+        $this->assertStringNotContainsString('aspect-ratio:', $html);
+    }
+
+    public function test_provider_without_an_aspect_ratio_keeps_the_default_height(): void
+    {
+        $url = 'https://video.example.com/player/123';
+        $provider = new class implements EmbedProvider
+        {
+            public function supports(string $url): bool
+            {
+                return true;
+            }
+
+            public function embed(string $url): ?ExternalVideoEmbed
+            {
+                return new ExternalVideoEmbed($url);
+            }
+        };
+        $factory = $this->createStub(Factory::class);
+        $factory->method('get')->willReturn(null);
+
+        $html = (new Mediaclass(
+            $factory,
+            new EmbedProviderManager(providers: [$provider]),
+        ))->embed($url)->toHtml();
+
+        $this->assertStringContainsString('width="560" height="315"', $html);
+        $this->assertStringNotContainsString('aspect-ratio:', $html);
     }
 
     public function test_tf1_info_provider_only_accepts_canonical_player_urls(): void
     {
         $provider = new Tf1InfoEmbedProvider;
         $uuid = '647975e0-402c-4608-84ad-c12a3bb63ede';
+        $url = "https://www.tf1info.fr/player/{$uuid}/";
 
-        $this->assertTrue($provider->supports("https://www.tf1info.fr/player/{$uuid}/"));
+        $this->assertTrue($provider->supports($url));
+        $this->assertSame('16 / 9', $provider->embed($url)?->aspectRatio?->toCssValue());
 
         foreach ([
             "http://www.tf1info.fr/player/{$uuid}/",
@@ -195,10 +260,15 @@ class MediaclassEmbedTest extends TestCase
     public function test_service_provider_registers_tf1_info_support(): void
     {
         $url = 'https://www.tf1info.fr/player/647975e0-402c-4608-84ad-c12a3bb63ede/';
+        $html = $this->app->make(Mediaclass::class)->embed($url)->toHtml();
 
         $this->assertStringStartsWith(
             '<iframe src="' . $url . '"',
-            $this->app->make(Mediaclass::class)->embed($url)->toHtml(),
+            $html,
+        );
+        $this->assertStringContainsString(
+            'style="width: 560px; max-width: 100%; height: auto; aspect-ratio: 16 / 9;"',
+            $html,
         );
     }
 

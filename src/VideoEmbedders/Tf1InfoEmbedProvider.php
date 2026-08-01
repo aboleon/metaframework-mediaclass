@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MetaFramework\Mediaclass\VideoEmbedders;
 
 use MetaFramework\Mediaclass\Contracts\EmbedProvider;
+use MetaFramework\Mediaclass\Data\EmbedAspectRatio;
 use MetaFramework\Mediaclass\Data\ExternalVideoEmbed;
 
 class Tf1InfoEmbedProvider implements EmbedProvider
@@ -35,6 +36,6 @@ class Tf1InfoEmbedProvider implements EmbedProvider
         return new ExternalVideoEmbed($url, [
             'allow' => 'autoplay; encrypted-media; fullscreen; picture-in-picture',
             'allowfullscreen' => true,
-        ]);
+        ], new EmbedAspectRatio(16, 9));
     }
 }

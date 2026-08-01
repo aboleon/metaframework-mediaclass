@@ -12,5 +12,6 @@ final readonly class ExternalVideoEmbed
     public function __construct(
         public string $src,
         public array $attributes = [],
+        public ?EmbedAspectRatio $aspectRatio = null,
     ) {}
 }

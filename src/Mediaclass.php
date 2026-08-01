@@ -425,8 +425,11 @@ class Mediaclass
         }
 
         $attributes = $this->sanitizeEmbedOptions(array_merge($embed->attributes, $options));
+        $responsiveStyle = $this->responsiveEmbedStyle($embed, $attributes);
 
-        if (($attributes['height'] ?? null) === Media::DEFAULT_EMBED_HEIGHT) {
+        if ($responsiveStyle !== null) {
+            unset($attributes['height']);
+        } elseif (($attributes['height'] ?? null) === Media::DEFAULT_EMBED_HEIGHT) {
             $attributes['height'] = Media::DEFAULT_EMBED_PIXEL_HEIGHT;
         }
 
@@ -443,7 +446,43 @@ class Mediaclass
 
         return '<iframe src="' . htmlspecialchars($embed->src, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
             . ($attributes !== '' ? ' ' . $attributes : '')
+            . ($responsiveStyle !== null ? ' style="' . $responsiveStyle . '"' : '')
             . '></iframe>';
+    }
+
+    /**
+     * @param  array<string, bool|float|int|string>  $attributes
+     */
+    protected function responsiveEmbedStyle(ExternalVideoEmbed $embed, array $attributes): ?string
+    {
+        if ($embed->aspectRatio === null || !$this->usesResponsiveEmbedHeight($attributes['height'] ?? null)) {
+            return null;
+        }
+
+        return $this->responsiveEmbedWidthStyle($attributes['width'] ?? null)
+            . 'height: auto; aspect-ratio: ' . $embed->aspectRatio->toCssValue() . ';';
+    }
+
+    protected function responsiveEmbedWidthStyle(mixed $width): string
+    {
+        if (is_string($width) && trim($width) === '100%') {
+            return 'width: 100%; ';
+        }
+
+        $width = filter_var($width, FILTER_VALIDATE_INT, [
+            'options' => [
+                'min_range' => 1,
+                'max_range' => 7680,
+            ],
+        ]);
+
+        return $width !== false ? 'width: ' . $width . 'px; max-width: 100%; ' : '';
+    }
+
+    protected function usesResponsiveEmbedHeight(mixed $height): bool
+    {
+        return $height === null || (is_string($height)
+            && in_array(strtolower(trim($height)), [Media::DEFAULT_EMBED_HEIGHT, '100%'], true));
     }
 
     /**

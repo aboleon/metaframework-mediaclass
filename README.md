@@ -624,6 +624,11 @@ $media->storable = [
 
 Explicit helper options override the stored dimensions.
 
+Registered providers can declare an aspect ratio. For those providers, an
+`auto` or `100%` height produces a responsive iframe whose height follows its
+rendered width. A positive pixel height remains fixed when an exact height is
+required.
+
 The package also supports registered embed providers for player URLs that do
 not expose oEmbed metadata. TF1 Info player URLs are supported by default:
 
