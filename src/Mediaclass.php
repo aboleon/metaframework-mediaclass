@@ -10,12 +10,21 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\HtmlString;
 use MetaFramework\Mediaclass\Contracts\MediaclassInterface;
+use MetaFramework\Mediaclass\Data\ExternalVideoEmbed;
 use MetaFramework\Mediaclass\Models\Media;
+use MetaFramework\Mediaclass\Support\EmbedProviderManager;
 use Throwable;
 
 class Mediaclass
 {
-    public function __construct(protected ?Factory $oEmbedFactory = null) {}
+    protected EmbedProviderManager $embedProviderManager;
+
+    public function __construct(
+        protected ?Factory $oEmbedFactory = null,
+        ?EmbedProviderManager $embedProviderManager = null,
+    ) {
+        $this->embedProviderManager = $embedProviderManager ?? EmbedProviderManager::withDefaults();
+    }
 
     /**
      * Selected group for querying Mediaclass database
@@ -396,10 +405,45 @@ class Mediaclass
         }
 
         if ($html === '') {
+            $html = $this->externalVideoEmbedHtml($this->embedProviderManager->embed($url), $options);
+        }
+
+        if ($html === '') {
             $html = $this->html5VideoHtml($url, $options);
         }
 
         return new HtmlString($html);
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    protected function externalVideoEmbedHtml(?ExternalVideoEmbed $embed, array $options): string
+    {
+        if (!$embed instanceof ExternalVideoEmbed || $this->validHttpUrl($embed->src) === null) {
+            return '';
+        }
+
+        $attributes = $this->sanitizeEmbedOptions(array_merge($embed->attributes, $options));
+
+        if (($attributes['height'] ?? null) === Media::DEFAULT_EMBED_HEIGHT) {
+            $attributes['height'] = Media::DEFAULT_EMBED_PIXEL_HEIGHT;
+        }
+
+        $attributes = collect($attributes)
+            ->map(static function (bool|float|int|string $value, string $key): string {
+                if (is_bool($value)) {
+                    return $value ? $key : '';
+                }
+
+                return $key . '="' . $value . '"';
+            })
+            ->filter()
+            ->implode(' ');
+
+        return '<iframe src="' . htmlspecialchars($embed->src, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+            . ($attributes !== '' ? ' ' . $attributes : '')
+            . '></iframe>';
     }
 
     /**

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace MetaFramework\Mediaclass;
 
 use Cohensive\OEmbed\Factory;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\ServiceProvider;
 use MetaFramework\Mediaclass\Console\UpdateMediaclassCommand;
+use MetaFramework\Mediaclass\Support\EmbedProviderManager;
+use MetaFramework\Mediaclass\VideoEmbedders\Tf1InfoEmbedProvider;
 
 class MediaclassServiceProvider extends ServiceProvider
 {
@@ -16,7 +19,20 @@ class MediaclassServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/mfw-mediaclass.php', 'mfw-mediaclass');
 
-        $this->app->singleton(Mediaclass::class, fn () => new Mediaclass(new Factory));
+        $this->app->singleton(
+            EmbedProviderManager::class,
+            fn (Container $app): EmbedProviderManager => new EmbedProviderManager($app),
+        );
+        $this->callAfterResolving(
+            EmbedProviderManager::class,
+            static function (EmbedProviderManager $manager): void {
+                $manager->register(Tf1InfoEmbedProvider::class);
+            },
+        );
+        $this->app->singleton(
+            Mediaclass::class,
+            fn (Container $app): Mediaclass => new Mediaclass(new Factory, $app->make(EmbedProviderManager::class)),
+        );
         $this->app->alias(Mediaclass::class, 'mediaclass');
     }
 

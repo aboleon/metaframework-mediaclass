@@ -624,6 +624,59 @@ $media->storable = [
 
 Explicit helper options override the stored dimensions.
 
+The package also supports registered embed providers for player URLs that do
+not expose oEmbed metadata. TF1 Info player URLs are supported by default:
+
+```php
+$html = mediaclass_embed(
+    'https://www.tf1info.fr/player/647975e0-402c-4608-84ad-c12a3bb63ede/',
+    ['width' => '100%', 'loading' => 'lazy'],
+);
+```
+
+### Custom Embed Providers
+
+Implement `EmbedProvider` to support another external player. Providers return
+structured embed data instead of HTML; Mediaclass keeps URL validation,
+attribute allowlisting, escaping, and iframe rendering centralized:
+
+```php
+use MetaFramework\Mediaclass\Contracts\EmbedProvider;
+use MetaFramework\Mediaclass\Data\ExternalVideoEmbed;
+
+final class ExampleEmbedProvider implements EmbedProvider
+{
+    public function supports(string $url): bool
+    {
+        return str_starts_with($url, 'https://video.example.com/player/');
+    }
+
+    public function embed(string $url): ?ExternalVideoEmbed
+    {
+        return $this->supports($url)
+            ? new ExternalVideoEmbed($url, ['allowfullscreen' => true])
+            : null;
+    }
+}
+```
+
+Register the provider from an application or package service provider:
+
+```php
+use MetaFramework\Mediaclass\Support\EmbedProviderManager;
+
+$this->callAfterResolving(
+    EmbedProviderManager::class,
+    static function (EmbedProviderManager $manager): void {
+        $manager->register(ExampleEmbedProvider::class);
+    },
+);
+```
+
+Mediaclass tries standard oEmbed first, registered providers in registration
+order second, and the direct HTML5 video fallback last. Provider failures are
+isolated so another provider or fallback can still render the media.
+
 The back-office uploader stores the provider thumbnail when available. Existing
 external videos resolve and cache their oEmbed thumbnail on first display. Video
 previews open in the CDN-hosted LightGallery viewer and autoplay through its

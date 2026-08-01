@@ -11,6 +11,7 @@ use Illuminate\Support\HtmlString;
 use MetaFramework\Mediaclass\Mediaclass;
 use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Tests\TestCase;
+use MetaFramework\Mediaclass\VideoEmbedders\Tf1InfoEmbedProvider;
 use RuntimeException;
 
 class MediaclassEmbedTest extends TestCase
@@ -141,6 +142,76 @@ class MediaclassEmbedTest extends TestCase
         $this->assertStringContainsString('<video controls width="100%" height="315" loading="lazy"', $html);
         $this->assertStringContainsString('title="Vidin &quot;video&quot;"', $html);
         $this->assertStringContainsString('<source src="' . $url . '" type="video/mp4">', $html);
+    }
+
+    public function test_it_renders_tf1_info_player_urls_with_the_package_provider(): void
+    {
+        $url = 'https://www.tf1info.fr/player/647975e0-402c-4608-84ad-c12a3bb63ede/';
+        $media = new Media([
+            'mime' => 'video/url',
+            'storable' => [
+                'url' => $url,
+                'embed_width' => '100%',
+                'embed_height' => 'auto',
+            ],
+        ]);
+        $factory = $this->createMock(Factory::class);
+        $factory->expects($this->once())
+            ->method('get')
+            ->with($url)
+            ->willReturn(null);
+
+        $html = (new Mediaclass($factory))->embed($media, [
+            'loading' => 'lazy',
+            'title' => 'Bulgarie "video"',
+            'onload' => 'alert(1)',
+        ])->toHtml();
+
+        $this->assertSame(
+            '<iframe src="' . $url . '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen width="100%" height="315" loading="lazy" title="Bulgarie &quot;video&quot;"></iframe>',
+            $html,
+        );
+    }
+
+    public function test_tf1_info_provider_only_accepts_canonical_player_urls(): void
+    {
+        $provider = new Tf1InfoEmbedProvider;
+        $uuid = '647975e0-402c-4608-84ad-c12a3bb63ede';
+
+        $this->assertTrue($provider->supports("https://www.tf1info.fr/player/{$uuid}/"));
+
+        foreach ([
+            "http://www.tf1info.fr/player/{$uuid}/",
+            "https://tf1info.fr/player/{$uuid}/",
+            "https://www.tf1info.fr.example.com/player/{$uuid}/",
+            "https://www.tf1info.fr/player/{$uuid}/?autoplay=1",
+            'https://www.tf1info.fr/player/not-a-uuid/',
+            'https://www.tf1info.fr/voyages/videos/article.html',
+        ] as $url) {
+            $this->assertFalse($provider->supports($url), $url);
+        }
+    }
+
+    public function test_service_provider_registers_tf1_info_support(): void
+    {
+        $url = 'https://www.tf1info.fr/player/647975e0-402c-4608-84ad-c12a3bb63ede/';
+
+        $this->assertStringStartsWith(
+            '<iframe src="' . $url . '"',
+            $this->app->make(Mediaclass::class)->embed($url)->toHtml(),
+        );
+    }
+
+    public function test_tf1_info_provider_rejects_lookalike_player_urls(): void
+    {
+        $url = 'https://www.tf1info.fr.example.com/player/647975e0-402c-4608-84ad-c12a3bb63ede/';
+        $factory = $this->createMock(Factory::class);
+        $factory->expects($this->once())
+            ->method('get')
+            ->with($url)
+            ->willReturn(null);
+
+        $this->assertSame('', (new Mediaclass($factory))->embed($url)->toHtml());
     }
 
     public function test_stored_video_dimensions_override_the_default_embed_size(): void
