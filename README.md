@@ -629,8 +629,9 @@ Registered providers can declare an aspect ratio. For those providers, an
 rendered width. A positive pixel height remains fixed when an exact height is
 required.
 
-The package also supports registered embed providers for player URLs that do
-not expose oEmbed metadata. TF1 Info player URLs are supported by default:
+The package also supports registered embed providers for player URLs that need
+structured rendering. YouTube and TF1 Info player URLs are supported by
+default:
 
 ```php
 $html = mediaclass_embed(
@@ -678,9 +679,11 @@ $this->callAfterResolving(
 );
 ```
 
-Mediaclass tries standard oEmbed first, registered providers in registration
-order second, and the direct HTML5 video fallback last. Provider failures are
-isolated so another provider or fallback can still render the media.
+Mediaclass tries registered providers in registration order first, standard
+oEmbed second, and the direct HTML5 video fallback last. This lets a provider
+declare responsive rendering behavior even when the source also exposes oEmbed
+metadata. Provider failures are isolated so another provider or fallback can
+still render the media.
 
 The back-office uploader stores the provider thumbnail when available. Existing
 external videos resolve and cache their oEmbed thumbnail on first display. Video

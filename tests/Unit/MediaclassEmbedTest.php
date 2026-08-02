@@ -15,13 +15,14 @@ use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Support\EmbedProviderManager;
 use MetaFramework\Mediaclass\Tests\TestCase;
 use MetaFramework\Mediaclass\VideoEmbedders\Tf1InfoEmbedProvider;
+use MetaFramework\Mediaclass\VideoEmbedders\YouTubeEmbedProvider;
 use RuntimeException;
 
 class MediaclassEmbedTest extends TestCase
 {
     public function test_it_renders_an_external_video_media_url(): void
     {
-        $url = 'https://www.youtube.com/watch?v=abc123';
+        $url = 'https://vimeo.com/123456789';
         $media = new Media([
             'mime' => 'video/url',
             'storable' => ['url' => $url],
@@ -35,7 +36,7 @@ class MediaclassEmbedTest extends TestCase
                 'height' => 'auto',
                 'loading' => 'lazy',
             ])
-            ->willReturn('<iframe src="https://www.youtube.com/embed/abc123"></iframe>');
+            ->willReturn('<iframe src="https://player.vimeo.com/video/123456789"></iframe>');
 
         $factory = $this->createMock(Factory::class);
         $factory->expects($this->once())
@@ -47,7 +48,7 @@ class MediaclassEmbedTest extends TestCase
 
         $this->assertInstanceOf(HtmlString::class, $html);
         $this->assertSame(
-            '<iframe src="https://www.youtube.com/embed/abc123"></iframe>',
+            '<iframe src="https://player.vimeo.com/video/123456789"></iframe>',
             $html->toHtml(),
         );
     }
@@ -82,7 +83,7 @@ class MediaclassEmbedTest extends TestCase
         $factory = $this->createStub(Factory::class);
         $factory->method('get')->willReturn($embed);
 
-        (new Mediaclass($factory))->embed('https://youtu.be/abc123', [
+        (new Mediaclass($factory))->embed('https://vimeo.com/123456789', [
             'loading' => 'lazy',
             'title' => 'Video" onload="alert(1)',
             'onload' => 'alert(1)',
@@ -94,7 +95,7 @@ class MediaclassEmbedTest extends TestCase
         $factory = $this->createStub(Factory::class);
         $factory->method('get')->willThrowException(new RuntimeException('Provider unavailable'));
 
-        $html = (new Mediaclass($factory))->embed('https://youtu.be/abc123');
+        $html = (new Mediaclass($factory))->embed('https://video.example.com/watch/abc123');
 
         $this->assertSame('', $html->toHtml());
     }
@@ -159,10 +160,7 @@ class MediaclassEmbedTest extends TestCase
             ],
         ]);
         $factory = $this->createMock(Factory::class);
-        $factory->expects($this->once())
-            ->method('get')
-            ->with($url)
-            ->willReturn(null);
+        $factory->expects($this->never())->method('get');
 
         $html = (new Mediaclass($factory))->embed($media, [
             'loading' => 'lazy',
@@ -174,6 +172,50 @@ class MediaclassEmbedTest extends TestCase
             '<iframe src="' . $url . '" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen width="100%" loading="lazy" title="Bulgarie &quot;video&quot;" style="width: 100%; height: auto; aspect-ratio: 16 / 9;"></iframe>',
             $html,
         );
+    }
+
+    public function test_it_renders_the_reported_youtube_url_responsively_with_the_package_provider(): void
+    {
+        $url = 'https://www.youtube.com/watch?v=ftS_OWDatOQ';
+        $media = new Media([
+            'mime' => 'video/url',
+            'storable' => [
+                'url' => $url,
+                'embed_width' => '100%',
+                'embed_height' => 'auto',
+            ],
+        ]);
+        $factory = $this->createMock(Factory::class);
+        $factory->expects($this->never())->method('get');
+
+        $html = (new Mediaclass($factory))->embed($media)->toHtml();
+
+        $this->assertStringStartsWith('<iframe src="https://www.youtube.com/embed/ftS_OWDatOQ"', $html);
+        $this->assertStringNotContainsString('height="auto"', $html);
+        $this->assertStringContainsString(
+            'style="width: 100%; height: auto; aspect-ratio: 16 / 9;"',
+            $html,
+        );
+    }
+
+    public function test_youtube_percentage_height_is_responsive_and_pixel_height_remains_explicit(): void
+    {
+        $mediaclass = new Mediaclass;
+        $url = 'https://youtu.be/ftS_OWDatOQ';
+
+        $responsiveHtml = $mediaclass->embed($url, [
+            'width' => '100%',
+            'height' => '100%',
+        ])->toHtml();
+        $fixedHtml = $mediaclass->embed($url, [
+            'width' => '100%',
+            'height' => 630,
+        ])->toHtml();
+
+        $this->assertStringNotContainsString('height="100%"', $responsiveHtml);
+        $this->assertStringContainsString('aspect-ratio: 16 / 9;', $responsiveHtml);
+        $this->assertStringContainsString('width="100%" height="630"', $fixedHtml);
+        $this->assertStringNotContainsString('aspect-ratio:', $fixedHtml);
     }
 
     public function test_tf1_info_percentage_height_is_responsive(): void
@@ -257,6 +299,48 @@ class MediaclassEmbedTest extends TestCase
         }
     }
 
+    public function test_youtube_provider_accepts_supported_urls_and_rejects_lookalikes(): void
+    {
+        $provider = new YouTubeEmbedProvider;
+
+        foreach ([
+            'https://www.youtube.com/watch?v=ftS_OWDatOQ',
+            'https://m.youtube.com/watch?v=ftS_OWDatOQ&feature=share',
+            'https://youtu.be/ftS_OWDatOQ',
+            'https://www.youtube.com/embed/ftS_OWDatOQ',
+            'https://www.youtube.com/shorts/ftS_OWDatOQ',
+            'https://www.youtube.com/live/ftS_OWDatOQ',
+        ] as $url) {
+            $this->assertTrue($provider->supports($url), $url);
+            $this->assertSame('https://www.youtube.com/embed/ftS_OWDatOQ', $provider->embed($url)?->src);
+            $this->assertSame('16 / 9', $provider->embed($url)?->aspectRatio?->toCssValue());
+        }
+
+        foreach ([
+            'http://www.youtube.com/watch?v=ftS_OWDatOQ',
+            'https://www.youtube.com.example.com/watch?v=ftS_OWDatOQ',
+            'https://www.youtube.com/watch',
+            'https://www.youtube.com/watch?v=invalid/value',
+            'https://www.youtube.com/channel/ftS_OWDatOQ',
+            'https://www.youtube.com:8443/watch?v=ftS_OWDatOQ',
+        ] as $url) {
+            $this->assertFalse($provider->supports($url), $url);
+        }
+    }
+
+    public function test_service_provider_registers_youtube_support(): void
+    {
+        $html = $this->app->make(Mediaclass::class)
+            ->embed('https://www.youtube.com/watch?v=ftS_OWDatOQ')
+            ->toHtml();
+
+        $this->assertStringStartsWith(
+            '<iframe src="https://www.youtube.com/embed/ftS_OWDatOQ"',
+            $html,
+        );
+        $this->assertStringContainsString('aspect-ratio: 16 / 9;', $html);
+    }
+
     public function test_service_provider_registers_tf1_info_support(): void
     {
         $url = 'https://www.tf1info.fr/player/647975e0-402c-4608-84ad-c12a3bb63ede/';
@@ -295,21 +379,17 @@ class MediaclassEmbedTest extends TestCase
                 'embed_height' => 420,
             ],
         ]);
-        $embed = $this->createMock(Embed::class);
-        $embed->expects($this->once())
-            ->method('html')
-            ->with([
-                'width' => '100%',
-                'height' => 420,
-            ])
-            ->willReturn('<iframe width="100%" height="420"></iframe>');
-
-        $factory = $this->createStub(Factory::class);
-        $factory->method('get')->willReturn($embed);
+        $factory = $this->createMock(Factory::class);
+        $factory->expects($this->never())->method('get');
 
         $html = (new Mediaclass($factory))->embed($media);
 
-        $this->assertSame('<iframe width="100%" height="420"></iframe>', $html->toHtml());
+        $this->assertStringContainsString(
+            '<iframe src="https://www.youtube.com/embed/abc123"',
+            $html->toHtml(),
+        );
+        $this->assertStringContainsString('width="100%" height="420"', $html->toHtml());
+        $this->assertStringNotContainsString('aspect-ratio:', $html->toHtml());
     }
 
     public function test_it_uses_a_stored_video_thumbnail_without_calling_the_provider(): void

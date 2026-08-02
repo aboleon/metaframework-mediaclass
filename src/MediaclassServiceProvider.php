@@ -12,6 +12,7 @@ use Illuminate\Support\ServiceProvider;
 use MetaFramework\Mediaclass\Console\UpdateMediaclassCommand;
 use MetaFramework\Mediaclass\Support\EmbedProviderManager;
 use MetaFramework\Mediaclass\VideoEmbedders\Tf1InfoEmbedProvider;
+use MetaFramework\Mediaclass\VideoEmbedders\YouTubeEmbedProvider;
 
 class MediaclassServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,7 @@ class MediaclassServiceProvider extends ServiceProvider
         $this->callAfterResolving(
             EmbedProviderManager::class,
             static function (EmbedProviderManager $manager): void {
+                $manager->register(YouTubeEmbedProvider::class);
                 $manager->register(Tf1InfoEmbedProvider::class);
             },
         );

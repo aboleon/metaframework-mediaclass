@@ -8,6 +8,7 @@ use Illuminate\Contracts\Container\Container;
 use MetaFramework\Mediaclass\Contracts\EmbedProvider;
 use MetaFramework\Mediaclass\Data\ExternalVideoEmbed;
 use MetaFramework\Mediaclass\VideoEmbedders\Tf1InfoEmbedProvider;
+use MetaFramework\Mediaclass\VideoEmbedders\YouTubeEmbedProvider;
 use Throwable;
 
 class EmbedProviderManager
@@ -28,6 +29,7 @@ class EmbedProviderManager
     public static function withDefaults(): self
     {
         return new self(providers: [
+            new YouTubeEmbedProvider,
             new Tf1InfoEmbedProvider,
         ]);
     }

@@ -397,15 +397,15 @@ class Mediaclass
             $options,
         );
 
-        try {
-            $embed = $this->oEmbedFactory()->get($url);
-            $html = $embed?->html($this->sanitizeEmbedOptions($options)) ?? '';
-        } catch (Throwable) {
-            $html = '';
-        }
+        $html = $this->externalVideoEmbedHtml($this->embedProviderManager->embed($url), $options);
 
         if ($html === '') {
-            $html = $this->externalVideoEmbedHtml($this->embedProviderManager->embed($url), $options);
+            try {
+                $embed = $this->oEmbedFactory()->get($url);
+                $html = $embed?->html($this->sanitizeEmbedOptions($options)) ?? '';
+            } catch (Throwable) {
+                $html = '';
+            }
         }
 
         if ($html === '') {
