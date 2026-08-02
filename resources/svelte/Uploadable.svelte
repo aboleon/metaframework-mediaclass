@@ -15,6 +15,7 @@
     ghost: string;
     group: string;
     hasDescription: boolean;
+    hasSettings: boolean;
     i18n: I18nMap;
     limit: number;
     maxFileSizeBytes: number;
@@ -74,7 +75,7 @@
   let hasQueue = $derived(queue.length > 0);
   let isUploading = $derived(queue.some((item) => item.status === 'uploading') || videoUploading);
   let canUpload = $derived(queuedItems.length > 0 && !isUploading && !limitReached);
-  let detailsButtonVisible = $derived(config.hasDescription || hasStoredVideos);
+  let detailsButtonVisible = $derived(config.hasDescription || config.hasSettings || hasStoredVideos);
 
   onMount(() => {
     uploadable = host.closest('.mediaclass-uploadable') as HTMLElement | undefined;
@@ -122,6 +123,7 @@
       ghost: '0',
       group: '',
       hasDescription: false,
+      hasSettings: false,
       i18n: {},
       limit: 0,
       maxFileSizeBytes: 16 * 1024 * 1024,
@@ -163,6 +165,7 @@
       ghost: element.dataset.ghost ?? '0',
       group: element.dataset.group ?? '',
       hasDescription: element.dataset.hasDescription === '1',
+      hasSettings: element.dataset.hasSettings === '1',
       i18n: parseJson<I18nMap>(element.dataset.i18n, {}),
       limit: Number(element.dataset.limit ?? '0') || 0,
       maxFileSizeBytes: parseMaxFileSize(element.dataset.maxfilesize),
@@ -652,9 +655,9 @@
     {/if}
 
     {#if detailsButtonVisible}
-      <button type="button" class="btn btn-sm btn-secondary mediaclass-save-descriptions ms-auto">
+      <button type="button" class="btn btn-sm btn-secondary mediaclass-save-details mediaclass-save-descriptions ms-auto">
         <i class="bi bi-save"></i>
-        {text('save_media_details', 'Save media details')}
+        {text('save_media_settings', 'Save media settings')}
         <span class="ajax-spinner spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>
       </button>
     {/if}

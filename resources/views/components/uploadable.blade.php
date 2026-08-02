@@ -1,5 +1,6 @@
 @php
     $positions = array_key_exists('positions', $settings) && $settings['positions'] === true;
+    $hasSettings = trim((string) $slot) !== '';
     $i18n = [
         'limit_reached' => __('mfw-mediaclass.notices.limit_reached'),
         'dimension_requirements' => __('mfw-mediaclass.notices.dimension_requirements'),
@@ -23,7 +24,7 @@
         'video_width_full' => __('mfw-mediaclass.labels.video_width_full'),
         'add' => __('mfw-mediaclass.buttons.add'),
         'cancel' => __('mfw-mediaclass.buttons.cancel'),
-        'save_media_details' => __('mfw-mediaclass.buttons.save_media_details'),
+        'save_media_settings' => __('mfw-mediaclass.buttons.save_media_settings'),
         'subgroup_label' => $subgroupLabel,
         'subgroup_empty_label' => $subgroupEmptyLabel,
         'sort_handle' => __('mfw-mediaclass.labels.sort_handle'),
@@ -34,7 +35,8 @@
     data-limit="{{ $limit }}" data-model="{{ get_class($model) }}" data-model-id="{{ $model->id ?? '' }}"
     data-positions="{{ $positions }}" data-group="{{ $group }}"
     data-subgroup="{{ $settings['subgroup'] ?? false }}" data-has-description="{{ $description }}"
-    data-cropable="{{ $cropable }}" data-ghost="{{ $ghost ? '1' : '0' }}" data-grid="{{ $grid }}"
+    data-has-settings="{{ $hasSettings ? '1' : '0' }}" data-cropable="{{ $cropable }}"
+    data-ghost="{{ $ghost ? '1' : '0' }}" data-grid="{{ $grid }}"
     data-enforce-dimensions="{{ $enforceDimensions ? '1' : '0' }}" data-i18n='@json($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)'
     data-media-types='@json($mediaTypeOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS)' data-media-locales='@json($mediaLocales, JSON_UNESCAPED_UNICODE)'
     data-ajax="{{ route('mediaclass.ajax') }}"
@@ -58,6 +60,11 @@
         <x-mediaclass::stored :cropable="$cropable" :positions="$positions" :model="$model" :nomedia="$nomedia" :group="$group"
             :subgroup="$settings['subgroup'] ?? null" :description="$description" :ghost="$ghost" :storables="$storables" :grid="$grid" />
     </div>
+    @if ($hasSettings)
+        <div class="mediaclass-settings">
+            {{ $slot }}
+        </div>
+    @endif
 </div>
 
 @once

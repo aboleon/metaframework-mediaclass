@@ -17,6 +17,7 @@ return [
         'add' => 'Add',
         'save_descriptions' => 'Save descriptions',
         'save_media_details' => 'Save media details',
+        'save_media_settings' => 'Save media settings',
     ],
     'labels' => [
         'media' => 'Media',

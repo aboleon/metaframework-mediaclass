@@ -182,19 +182,21 @@ class MediaclassDescriptionSaveTest extends TestCase
         ], $media->refresh()->storable);
     }
 
-    public function test_uploadable_component_renders_translated_media_details_save_button(): void
+    public function test_uploadable_component_renders_unified_translated_media_settings_save_button(): void
     {
         $view = file_get_contents(__DIR__ . '/../../resources/views/components/uploadable.blade.php');
         $script = file_get_contents(__DIR__ . '/../../resources/svelte/media-manager.js');
         $svelteSource = file_get_contents(__DIR__ . '/../../resources/svelte/Uploadable.svelte');
 
         $this->assertStringContainsString("data-ajax=\"{{ route('mediaclass.ajax') }}\"", $view);
-        $this->assertStringContainsString("'save_media_details' => __('mfw-mediaclass.buttons.save_media_details')", $view);
-        $this->assertStringContainsString('mediaclass-save-descriptions', $svelteSource);
-        $this->assertStringContainsString("text('save_media_details', 'Save media details')", $svelteSource);
-        $this->assertStringContainsString("__('mfw-mediaclass.buttons.save_media_details')", $view);
+        $this->assertStringContainsString("'save_media_settings' => __('mfw-mediaclass.buttons.save_media_settings')", $view);
+        $this->assertStringContainsString('data-has-settings=', $view);
+        $this->assertStringContainsString('{{ $slot }}', $view);
+        $this->assertStringContainsString('mediaclass-save-details', $svelteSource);
+        $this->assertStringContainsString("text('save_media_settings', 'Save media settings')", $svelteSource);
+        $this->assertStringContainsString("$(document).trigger('mediaclass:save-settings', [uploadable])", $script);
         $this->assertStringContainsString("{name: 'action', value: 'saveDescriptions'}", $script);
-        $this->assertStringContainsString('mfwAjax(formData, uploadable', $script);
+        $this->assertStringContainsString('mfwAjax(MediaclassManager.saveDescriptionsFormData(uploadable), uploadable', $script);
     }
 
     public function test_stored_video_renders_editable_default_embed_dimensions(): void

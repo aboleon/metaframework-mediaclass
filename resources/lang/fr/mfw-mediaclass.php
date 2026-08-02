@@ -17,6 +17,7 @@ return [
         'add'           => 'Ajouter',
         'save_descriptions' => 'Enregistrer les descriptions',
         'save_media_details' => 'Enregistrer les détails du média',
+        'save_media_settings' => 'Enregistrer les réglages média',
     ],
     'labels'       => [
         'media'       => 'Médias',

@@ -532,14 +532,21 @@ const MediaclassManager = {
 
     bindDescriptionSave() {
         $(document)
-            .off('click.mediaclassDescriptions', '.mediaclass-save-descriptions')
-            .on('click.mediaclassDescriptions', '.mediaclass-save-descriptions', function (event) {
+            .off('click.mediaclassDescriptions', '.mediaclass-save-details, .mediaclass-save-descriptions')
+            .on('click.mediaclassDescriptions', '.mediaclass-save-details, .mediaclass-save-descriptions', function (event) {
                 event.preventDefault();
 
                 const uploadable = $(this).closest('.mediaclass-uploadable');
-                const formData = MediaclassManager.saveDescriptionsFormData(uploadable);
+                const hasDescriptions = Number(uploadable.attr('data-has-description')) === 1;
+                const hasVideos = uploadable.find('.uploaded .preview.video').length > 0;
 
-                mfwAjax(formData, uploadable, {
+                $(document).trigger('mediaclass:save-settings', [uploadable]);
+
+                if (!hasDescriptions && !hasVideos) {
+                    return;
+                }
+
+                mfwAjax(MediaclassManager.saveDescriptionsFormData(uploadable), uploadable, {
                     spinner: true,
                     lockForm: true
                 });
@@ -548,11 +555,12 @@ const MediaclassManager = {
 
     syncDetailsSaveButton(uploadable) {
         const hasDescriptions = Number(uploadable.attr('data-has-description')) === 1;
+        const hasSettings = Number(uploadable.attr('data-has-settings')) === 1;
         const hasVideos = uploadable.find('.uploaded .preview.video').length > 0;
 
         uploadable
             .find('.mediaclass-save-descriptions')
-            .toggleClass('d-none', !hasDescriptions && !hasVideos);
+            .toggleClass('d-none', !hasDescriptions && !hasSettings && !hasVideos);
     },
 
     syncVideoWidthMode(select) {

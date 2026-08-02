@@ -429,6 +429,28 @@ With options:
 />
 ```
 
+Applications can place group-specific controls in the component slot. The
+package then displays one **Save media settings** button for descriptions,
+stored video details, and the supplied settings:
+
+```blade
+<x-mediaclass::uploadable :model="$post" group="cover" :description="true">
+    <label>
+        <input type="checkbox" data-cover-in-flow>
+        Display in the text flow
+    </label>
+</x-mediaclass::uploadable>
+```
+
+The button emits `mediaclass:save-settings` with the uploadable jQuery element.
+Applications can listen for that event and persist their own slot values:
+
+```js
+$(document).on('mediaclass:save-settings', function (event, uploadable) {
+    // Persist application-specific settings contained by uploadable.
+});
+```
+
 ### Stored Media Display (Admin)
 
 ```blade

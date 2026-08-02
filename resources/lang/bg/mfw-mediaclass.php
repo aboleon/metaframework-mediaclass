@@ -17,6 +17,7 @@ return [
         'add' => 'Добави',
         'save_descriptions' => 'Запази описанията',
         'save_media_details' => 'Запази детайлите на медията',
+        'save_media_settings' => 'Запази настройките на медията',
     ],
     'labels' => [
         'media' => 'Медии',
