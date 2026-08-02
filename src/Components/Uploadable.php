@@ -61,7 +61,7 @@ class Uploadable extends Component
     ) {
         $this->group = $this->settings['group'] ?? $this->group;
         $this->label = $this->settings['label'] ?? $this->label;
-        $this->label = $this->label ?: __('mfw-mediaclass.labels.media');
+        $this->label = $this->label ?: __('mfw-mediaclass::messages.labels.media');
         $this->enforceDimensions = filter_var(
             $this->settings['enforce_dimensions'] ?? $this->settings['enforceDimensions'] ?? $this->enforceDimensions,
             FILTER_VALIDATE_BOOL,
@@ -87,7 +87,7 @@ class Uploadable extends Component
         }
         $this->mediaLocales = $this->resolveMediaLocales();
         $this->description = $this->description ? 1 : 0;
-        $this->nomedia = $this->nomedia ?: __('mfw-mediaclass.no_media');
+        $this->nomedia = $this->nomedia ?: __('mfw-mediaclass::messages.no_media');
 
         // Check if model has mediaclassSettings for this group
         if ($this->cropable === null && method_exists($this->model, 'mediaclassSettings')) {
@@ -239,9 +239,9 @@ class Uploadable extends Component
 
     private function mediaTypeLabel(string $type): string
     {
-        $translation = __('mfw-mediaclass.labels.' . $type);
+        $translation = __('mfw-mediaclass::messages.labels.' . $type);
 
-        return $translation === 'mfw-mediaclass.labels.' . $type ? ucfirst($type) : $translation;
+        return $translation === 'mfw-mediaclass::messages.labels.' . $type ? ucfirst($type) : $translation;
     }
 
     public function render(): Renderable

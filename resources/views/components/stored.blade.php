@@ -38,7 +38,7 @@
                 $fullSizeUrl = $is_image ? $media->url('xl') : null;
                 $previewType = $is_image ? 'image' : ($is_video ? 'video' : 'file');
                 $uploadedAt = $media->created_at
-                    ? __('mfw-mediaclass.uploaded_at', [
+                    ? __('mfw-mediaclass::messages.uploaded_at', [
                         'date' => $media->created_at->format('d/m/Y'),
                         'time' => $media->created_at->format('H:i'),
                     ])
@@ -53,8 +53,8 @@
                         value="{{ $media->id }}">
                 @else
                     <span class="mediaclass-sort-handle" role="button" tabindex="0"
-                        title="{{ __('mfw-mediaclass.labels.sort_handle') }}"
-                        aria-label="{{ __('mfw-mediaclass.labels.sort_handle') }}">
+                        title="{{ __('mfw-mediaclass::messages.labels.sort_handle') }}"
+                        aria-label="{{ __('mfw-mediaclass::messages.labels.sort_handle') }}">
                         <i class="bi bi-grip-vertical"></i>
                     </span>
                 @endif
@@ -115,7 +115,7 @@
 
                         <div class="row params mt-3">
                             <div class="col-12 positions ps-2{{ $positions ? '' : ' d-none' }} text-center">
-                                <b>{{ __('mfw-mediaclass.labels.positions') }}</b>
+                                <b>{{ __('mfw-mediaclass::messages.labels.positions') }}</b>
                                 <div class="choices pt-2">
                                     @foreach ($getPositionning() as $p)
                                         <i class="bi bi-arrow-{{ $p }}-square-fill{{ $media->position == $p ? ' active' : '' }}"
@@ -132,15 +132,15 @@
                                     <div class="mediaclass-video-dimensions__grid">
                                         <div class="mediaclass-video-dimension">
                                             <label
-                                                class="form-label">{{ __('mfw-mediaclass.labels.video_width') }}</label>
+                                                class="form-label">{{ __('mfw-mediaclass::messages.labels.video_width') }}</label>
                                             <div class="input-group">
                                                 <select name="mediaclass[{{ $media->id }}][embed_width_mode]"
                                                     class="form-select mediaclass-video-width-mode">
                                                     <option value="pixels" @selected($embed_width_mode === 'pixels')>
-                                                        {{ __('mfw-mediaclass.labels.video_width_pixels') }}
+                                                        {{ __('mfw-mediaclass::messages.labels.video_width_pixels') }}
                                                     </option>
                                                     <option value="full" @selected($embed_width_mode === 'full')>
-                                                        {{ __('mfw-mediaclass.labels.video_width_full') }}
+                                                        {{ __('mfw-mediaclass::messages.labels.video_width_full') }}
                                                     </option>
                                                 </select>
                                                 <input type="number" min="1" max="7680"
@@ -152,22 +152,21 @@
                                         </div>
                                         <div class="mediaclass-video-dimension">
                                             <label
-                                                class="form-label">{{ __('mfw-mediaclass.labels.video_height') }}</label>
+                                                class="form-label">{{ __('mfw-mediaclass::messages.labels.video_height') }}</label>
                                             <div class="input-group">
                                                 <select name="mediaclass[{{ $media->id }}][embed_height_mode]"
                                                     class="form-select mediaclass-video-height-mode">
                                                     <option value="auto" @selected($embed_height_mode === 'auto')>
-                                                        {{ __('mfw-mediaclass.labels.video_height_auto') }}
+                                                        {{ __('mfw-mediaclass::messages.labels.video_height_auto') }}
                                                     </option>
                                                     <option value="pixels" @selected($embed_height_mode === 'pixels')>
-                                                        {{ __('mfw-mediaclass.labels.video_width_pixels') }}
+                                                        {{ __('mfw-mediaclass::messages.labels.video_width_pixels') }}
                                                     </option>
                                                 </select>
                                                 <input type="number" min="1" max="4320"
                                                     name="mediaclass[{{ $media->id }}][embed_height]"
                                                     class="form-control mediaclass-video-height"
-                                                    value="{{ $embed_height_pixels }}"
-                                                    @disabled($embed_height_mode === 'auto')>
+                                                    value="{{ $embed_height_pixels }}" @disabled($embed_height_mode === 'auto')>
                                             </div>
                                         </div>
                                     </div>
@@ -189,7 +188,7 @@
                                 <div class="col-12 description {{ !$description ? 'd-none' : '' }}">
                                     <x-mfw-inputable::textarea name="{{ $descriptionName }}" :height="100"
                                         class="description mt-2" :value="$media->description[$locale] ?? ''"
-                                        label="{{ __('mfw-mediaclass.labels.description') }} ({{ $locale }})" />
+                                        label="{{ __('mfw-mediaclass::messages.labels.description') }} ({{ $locale }})" />
                                 </div>
                             @endforeach
                         </div>

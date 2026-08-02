@@ -22,6 +22,7 @@ class UpdateCommandTest extends TestCase
         $this->assertSame('mediaclass:update', $command->getName());
         $this->assertTrue($definition->hasOption('force'));
         $this->assertTrue($definition->hasOption('config'));
+        $this->assertTrue($definition->hasOption('lang'));
         $this->assertTrue($definition->hasOption('migrations'));
         $this->assertTrue($definition->hasOption('migrate'));
         $this->assertTrue($definition->hasOption('views'));
@@ -35,11 +36,12 @@ class UpdateCommandTest extends TestCase
 
         $command->shouldReceive('option')->with('force')->andReturn(true);
         $command->shouldReceive('option')->with('config')->andReturn(false);
+        $command->shouldReceive('option')->with('lang')->andReturn(false);
         $command->shouldReceive('option')->with('views')->andReturn(false);
         $command->shouldReceive('option')->with('migrations')->andReturn(false);
         $command->shouldReceive('option')->with('migrate')->andReturn(false);
         $command->shouldReceive('publishAssets')->once()->with(true)->andReturn(SymfonyCommand::SUCCESS);
-        $command->shouldReceive('publishTag')->once()->with('mfw-mediaclass-lang', true)->andReturn(SymfonyCommand::SUCCESS);
+        $command->shouldNotReceive('publishTag')->with('mfw-mediaclass-lang', Mockery::any());
         $command->shouldNotReceive('publishTag')->with('mfw-mediaclass-config', Mockery::any());
         $command->shouldReceive('info')->once();
 
@@ -54,11 +56,12 @@ class UpdateCommandTest extends TestCase
 
         $command->shouldReceive('option')->with('force')->andReturn(false);
         $command->shouldReceive('option')->with('config')->andReturn(true);
+        $command->shouldReceive('option')->with('lang')->andReturn(false);
         $command->shouldReceive('option')->with('views')->andReturn(false);
         $command->shouldReceive('option')->with('migrations')->andReturn(false);
         $command->shouldReceive('option')->with('migrate')->andReturn(false);
         $command->shouldReceive('publishAssets')->once()->with(false)->andReturn(SymfonyCommand::SUCCESS);
-        $command->shouldReceive('publishTag')->once()->with('mfw-mediaclass-lang', false)->andReturn(SymfonyCommand::SUCCESS);
+        $command->shouldNotReceive('publishTag')->with('mfw-mediaclass-lang', Mockery::any());
         $command->shouldReceive('publishTag')->once()->with('mfw-mediaclass-config', false)->andReturn(SymfonyCommand::SUCCESS);
         $command->shouldReceive('info')->once();
 
@@ -72,6 +75,25 @@ class UpdateCommandTest extends TestCase
         $commands = $this->app->make(Kernel::class)->all();
 
         $this->assertArrayHasKey('mediaclass:update', $commands);
+    }
+
+    public function test_update_command_publishes_language_overrides_only_when_explicitly_requested(): void
+    {
+        $command = Mockery::mock(UpdateMediaclassCommand::class)
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+
+        $command->shouldReceive('option')->with('force')->andReturn(false);
+        $command->shouldReceive('option')->with('config')->andReturn(false);
+        $command->shouldReceive('option')->with('lang')->andReturn(true);
+        $command->shouldReceive('option')->with('views')->andReturn(false);
+        $command->shouldReceive('option')->with('migrations')->andReturn(false);
+        $command->shouldReceive('option')->with('migrate')->andReturn(false);
+        $command->shouldReceive('publishAssets')->once()->with(false)->andReturn(SymfonyCommand::SUCCESS);
+        $command->shouldReceive('publishTag')->once()->with('mfw-mediaclass-lang', false)->andReturn(SymfonyCommand::SUCCESS);
+        $command->shouldReceive('info')->once();
+
+        $this->assertSame(SymfonyCommand::SUCCESS, $command->handle());
     }
 
     public function test_asset_cleanup_removes_only_the_published_destination(): void

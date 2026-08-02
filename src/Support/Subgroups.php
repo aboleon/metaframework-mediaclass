@@ -101,8 +101,8 @@ class Subgroups
     private static function normalizeDefinition(mixed $definition): array
     {
         $defaults = (array)config('mfw-mediaclass.subgroups', []);
-        $label = (string)data_get($defaults, 'label', __('mfw-mediaclass.labels.subgroup'));
-        $emptyLabel = (string)data_get($defaults, 'empty_label', __('mfw-mediaclass.labels.no_subgroup'));
+        $label = (string)data_get($defaults, 'label', __('mfw-mediaclass::messages.labels.subgroup'));
+        $emptyLabel = (string)data_get($defaults, 'empty_label', __('mfw-mediaclass::messages.labels.no_subgroup'));
 
         if ($definition === true) {
             $definition = [
@@ -129,8 +129,8 @@ class Subgroups
 
         return [
             'options' => self::normalizeOptions($definition),
-            'label' => $label !== '' ? $label : __('mfw-mediaclass.labels.subgroup'),
-            'empty_label' => $emptyLabel !== '' ? $emptyLabel : __('mfw-mediaclass.labels.no_subgroup'),
+            'label' => $label !== '' ? $label : __('mfw-mediaclass::messages.labels.subgroup'),
+            'empty_label' => $emptyLabel !== '' ? $emptyLabel : __('mfw-mediaclass::messages.labels.no_subgroup'),
         ];
     }
 
@@ -153,14 +153,14 @@ class Subgroups
         }
 
         $count = max(0, min(20, (int)($definition['count'] ?? config('mfw-mediaclass.subgroups.count', 0))));
-        $label = trim((string)($definition['label'] ?? config('mfw-mediaclass.subgroups.label', __('mfw-mediaclass.labels.subgroup'))));
+        $label = trim((string)($definition['label'] ?? config('mfw-mediaclass.subgroups.label', __('mfw-mediaclass::messages.labels.subgroup'))));
         $keyPrefix = trim((string)($definition['key_prefix'] ?? config('mfw-mediaclass.subgroups.key_prefix', 'group_')));
 
         if ($count < 1) {
             return [];
         }
 
-        $label = $label !== '' ? $label : __('mfw-mediaclass.labels.subgroup');
+        $label = $label !== '' ? $label : __('mfw-mediaclass::messages.labels.subgroup');
         $keyPrefix = $keyPrefix !== '' ? $keyPrefix : 'group_';
 
         return Collection::make(range(1, $count))

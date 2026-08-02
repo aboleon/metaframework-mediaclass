@@ -14,6 +14,7 @@ class UpdateMediaclassCommand extends Command
     protected $signature = 'mediaclass:update
         {--force : Overwrite already published files and force migrations in production}
         {--config : Publish the package config; combine with --force only to intentionally replace it}
+        {--lang : Publish language files for application overrides}
         {--migrations : Publish Mediaclass migrations}
         {--migrate : Publish Mediaclass migrations and run the application migrations}
         {--views : Publish Mediaclass views for application customization}';
@@ -30,10 +31,12 @@ class UpdateMediaclassCommand extends Command
             return $exitCode;
         }
 
-        $exitCode = $this->publishTag('mfw-mediaclass-lang', $force);
+        if ((bool) $this->option('lang')) {
+            $exitCode = $this->publishTag('mfw-mediaclass-lang', $force);
 
-        if ($exitCode !== SymfonyCommand::SUCCESS) {
-            return $exitCode;
+            if ($exitCode !== SymfonyCommand::SUCCESS) {
+                return $exitCode;
+            }
         }
 
         if ((bool) $this->option('config')) {

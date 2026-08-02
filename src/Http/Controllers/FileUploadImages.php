@@ -84,7 +84,7 @@ class FileUploadImages
     public function setModel(?string $model = null): static
     {
         if (!$model) {
-            $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.missing_model'));
 
             return $this;
         }
@@ -95,7 +95,7 @@ class FileUploadImages
             if ($this->model_id && !$this->is_ghost) {
                 $this->model = $this->model->find($this->model_id);
                 if (!$this->model) {
-                    $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+                    $this->responseError(__('mfw-mediaclass::messages.errors.missing_model'));
 
                     return $this;
                 }
@@ -127,7 +127,7 @@ class FileUploadImages
         }
 
         if (!$this->is_ghost && !$this->model_id) {
-            $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.missing_model'));
 
             return $this;
         }
@@ -138,7 +138,7 @@ class FileUploadImages
                 ->first();
 
             if (!$media instanceof Media) {
-                $this->responseError(__('mfw-mediaclass.errors.mediaDeleteFailed'));
+                $this->responseError(__('mfw-mediaclass::messages.errors.mediaDeleteFailed'));
 
                 return $this;
             }
@@ -150,7 +150,7 @@ class FileUploadImages
                 $files = $this->mediaFiles($media);
 
                 if ($files !== [] && !$this->disk->delete($files)) {
-                    $this->responseError(__('mfw-mediaclass.errors.mediaDeleteFailed'));
+                    $this->responseError(__('mfw-mediaclass::messages.errors.mediaDeleteFailed'));
 
                     return $this;
                 }
@@ -161,7 +161,7 @@ class FileUploadImages
             }
 
             $media->delete();
-            $this->responseSuccess(__('mfw-mediaclass.notices.media_deleted'));
+            $this->responseSuccess(__('mfw-mediaclass::messages.notices.media_deleted'));
             $this->responseElement('deleted_id', $media->id);
         } catch (Throwable $e) {
             $this->responseException($e);
@@ -196,7 +196,7 @@ class FileUploadImages
         }
 
         if (!method_exists($this->model, 'deleteMediaclassBridgeMedia')) {
-            $this->responseError(__('mfw-mediaclass.errors.bridgeDeleteUnsupported'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.bridgeDeleteUnsupported'));
 
             return $this;
         }
@@ -209,12 +209,12 @@ class FileUploadImages
             );
 
             if (!$deleted) {
-                $this->responseError(__('mfw-mediaclass.errors.bridgeDeleteFailed'));
+                $this->responseError(__('mfw-mediaclass::messages.errors.bridgeDeleteFailed'));
 
                 return $this;
             }
 
-            $this->responseSuccess(__('mfw-mediaclass.notices.bridge_deleted'));
+            $this->responseSuccess(__('mfw-mediaclass::messages.notices.bridge_deleted'));
             $this->responseElement('deleted_id', (string) request('id'));
         } catch (Throwable $e) {
             $this->responseException($e);
@@ -230,7 +230,7 @@ class FileUploadImages
         }
 
         if (!$this->is_ghost && !$this->model_id) {
-            $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.missing_model'));
 
             return $this;
         }
@@ -239,10 +239,10 @@ class FileUploadImages
             $nativeCount = $this->saveNativeMediaDetails((array) request('mediaclass'));
             $bridgeCount = $this->saveBridgeDescriptions((array) request('mediaclass_bridge'));
 
-            $this->responseSuccess(__('mfw-mediaclass.notices.media_details_saved'));
+            $this->responseSuccess(__('mfw-mediaclass::messages.notices.media_details_saved'));
             $this->responseElement('updated_count', $nativeCount + $bridgeCount);
         } catch (Throwable $e) {
-            $this->responseException($e, __('mfw-mediaclass.errors.mediaDetailsSaveFailed'));
+            $this->responseException($e, __('mfw-mediaclass::messages.errors.mediaDetailsSaveFailed'));
         }
 
         return $this;
@@ -255,7 +255,7 @@ class FileUploadImages
         }
 
         if (!$this->is_ghost && !$this->model_id) {
-            $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.missing_model'));
 
             return $this;
         }
@@ -274,7 +274,7 @@ class FileUploadImages
         $options = Subgroups::options($this->model, $this->media_group);
 
         if ($options === []) {
-            $this->responseError(__('mfw-mediaclass.errors.subgroupUnsupported'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.subgroupUnsupported'));
 
             return $this;
         }
@@ -282,7 +282,7 @@ class FileUploadImages
         $subgroup = trim((string) request('subgroup', ''));
 
         if ($subgroup !== '' && !array_key_exists($subgroup, $options)) {
-            $this->responseError(__('mfw-mediaclass.errors.subgroupInvalid'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.subgroupInvalid'));
 
             return $this;
         }
@@ -293,7 +293,7 @@ class FileUploadImages
                 ->first();
 
             if (!$media instanceof Media) {
-                $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+                $this->responseError(__('mfw-mediaclass::messages.errors.missing_model'));
 
                 return $this;
             }
@@ -301,13 +301,13 @@ class FileUploadImages
             $media->subgroup = $subgroup !== '' ? $subgroup : null;
             $media->save();
 
-            $this->responseSuccess(__('mfw-mediaclass.notices.subgroup_saved'));
+            $this->responseSuccess(__('mfw-mediaclass::messages.notices.subgroup_saved'));
             $this->responseElement('media_id', $media->id);
             $this->responseElement('group', $this->media_group);
             $this->responseElement('subgroup', $media->subgroup);
             $this->responseElement('uses_subgroups', Subgroups::active($this->model, $this->media_group, $this->is_ghost));
         } catch (Throwable $e) {
-            $this->responseException($e, __('mfw-mediaclass.errors.subgroupSaveFailed'));
+            $this->responseException($e, __('mfw-mediaclass::messages.errors.subgroupSaveFailed'));
         }
 
         return $this;
@@ -320,7 +320,7 @@ class FileUploadImages
         }
 
         if (!$this->is_ghost && !$this->model_id) {
-            $this->responseError(__('mfw-mediaclass.errors.missing_model'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.missing_model'));
 
             return $this;
         }
@@ -385,13 +385,13 @@ class FileUploadImages
             });
 
             if ($changed === null) {
-                $this->responseError(__('mfw-mediaclass.errors.reorderInvalid'));
+                $this->responseError(__('mfw-mediaclass::messages.errors.reorderInvalid'));
 
                 return $this;
             }
 
             if ($changed) {
-                $this->responseSuccess(__('mfw-mediaclass.notices.order_saved'));
+                $this->responseSuccess(__('mfw-mediaclass::messages.notices.order_saved'));
             }
 
             $this->responseElement('changed', $changed);
@@ -399,7 +399,7 @@ class FileUploadImages
             $this->responseElement('group', $this->media_group);
             $this->responseElement('uses_subgroups', false);
         } catch (Throwable $e) {
-            $this->responseException($e, __('mfw-mediaclass.errors.reorderFailed'));
+            $this->responseException($e, __('mfw-mediaclass::messages.errors.reorderFailed'));
         }
 
         return $this;
@@ -461,7 +461,7 @@ class FileUploadImages
         }
 
         if (strstr($this->uploadedFile->getMimeType(), '/', true) != 'image') {
-            $this->responseAbort(__('mfw-mediaclass.errors.mustBeImage'));
+            $this->responseAbort(__('mfw-mediaclass::messages.errors.mustBeImage'));
 
             return $this;
         }
@@ -491,7 +491,7 @@ class FileUploadImages
         ]);
 
         if ($validator->fails()) {
-            $this->responseError(__('mfw-mediaclass.errors.invalidUrl'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.invalidUrl'));
 
             return $this;
         }
@@ -595,7 +595,7 @@ class FileUploadImages
         $imageInfo = @getimagesize($this->uploadedFile->getPathname());
 
         if (!$imageInfo) {
-            $this->responseError(__('mfw-mediaclass.errors.mustBeImage'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.mustBeImage'));
 
             return $this;
         }
@@ -872,7 +872,7 @@ class FileUploadImages
         $source = $this->createSourceImage();
 
         if (!$source instanceof \GdImage) {
-            $this->responseError(__('mfw-mediaclass.errors.upload_failed'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.upload_failed'));
 
             return null;
         }
@@ -880,7 +880,7 @@ class FileUploadImages
         $resized = $this->resizeSourceImage($source, $width, $height);
 
         if (!$resized instanceof \GdImage) {
-            $this->responseError(__('mfw-mediaclass.errors.upload_failed'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.upload_failed'));
 
             return null;
         }
@@ -896,7 +896,7 @@ class FileUploadImages
         unset($source, $resized);
 
         if (!$encoded || !is_string($contents)) {
-            $this->responseError(__('mfw-mediaclass.errors.upload_failed'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.upload_failed'));
 
             return null;
         }
@@ -1095,13 +1095,13 @@ class FileUploadImages
         ], $parameters);
 
         if (MediaclassConfig::shouldEnforceDimensions($this->model, $this->media_group)) {
-            $this->responseError(__('mfw-mediaclass.errors.' . $errorKey, $parameters));
+            $this->responseError(__('mfw-mediaclass::messages.errors.' . $errorKey, $parameters));
 
             return true;
         }
 
         if (!$this->dimensionWarningAdded) {
-            $this->responseWarning(__('mfw-mediaclass.notices.dimension_warning', $parameters), false);
+            $this->responseWarning(__('mfw-mediaclass::messages.notices.dimension_warning', $parameters), false);
             $this->dimensionWarningAdded = true;
         }
 
@@ -1127,7 +1127,7 @@ class FileUploadImages
     {
         // Check if file upload failed
         if (!$this->uploadedFile || !$this->uploadedFile->isValid()) {
-            $this->responseError(__('mfw-mediaclass.errors.upload_failed'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.upload_failed'));
 
             return true;
         }
@@ -1137,7 +1137,7 @@ class FileUploadImages
         $maxSize = $this->calculateMaxFileSize(request('maxfilesize'));
 
         if ($file->getSize() > $maxSize) {
-            $this->responseError(__('mfw-mediaclass.errors.maxFileSize') . ' ' . $this->formatBytes($maxSize));
+            $this->responseError(__('mfw-mediaclass::messages.errors.maxFileSize') . ' ' . $this->formatBytes($maxSize));
 
             return true;
         }
@@ -1145,7 +1145,7 @@ class FileUploadImages
         // Check file type
         $allowedTypes = ['image/jpeg', 'image/png', 'image/svg+xml', 'application/pdf'];
         if (!in_array($file->getMimeType(), $allowedTypes)) {
-            $this->responseError(__('mfw-mediaclass.errors.acceptFileTypes'));
+            $this->responseError(__('mfw-mediaclass::messages.errors.acceptFileTypes'));
 
             return true;
         }

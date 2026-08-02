@@ -189,7 +189,7 @@ class MediaclassDescriptionSaveTest extends TestCase
         $svelteSource = file_get_contents(__DIR__ . '/../../resources/svelte/Uploadable.svelte');
 
         $this->assertStringContainsString("data-ajax=\"{{ route('mediaclass.ajax') }}\"", $view);
-        $this->assertStringContainsString("'save_media_settings' => __('mfw-mediaclass.buttons.save_media_settings')", $view);
+        $this->assertStringContainsString("'save_media_settings' => __('mfw-mediaclass::messages.buttons.save_media_settings')", $view);
         $this->assertStringContainsString('data-has-settings=', $view);
         $this->assertStringContainsString('{{ $slot }}', $view);
         $this->assertStringContainsString('mediaclass-save-details', $svelteSource);

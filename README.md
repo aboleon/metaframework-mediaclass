@@ -11,19 +11,6 @@ Media management components for Laravel applications. This package provides
 upload UI, database persistence, image resizing, optional cropping, and helpers
 to retrieve and render media for Eloquent models.
 
-## Quick Start
-
-```php
-// Get image URL
-$url = $post->img('cover')->url();
-
-// Get img tag
-{!! $post->img('cover')->class('rounded')->lazy()->img() !!}
-
-// In Blade
-<x-mfw-media :src="$post->img('cover')" class="rounded" lazy />
-```
-
 ## Installation
 
 ```bash
@@ -63,6 +50,10 @@ Use `--views` only when the application needs to customize the package Blade
 views. Views are not published by default so package updates can keep improving
 the upstream UI.
 
+Use `--lang` only to create application-owned translation overrides. Package
+translations load directly from the dependency and are not published during a
+normal update.
+
 The stored-media component loads LightGallery `2.8.3` from
 `https://cdnjs.cloudflare.com`, including its bundled CSS and the core, zoom,
 thumbnail, and video scripts. The package does not publish a local LightGallery
@@ -86,13 +77,8 @@ composer require aboleon/metaframework-mediaclass:"^0.16"
 ```
 
 Mediaclass `1.x` is the Svelte UI line. The Svelte assets are built and shipped
-inside the Composer package, so consuming Laravel applications should not need
-Node, npm, or a Svelte build step just to use the package. After updating the
-Composer dependency, run:
-
-```bash
-php artisan mediaclass:update --force
-```
+inside the Composer package, so consuming Laravel applications do not need
+Node, npm, or a Svelte build step.
 
 The `1.x` package does not ship or load Blueimp jQuery File Upload. Its uploader,
 video URL form, queue, progress state, and validation UI are Svelte. jQuery is
@@ -143,14 +129,6 @@ supported Blade API.
 
 The small published `jcrop` directory remains because the active crop editor
 still loads Jcrop. It is independent from the removed Blueimp uploader.
-
-Applications installing the package through Composer do not run these npm
-commands. They receive the precompiled bundle and only need:
-
-```bash
-composer update aboleon/metaframework-mediaclass
-php artisan mediaclass:update --force
-```
 
 ## Laravel Compatibility
 
@@ -543,7 +521,9 @@ $post->processMedia();
 
 ## Configuration
 
-Published to `config/mfw-mediaclass.php`:
+Publish application-owned configuration with
+`php artisan mediaclass:update --config`. The resulting
+`config/mfw-mediaclass.php` starts with:
 
 ```php
 return [
@@ -556,6 +536,41 @@ return [
     ],
 ];
 ```
+
+### Localization
+
+Translations load from the package under the `mfw-mediaclass` namespace. Package
+code and application integrations can resolve a line with:
+
+```php
+__('mfw-mediaclass::messages.buttons.save_media_settings');
+```
+
+Laravel automatically merges application overrides from its conventional
+vendor language directory. Override only the lines the application needs:
+
+```text
+lang/vendor/mfw-mediaclass/fr/messages.php
+```
+
+```php
+<?php
+
+return [
+    'buttons' => [
+        'save_media_settings' => 'Enregistrer les médias',
+    ],
+];
+```
+
+Run `php artisan mediaclass:update --lang` to publish complete override files
+for all bundled locales. Published language files become application-owned and
+are not refreshed by normal package updates; prefer small manual override files
+when only a few labels differ.
+
+Older installations may contain `lang/{locale}/mfw-mediaclass.php` files from
+the previous updater. Those global files are no longer loaded. Delete unchanged
+copies; move genuine custom lines into the vendor override path above.
 
 ---
 

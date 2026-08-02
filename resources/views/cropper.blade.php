@@ -75,8 +75,9 @@
     <input type=hidden name=resized_temp_w value="{!! $current_w !!}">
 
     <div class="crop-info">
-        <h5>{{ __('mfw-mediaclass.labels.crop') }} : {{ $cropLabel }}</h5>
-        <div class="dimensions">{{ __('mfw-mediaclass.labels.target_dimensions') }} : {{ $cropable->width() }} x
+        <h5>{{ __('mfw-mediaclass::messages.labels.crop') }} : {{ $cropLabel }}</h5>
+        <div class="dimensions">{{ __('mfw-mediaclass::messages.labels.target_dimensions') }} :
+            {{ $cropable->width() }} x
             {{ $cropable->height() }} px</div>
     </div>
 
@@ -87,13 +88,13 @@
         <div class="row">
             <div class="col-sm-3">
                 <div class="input-group">
-                    <span class="input-group-text">{{ __('mfw-mediaclass.labels.width') }}</span>
+                    <span class="input-group-text">{{ __('mfw-mediaclass::messages.labels.width') }}</span>
                     <input type="text" class="form-control" id="w" name="wimage" />
                 </div>
             </div>
             <div class="col-sm-3">
                 <div class="input-group">
-                    <span class="input-group-text">{{ __('mfw-mediaclass.labels.height') }}</span>
+                    <span class="input-group-text">{{ __('mfw-mediaclass::messages.labels.height') }}</span>
                     <input type="text" class="form-control" id="h" name="himage" />
                 </div>
             </div>
@@ -101,9 +102,9 @@
                 <img src="{{ asset('vendor/mfw-mediaclass/jcrop/loading.svg') }}" alt=""
                     class="d-inline-block d-none" id="mediaclas-loader" style='height:40px'>
                 <button type="submit" class="btn btn-secondary"
-                    id="mediaclass-crop-btn">{{ __('mfw-mediaclass.buttons.validate_crop') }}</button>
+                    id="mediaclass-crop-btn">{{ __('mfw-mediaclass::messages.buttons.validate_crop') }}</button>
                 <button type="button" class="btn btn-default"
-                    data-bs-dismiss="modal">{{ __('mfw-mediaclass.buttons.cancel') }}</button>
+                    data-bs-dismiss="modal">{{ __('mfw-mediaclass::messages.buttons.cancel') }}</button>
             </div>
         </div>
     </div>

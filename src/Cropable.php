@@ -282,7 +282,7 @@ class Cropable
             return '';
         }
 
-        $title = __('mfw-mediaclass.labels.crops') . ' :';
+        $title = __('mfw-mediaclass::messages.labels.crops') . ' :';
         return '<div class="crop-actions-bar"><span class="crop-actions-title">'.$title.'</span>' . implode('', $buttons) . '</div>';
     }
 
