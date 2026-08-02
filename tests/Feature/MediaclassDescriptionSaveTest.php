@@ -196,7 +196,12 @@ class MediaclassDescriptionSaveTest extends TestCase
         $this->assertStringContainsString("text('save_media_settings', 'Save media settings')", $svelteSource);
         $this->assertStringContainsString("$(document).trigger('mediaclass:save-settings', [uploadable])", $script);
         $this->assertStringContainsString("{name: 'action', value: 'saveDescriptions'}", $script);
-        $this->assertStringContainsString('mfwAjax(MediaclassManager.saveDescriptionsFormData(uploadable), uploadable', $script);
+        $this->assertStringContainsString('? MediaclassManager.saveDescriptionsFormData(uploadable)', $script);
+        $this->assertStringContainsString('mfwAjax(descriptionsFormData, uploadable', $script);
+        $this->assertLessThan(
+            strpos($script, "$(document).trigger('mediaclass:save-settings', [uploadable])"),
+            strpos($script, 'const descriptionsFormData =')
+        );
     }
 
     public function test_stored_video_renders_editable_default_embed_dimensions(): void

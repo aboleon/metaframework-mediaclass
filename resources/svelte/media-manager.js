@@ -539,14 +539,17 @@ const MediaclassManager = {
                 const uploadable = $(this).closest('.mediaclass-uploadable');
                 const hasDescriptions = Number(uploadable.attr('data-has-description')) === 1;
                 const hasVideos = uploadable.find('.uploaded .preview.video').length > 0;
+                const descriptionsFormData = hasDescriptions || hasVideos
+                    ? MediaclassManager.saveDescriptionsFormData(uploadable)
+                    : null;
 
                 $(document).trigger('mediaclass:save-settings', [uploadable]);
 
-                if (!hasDescriptions && !hasVideos) {
+                if (!descriptionsFormData) {
                     return;
                 }
 
-                mfwAjax(MediaclassManager.saveDescriptionsFormData(uploadable), uploadable, {
+                mfwAjax(descriptionsFormData, uploadable, {
                     spinner: true,
                     lockForm: true
                 });
