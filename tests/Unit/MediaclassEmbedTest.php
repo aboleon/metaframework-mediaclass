@@ -15,6 +15,7 @@ use MetaFramework\Mediaclass\Models\Media;
 use MetaFramework\Mediaclass\Support\EmbedProviderManager;
 use MetaFramework\Mediaclass\Tests\TestCase;
 use MetaFramework\Mediaclass\VideoEmbedders\Tf1InfoEmbedProvider;
+use MetaFramework\Mediaclass\VideoEmbedders\VimeoEmbedProvider;
 use MetaFramework\Mediaclass\VideoEmbedders\YouTubeEmbedProvider;
 use RuntimeException;
 
@@ -22,7 +23,7 @@ class MediaclassEmbedTest extends TestCase
 {
     public function test_it_renders_an_external_video_media_url(): void
     {
-        $url = 'https://vimeo.com/123456789';
+        $url = 'https://video.example.com/watch/123456789';
         $media = new Media([
             'mime' => 'video/url',
             'storable' => ['url' => $url],
@@ -36,7 +37,7 @@ class MediaclassEmbedTest extends TestCase
                 'height' => 'auto',
                 'loading' => 'lazy',
             ])
-            ->willReturn('<iframe src="https://player.vimeo.com/video/123456789"></iframe>');
+            ->willReturn('<iframe src="https://video.example.com/watch/123456789"></iframe>');
 
         $factory = $this->createMock(Factory::class);
         $factory->expects($this->once())
@@ -48,7 +49,7 @@ class MediaclassEmbedTest extends TestCase
 
         $this->assertInstanceOf(HtmlString::class, $html);
         $this->assertSame(
-            '<iframe src="https://player.vimeo.com/video/123456789"></iframe>',
+            '<iframe src="https://video.example.com/watch/123456789"></iframe>',
             $html->toHtml(),
         );
     }
@@ -83,7 +84,7 @@ class MediaclassEmbedTest extends TestCase
         $factory = $this->createStub(Factory::class);
         $factory->method('get')->willReturn($embed);
 
-        (new Mediaclass($factory))->embed('https://vimeo.com/123456789', [
+        (new Mediaclass($factory))->embed('https://video.example.com/watch/123456789', [
             'loading' => 'lazy',
             'title' => 'Video" onload="alert(1)',
             'onload' => 'alert(1)',
@@ -354,6 +355,75 @@ class MediaclassEmbedTest extends TestCase
             'style="width: 560px; max-width: 100%; height: auto; aspect-ratio: 16 / 9;"',
             $html,
         );
+    }
+
+    public function test_it_renders_vimeo_urls_with_the_package_provider(): void
+    {
+        $url = 'https://vimeo.com/123456789?h=abc123';
+        $media = new Media([
+            'mime' => 'video/url',
+            'storable' => [
+                'url' => $url,
+                'embed_width' => '100%',
+                'embed_height' => 'auto',
+            ],
+        ]);
+        $factory = $this->createMock(Factory::class);
+        $factory->expects($this->never())->method('get');
+
+        $html = (new Mediaclass($factory))->embed($media)->toHtml();
+
+        $this->assertStringStartsWith(
+            '<iframe src="https://player.vimeo.com/video/123456789?h=abc123"',
+            $html,
+        );
+        $this->assertStringContainsString(
+            'style="width: 100%; height: auto; aspect-ratio: 16 / 9;"',
+            $html,
+        );
+    }
+
+    public function test_vimeo_provider_accepts_supported_urls_and_rejects_lookalikes(): void
+    {
+        $provider = new VimeoEmbedProvider;
+
+        foreach ([
+            'https://vimeo.com/123456789',
+            'https://www.vimeo.com/channels/staffpicks/123456789',
+            'https://vimeo.com/groups/shortfilms/videos/123456789',
+            'https://player.vimeo.com/video/123456789',
+        ] as $url) {
+            $this->assertTrue($provider->supports($url), $url);
+            $this->assertSame(
+                'https://player.vimeo.com/video/123456789',
+                $provider->embed($url)?->src,
+            );
+            $this->assertSame('16 / 9', $provider->embed($url)?->aspectRatio?->toCssValue());
+        }
+
+        foreach ([
+            'http://vimeo.com/123456789',
+            'https://vimeo.com.example.com/123456789',
+            'https://vimeo.com/not-a-video',
+            'https://vimeo.com/123456789/extra',
+            'https://vimeo.com:8443/123456789',
+            'https://vimeo.com/123456789#t=10s',
+        ] as $url) {
+            $this->assertFalse($provider->supports($url), $url);
+        }
+    }
+
+    public function test_service_provider_registers_vimeo_support(): void
+    {
+        $html = $this->app->make(Mediaclass::class)
+            ->embed('https://vimeo.com/123456789')
+            ->toHtml();
+
+        $this->assertStringStartsWith(
+            '<iframe src="https://player.vimeo.com/video/123456789"',
+            $html,
+        );
+        $this->assertStringContainsString('aspect-ratio: 16 / 9;', $html);
     }
 
     public function test_tf1_info_provider_rejects_lookalike_player_urls(): void

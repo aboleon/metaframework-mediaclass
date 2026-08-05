@@ -11,6 +11,7 @@ use Illuminate\Support\ServiceProvider;
 use MetaFramework\Mediaclass\Console\UpdateMediaclassCommand;
 use MetaFramework\Mediaclass\Support\EmbedProviderManager;
 use MetaFramework\Mediaclass\VideoEmbedders\Tf1InfoEmbedProvider;
+use MetaFramework\Mediaclass\VideoEmbedders\VimeoEmbedProvider;
 use MetaFramework\Mediaclass\VideoEmbedders\YouTubeEmbedProvider;
 
 class MediaclassServiceProvider extends ServiceProvider
@@ -28,6 +29,7 @@ class MediaclassServiceProvider extends ServiceProvider
             static function (EmbedProviderManager $manager): void {
                 $manager->register(YouTubeEmbedProvider::class);
                 $manager->register(Tf1InfoEmbedProvider::class);
+                $manager->register(VimeoEmbedProvider::class);
             },
         );
         $this->app->singleton(

@@ -8,6 +8,7 @@ use Illuminate\Contracts\Container\Container;
 use MetaFramework\Mediaclass\Contracts\EmbedProvider;
 use MetaFramework\Mediaclass\Data\ExternalVideoEmbed;
 use MetaFramework\Mediaclass\VideoEmbedders\Tf1InfoEmbedProvider;
+use MetaFramework\Mediaclass\VideoEmbedders\VimeoEmbedProvider;
 use MetaFramework\Mediaclass\VideoEmbedders\YouTubeEmbedProvider;
 use Throwable;
 
@@ -31,6 +32,7 @@ class EmbedProviderManager
         return new self(providers: [
             new YouTubeEmbedProvider,
             new Tf1InfoEmbedProvider,
+            new VimeoEmbedProvider,
         ]);
     }
 

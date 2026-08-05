@@ -667,8 +667,8 @@ rendered width. A positive pixel height remains fixed when an exact height is
 required.
 
 The package also supports registered embed providers for player URLs that need
-structured rendering. YouTube and TF1 Info player URLs are supported by
-default:
+structured rendering. Vimeo, YouTube, and TF1 Info player URLs are supported
+by default:
 
 ```php
 $html = mediaclass_embed(
